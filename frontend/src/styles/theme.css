@@ -1,0 +1,56 @@
+@reference "tailwindcss";
+
+@layer base {
+  :root {
+    --primary: 335 85% 65%; /* #f472b6 Pink 400 */
+    --primary-foreground: 0 0% 100%;
+    --background: 330 30% 98%; /* Light pinkish background */
+    --foreground: 330 10% 20%;
+    --card: 0 0% 100%;
+    --card-foreground: 330 10% 20%;
+    --border: 330 20% 90%;
+    
+    --radius: 1.5rem;
+  }
+  
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-family: 'Poppins', 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* Soft mesh gradient background */
+    background-image: 
+      radial-gradient(at 10% 10%, hsla(335, 85%, 90%, 0.4) 0px, transparent 50%),
+      radial-gradient(at 90% 90%, hsla(335, 85%, 90%, 0.4) 0px, transparent 50%),
+      radial-gradient(at 90% 10%, hsla(190, 80%, 90%, 0.3) 0px, transparent 50%);
+    background-attachment: fixed;
+    min-height: 100vh;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Poppins', sans-serif;
+  }
+}
+
+@layer components {
+  .glass-panel {
+    @apply bg-white/60 backdrop-blur-xl border border-white/80 shadow-[0_8px_32px_0_rgba(244,114,182,0.1)] rounded-[var(--radius)];
+  }
+  
+  .glass-card {
+    @apply bg-white/70 backdrop-blur-md border border-white/60 shadow-lg rounded-[calc(var(--radius)-0.5rem)] transition-all duration-300 hover:shadow-xl hover:bg-white/90 hover:-translate-y-1;
+  }
+  
+  .btn-primary {
+    @apply bg-pink-400 hover:bg-pink-500 text-white font-medium py-3 px-6 rounded-full shadow-md hover:shadow-lg transition-all duration-300 transform active:scale-95;
+  }
+  
+  .btn-secondary {
+    @apply bg-white text-pink-500 font-medium py-3 px-6 rounded-full shadow-sm border border-pink-100 hover:shadow-md hover:bg-pink-50 transition-all duration-300;
+  }
+  
+  .input-glass {
+    @apply w-full px-4 py-3 bg-white/50 border border-pink-100 rounded-2xl focus:outline-none focus:ring-2 focus:ring-pink-300 focus:bg-white transition-all shadow-sm backdrop-blur-sm;
+  }
+}
