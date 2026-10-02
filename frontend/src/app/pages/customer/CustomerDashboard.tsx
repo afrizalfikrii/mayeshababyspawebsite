@@ -1,19 +1,25 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
-import { User, Calendar, Clock, MapPin, Plus, Loader2, Trash2, X, Baby as BabyIcon } from "lucide-react";
+import { User, Calendar, Clock, MapPin, Plus, Loader2, Trash2, X, Baby as BabyIcon, Pencil, Check } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import { getMyReservations } from "@/services/reservation.service";
 import { getBabies, createBaby, deleteBaby } from "@/services/baby.service";
+import { updateProfile } from "@/services/auth.service";
 import type { Reservation, Baby } from "@/types/api.types";
 import RecommendationSection from "@/components/RecommendationSection";
 
 export default function CustomerDashboard() {
-  const { user } = useAuth();
+  const { user, setUser } = useAuth();
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [babies, setBabies] = useState<Baby[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // State untuk edit alamat
+  const [isEditingAddress, setIsEditingAddress] = useState(false);
+  const [addressInput, setAddressInput] = useState("");
+  const [isSavingAddress, setIsSavingAddress] = useState(false);
 
   // State untuk modal tambah data anak
   const [isBabyModalOpen, setIsBabyModalOpen] = useState(false);
@@ -84,6 +90,25 @@ export default function CustomerDashboard() {
     }
   };
 
+  const handleStartEditAddress = () => {
+    setAddressInput(user?.address ?? "");
+    setIsEditingAddress(true);
+  };
+
+  const handleSaveAddress = async () => {
+    setIsSavingAddress(true);
+    try {
+      const updatedUser = await updateProfile({ address: addressInput || null });
+      setUser(updatedUser);
+      toast.success("Alamat berhasil disimpan!");
+      setIsEditingAddress(false);
+    } catch (err: any) {
+      toast.error(err.response?.data?.message ?? "Gagal menyimpan alamat.");
+    } finally {
+      setIsSavingAddress(false);
+    }
+  };
+
   const getStatusConfig = (status: string) => {
     const configs: Record<string, { bg: string; text: string; label: string }> = {
       pending: { bg: "bg-amber-50 border-amber-100 text-amber-600", text: "text-amber-600", label: "Belum Bayar" },
@@ -123,6 +148,56 @@ export default function CustomerDashboard() {
                 </span>
               </div>
             </div>
+
+            {/* Alamat Rumah */}
+            <div className="border-t border-slate-100 pt-4">
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                  <MapPin size={11} /> Alamat Rumah
+                </h4>
+                {!isEditingAddress && (
+                  <button
+                    onClick={handleStartEditAddress}
+                    className="text-pink-500 hover:text-pink-600 font-bold text-[10px] flex items-center gap-0.5 cursor-pointer uppercase tracking-wider"
+                  >
+                    <Pencil size={10} /> Edit
+                  </button>
+                )}
+              </div>
+
+              {isEditingAddress ? (
+                <div className="flex flex-col gap-2">
+                  <textarea
+                    rows={3}
+                    className="input-glass w-full resize-none py-2 text-xs"
+                    placeholder="Contoh: Jl. Mawar No. 10, RT 02/03, Bekasi Utara"
+                    value={addressInput}
+                    onChange={(e) => setAddressInput(e.target.value)}
+                    autoFocus
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleSaveAddress}
+                      disabled={isSavingAddress}
+                      className="flex-1 flex items-center justify-center gap-1 py-1.5 bg-pink-500 hover:bg-pink-600 text-white text-[11px] font-bold rounded-lg transition-all cursor-pointer"
+                    >
+                      {isSavingAddress ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}
+                      Simpan
+                    </button>
+                    <button
+                      onClick={() => setIsEditingAddress(false)}
+                      className="flex-1 py-1.5 border border-slate-200 text-slate-500 text-[11px] font-bold rounded-lg hover:bg-slate-50 transition-all cursor-pointer"
+                    >
+                      Batal
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-[11px] text-slate-600 leading-relaxed">
+                  {user?.address ?? <span className="italic text-slate-400">Belum diisi. Diperlukan untuk layanan home visit.</span>}
+                </p>
+              )}
+            </div>
             <div className="flex flex-col gap-3">
               <div className="flex items-center justify-between border-t border-slate-100 pt-4">
                 <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Profil Si Kecil</h4>
@@ -133,6 +208,8 @@ export default function CustomerDashboard() {
                   <Plus size={10} /> Tambah Anak
                 </button>
               </div>
+
+
 
               {babies.length === 0 ? (
                 <p className="text-[11px] text-slate-400 italic">Belum ada profil anak terdaftar.</p>
@@ -296,7 +373,7 @@ export default function CustomerDashboard() {
                   <label className="text-xs font-bold text-slate-500 uppercase block mb-1.5">Nama Lengkap Anak</label>
                   <input
                     type="text"
-                    placeholder="Contoh: Baby Alula"
+                    placeholder="Contoh: Kenzie"
                     className="input-glass w-full"
                     value={babyForm.name}
                     onChange={(e) => setBabyForm({ ...babyForm, name: e.target.value })}

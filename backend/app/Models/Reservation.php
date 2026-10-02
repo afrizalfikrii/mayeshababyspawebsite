@@ -29,6 +29,7 @@ class Reservation extends Model
         'baby_name',
         'baby_age',
         'notes',
+        'delivery_address',
         'therapist_id',
         'baby_id',
     ];

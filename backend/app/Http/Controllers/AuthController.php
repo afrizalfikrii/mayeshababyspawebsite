@@ -114,4 +114,26 @@ class AuthController extends Controller
             'data'    => new UserResource($request->user()),
         ]);
     }
+
+    /**
+     * Update authenticated user's profile (name, phone_number, address).
+     */
+    public function updateProfile(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'name'         => ['sometimes', 'required', 'string', 'max:255'],
+            'phone_number' => ['nullable', 'string', 'max:20'],
+            'address'      => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        /** @var \App\Models\User $user */
+        $user = $request->user();
+        $user->update($validated);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Profil berhasil diperbarui.',
+            'data'    => new UserResource($user),
+        ]);
+    }
 }

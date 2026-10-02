@@ -23,6 +23,7 @@ export interface User {
   name: string;
   email: string;
   phone_number: string | null;
+  address: string | null;
   role: "admin" | "customer";
   created_at: string;
 }
@@ -83,6 +84,7 @@ export interface Reservation {
   baby_name: string;
   baby_age: number;
   notes: string | null;
+  delivery_address: string | null;
   created_at: string;
   updated_at: string;
   // Reschedule flag
@@ -132,6 +134,13 @@ export interface CreateReservationPayload {
   notes?: string;
   therapist_id?: number;
   baby_id?: number;
+  delivery_address?: string;
+}
+
+export interface UpdateProfilePayload {
+  name?: string;
+  phone_number?: string | null;
+  address?: string | null;
 }
 
 // ─── Slot Availability ───────────────────────────────────────────────────────

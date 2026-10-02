@@ -18,10 +18,11 @@ class StoreReservationRequest extends FormRequest
             'reservation_date' => ['required', 'date', 'after_or_equal:today'],
             'start_time'       => ['required', 'date_format:H:i'],
             'baby_id'          => ['nullable', 'integer', 'exists:babies,id'],
-            'baby_name'        => ['required_without:baby_id', 'nullable', 'string', 'max:255'],
-            'baby_age'         => ['required_without:baby_id', 'nullable', 'integer', 'min:1'],
+            'baby_name'        => ['nullable', 'string', 'max:255'],
+            'baby_age'         => ['nullable', 'integer', 'min:1'],
             'notes'            => ['nullable', 'string', 'max:1000'],
             'therapist_id'     => ['nullable', 'integer', 'exists:therapists,id'],
+            'delivery_address' => ['nullable', 'string', 'max:1000'],
         ];
     }
 

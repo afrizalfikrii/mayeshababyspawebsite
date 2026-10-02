@@ -388,14 +388,41 @@ export default function AdminDashboard() {
 
   // ── Filters & Search ────────────────────────────────────────────────────────
   const filteredReservations = reservations.filter((r) => {
+    const q = searchQuery.toLowerCase().trim();
+    if (!q) {
+      if (resFilter === "all") return true;
+      if (resFilter === "rescheduled") return r.is_rescheduled;
+      return r.status === resFilter;
+    }
+
     const matchesSearch =
-      r.booking_code.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (r.user?.name ?? "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-      r.service?.name.toLowerCase().includes(searchQuery.toLowerCase());
+      r.booking_code.toLowerCase().includes(q) ||
+      (r.user?.name ?? "").toLowerCase().includes(q) ||
+      (r.baby_name ?? "").toLowerCase().includes(q) ||
+      (r.service?.name ?? "").toLowerCase().includes(q) ||
+      (r.therapist?.name ?? "").toLowerCase().includes(q) ||
+      (r.user?.phone_number ?? "").toLowerCase().includes(q) ||
+      (r.delivery_address ?? "").toLowerCase().includes(q) ||
+      (r.notes ?? "").toLowerCase().includes(q);
 
     if (resFilter === "all") return matchesSearch;
     if (resFilter === "rescheduled") return r.is_rescheduled && matchesSearch;
     return r.status === resFilter && matchesSearch;
+  });
+
+  const filteredServices = services.filter((s) => {
+    const q = searchQuery.toLowerCase().trim();
+    if (!q) return true;
+    return (
+      s.name.toLowerCase().includes(q) ||
+      (s.description ?? "").toLowerCase().includes(q)
+    );
+  });
+
+  const filteredTherapists = therapists.filter((t) => {
+    const q = searchQuery.toLowerCase().trim();
+    if (!q) return true;
+    return t.name.toLowerCase().includes(q);
   });
 
   const getStatusBadge = (status: string) => {
@@ -446,11 +473,20 @@ export default function AdminDashboard() {
             <Search className="absolute left-3 top-3 text-slate-400" size={18} />
             <input
               type="text"
-              placeholder="Cari ID, nama pelanggan..."
-              className="input-glass pl-10 py-2.5 w-full md:w-72"
+              placeholder="Cari nama orang tua, anak, kode..."
+              className="input-glass pl-10 pr-9 py-2.5 w-full md:w-80 text-sm"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 cursor-pointer"
+                title="Hapus pencarian"
+              >
+                <X size={16} />
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -628,6 +664,11 @@ export default function AdminDashboard() {
                             <p className="font-semibold text-slate-800 text-sm flex items-center gap-2">
                               {r.user?.name}
                             </p>
+                            {r.baby_name && (
+                              <p className="text-xs text-pink-600 font-medium mt-0.5">
+                                Anak: <span className="font-semibold">{r.baby_name}</span> ({r.baby_age} Bln)
+                              </p>
+                            )}
                             <p className="text-xs text-slate-400 font-mono mt-0.5">{r.user?.phone_number ?? '-'}</p>
                           </td>
                           <td className="py-4 px-6">
@@ -754,7 +795,7 @@ export default function AdminDashboard() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                      {services.map((s) => (
+                      {filteredServices.map((s) => (
                         <tr key={s.id} className="hover:bg-slate-50/50 transition-colors">
                           <td className="py-4 px-6 font-semibold text-slate-800 text-sm">{s.name}</td>
                           <td className="py-4 px-6 text-slate-500 text-xs max-w-xs truncate">{s.description}</td>
@@ -842,7 +883,7 @@ export default function AdminDashboard() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                      {therapists.map((t) => (
+                      {filteredTherapists.map((t) => (
                         <tr key={t.id} className="hover:bg-slate-50/50 transition-colors">
                           <td className="py-4 px-6 font-semibold text-slate-800 text-sm flex items-center gap-3">
                             <div className="w-8 h-8 rounded-full bg-pink-100 text-pink-600 flex items-center justify-center font-bold text-xs uppercase">

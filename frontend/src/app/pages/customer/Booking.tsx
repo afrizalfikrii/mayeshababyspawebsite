@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
-import { Calendar, Clock, CheckCircle, ChevronRight, User, Loader2, Sparkles, Baby as BabyIcon, Plus, AlertCircle } from "lucide-react";
+import { Calendar, Clock, CheckCircle, ChevronRight, User, Loader2, Sparkles, Baby as BabyIcon, Plus, AlertCircle, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "motion/react";
 import { getServices, getTherapists } from "@/services/service.service";
 import { createReservation, getSlotAvailability } from "@/services/reservation.service";
 import { getBabies, createBaby } from "@/services/baby.service";
+import { useAuth } from "@/context/AuthContext";
 import type { Service, Therapist, Baby, SlotAvailability } from "@/types/api.types";
 
 const TIME_SLOTS = ["08:30", "09:30", "10:30", "11:30", "13:00", "14:00", "15:00", "16:00"];
@@ -13,6 +14,7 @@ const TIME_SLOTS = ["08:30", "09:30", "10:30", "11:30", "13:00", "14:00", "15:00
 export default function Booking() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { user } = useAuth();
   const [step, setStep] = useState(1);
   const [services, setServices] = useState<Service[]>([]);
   const [therapists, setTherapists] = useState<Therapist[]>([]);
@@ -28,6 +30,7 @@ export default function Booking() {
     notes: "",
     therapistId: "",
     babyId: "",
+    deliveryAddress: "",
   });
 
   // ── Slot Availability State ─────────────────────────────────────────────────
@@ -67,7 +70,7 @@ export default function Booking() {
         const defaultService = preselectedId && servicesData.find((s) => s.id === preselectedId)
           ? preselectedId
           : servicesData[0]?.id ?? 0;
-        setFormData((prev) => ({ ...prev, serviceId: defaultService }));
+        setFormData((prev) => ({ ...prev, serviceId: defaultService, deliveryAddress: user?.address ?? "" }));
         if (babiesData.length > 0) {
           setFormData((prev) => ({
             ...prev,
@@ -75,6 +78,7 @@ export default function Booking() {
             babyName: babiesData[0].name,
             babyAge: String(calculateAgeInMonths(babiesData[0].birth_date)),
             notes: babiesData[0].notes || "",
+            deliveryAddress: user?.address ?? "",
           }));
           setBabyProfileMode("select");
         } else {
@@ -124,6 +128,10 @@ export default function Booking() {
     return "available";
   };
 
+  // ── Derived: selected service & category ───────────────────────────────────
+  const selectedService = services.find((s) => s.id === formData.serviceId);
+  const isMomTreatment = selectedService?.category === 'mom_treatment';
+
   const handleNext = async () => {
     if (step === 1 && !formData.serviceId) return toast.error("Pilih layanan terlebih dahulu ya, Bun");
     if (step === 2 && !formData.date) return toast.error("Pilih tanggalnya dulu ya");
@@ -132,7 +140,12 @@ export default function Booking() {
     if (step === 3 && babyProfileMode === "select" && !formData.babyId) return toast.error("Pilih profil anak Bunda terlebih dahulu");
 
     if (step < 4) {
-      setStep(step + 1);
+      // If mom treatment, skip Step 3 (baby data) entirely
+      if (step === 2 && isMomTreatment) {
+        setStep(4);
+      } else {
+        setStep(step + 1);
+      }
     } else {
       // Step 4: Submit to API
       setIsSubmitting(true);
@@ -141,11 +154,13 @@ export default function Booking() {
           service_id: formData.serviceId,
           reservation_date: formData.date,
           start_time: formData.time,
-          baby_name: babyProfileMode === "manual" ? formData.babyName : undefined,
-          baby_age: babyProfileMode === "manual" ? Number(formData.babyAge) : undefined,
+          // Only send baby data for non-mom services
+          baby_name: (!isMomTreatment && babyProfileMode === "manual") ? formData.babyName : undefined,
+          baby_age: (!isMomTreatment && babyProfileMode === "manual") ? Number(formData.babyAge) : undefined,
           notes: formData.notes || undefined,
           therapist_id: formData.therapistId ? Number(formData.therapistId) : undefined,
-          baby_id: babyProfileMode === "select" ? Number(formData.babyId) : undefined,
+          baby_id: (!isMomTreatment && babyProfileMode === "select") ? Number(formData.babyId) : undefined,
+          delivery_address: formData.deliveryAddress || undefined,
         });
         toast.success("Reservasi berhasil dibuat! Silakan lakukan pembayaran.");
         navigate(`/dashboard/reservasi/${booking.id}`);
@@ -188,10 +203,10 @@ export default function Booking() {
     }
   };
 
-  const selectedService = services.find((s) => s.id === formData.serviceId);
 
   return (
-    <div className="max-w-3xl mx-auto px-6 py-12">
+    <>
+    <div className="max-w-3xl mx-auto px-6 py-12 pb-32">
       <div className="mb-10 text-center">
         <h1 className="text-3xl font-extrabold text-slate-800 mb-2 tracking-tight">Yuk, Booking Sesi! 🌸</h1>
         <p className="text-slate-500">Pilih layanan kesukaan si Kecil dan atur jadwalnya</p>
@@ -202,18 +217,30 @@ export default function Booking() {
         <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-pink-100 -z-10 rounded-full" />
         <div
           className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-pink-500 -z-10 rounded-full transition-all duration-300"
-          style={{ width: `${((step - 1) / 3) * 100}%` }}
+          style={{ width: `${isMomTreatment ? ((step === 4 ? 3 : step - 1) / 3) * 100 : ((step - 1) / 3) * 100}%` }}
         />
-        {[1, 2, 3, 4].map((i) => (
-          <div
-            key={i}
-            className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all shadow-sm ${
-              step >= i ? "bg-pink-500 text-white shadow-pink-100 scale-105" : "bg-white text-slate-400 border-2 border-pink-100"
-            }`}
-          >
-            {i}
-          </div>
-        ))}
+        {[1, 2, 3, 4].map((i) => {
+          // For mom treatment, show step 3 as greyed out/skipped
+          const isSkipped = isMomTreatment && i === 3;
+          const isActive  = isMomTreatment
+            ? (i === 3 ? false : (i < 3 ? step >= i : step >= 4))
+            : step >= i;
+          return (
+            <div
+              key={i}
+              title={isSkipped ? 'Dilewati (layanan untuk Bunda)' : undefined}
+              className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all shadow-sm ${
+                isSkipped
+                  ? 'bg-slate-100 text-slate-300 border-2 border-slate-200'
+                  : isActive
+                  ? 'bg-pink-500 text-white shadow-pink-100 scale-105'
+                  : 'bg-white text-slate-400 border-2 border-pink-100'
+              }`}
+            >
+              {isSkipped ? '–' : i}
+            </div>
+          );
+        })}
       </div>
 
       <motion.div
@@ -235,6 +262,15 @@ export default function Booking() {
                 <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
                   <Sparkles size={20} className="text-pink-500" /> 1. Mau pilih layanan apa nih?
                 </h2>
+
+                {/* Info usia anak */}
+                <div className="flex items-start gap-3 p-3.5 bg-pink-50 border border-pink-100 rounded-2xl">
+                  <BabyIcon size={16} className="text-pink-400 shrink-0 mt-0.5" />
+                  <p className="text-xs text-pink-700 leading-relaxed">
+                    <span className="font-bold">Layanan Baby &amp; Kids</span> di Mayesha Baby Spa ditujukan untuk anak usia <span className="font-bold">0 – 5 tahun</span>. Pastikan usia si Kecil sudah sesuai sebelum melakukan pemesanan ya, Bun! 🌸
+                  </p>
+                </div>
+
                 <div className="grid gap-4">
                   {services.map((s) => (
                     <label
@@ -419,6 +455,14 @@ export default function Booking() {
               <div className="flex flex-col gap-6">
                 <h2 className="text-xl font-bold text-slate-800">3. Kenalan sama si Kecil yuk!</h2>
 
+                {/* Reminder usia anak */}
+                <div className="flex items-start gap-3 p-3.5 bg-amber-50 border border-amber-100 rounded-2xl">
+                  <AlertCircle size={15} className="text-amber-500 shrink-0 mt-0.5" />
+                  <p className="text-xs text-amber-700 leading-relaxed">
+                    Layanan ini untuk anak usia <span className="font-bold">maksimal 5 tahun</span>. Jika usia si Kecil sudah melebihi itu, silakan hubungi kami langsung ya, Bun.
+                  </p>
+                </div>
+
                 <div className="flex bg-slate-100 p-1 rounded-xl gap-1">
                   {babies.length > 0 && (
                     <button
@@ -500,12 +544,12 @@ export default function Booking() {
                 {babyProfileMode === "manual" && (
                   <div className="grid gap-5">
                     <div>
-                      <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Nama Panggilan Bayi</label>
+                      <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Nama Panggilan Anak</label>
                       <div className="relative">
                         <User className="absolute left-4 top-3.5 text-slate-400" size={18} />
                         <input
                           type="text"
-                          placeholder="Misal: Baby Alula"
+                          placeholder="Contoh: Kenzie"
                           className="input-glass pl-11"
                           value={formData.babyName}
                           onChange={(e) => setFormData({ ...formData, babyName: e.target.value })}
@@ -513,7 +557,7 @@ export default function Booking() {
                       </div>
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Usia Bayi (Bulan)</label>
+                      <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Usia Anak (Bulan)</label>
                       <input
                         type="number"
                         placeholder="Berapa bulan nih usianya?"
@@ -538,13 +582,13 @@ export default function Booking() {
 
                 {babyProfileMode === "create" && (
                   <form onSubmit={handleCreateBabyProfile} className="flex flex-col gap-4 bg-slate-50/50 p-5 rounded-2xl border border-slate-100 text-left">
-                    <h3 className="font-bold text-slate-800 text-sm mb-1 uppercase tracking-wider">Registrasi Profil Bayi</h3>
+                    <h3 className="font-bold text-slate-800 text-sm mb-1 uppercase tracking-wider">Registrasi Profil Anak</h3>
                     <p className="text-xs text-slate-400 mb-2">Data ini akan disimpan permanen agar bisa dipilih lagi di booking selanjutnya.</p>
                     <div>
-                      <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Nama Lengkap Bayi</label>
+                      <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Nama Lengkap Anak</label>
                       <input
                         type="text"
-                        placeholder="Contoh: Baby Alula"
+                        placeholder="Contoh: Kenzie"
                         className="input-glass bg-white"
                         value={newBabyData.name}
                         onChange={(e) => setNewBabyData({ ...newBabyData, name: e.target.value })}
@@ -587,6 +631,23 @@ export default function Booking() {
                     </button>
                   </form>
                 )}
+
+                {/* Input Alamat Pengiriman — selalu muncul di Step 3 */}
+                <div className="border-t border-slate-100 pt-4">
+                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1">
+                    <MapPin size={12} /> Alamat Pengiriman (Home Visit)
+                  </label>
+                  <textarea
+                    rows={3}
+                    placeholder="Contoh: Jl. Mawar No. 10, RT 02/03, Bekasi Utara — kosongkan jika datang ke studio"
+                    className="input-glass w-full resize-none py-2.5 text-sm"
+                    value={formData.deliveryAddress}
+                    onChange={(e) => setFormData({ ...formData, deliveryAddress: e.target.value })}
+                  />
+                  <p className="text-[10px] text-slate-400 mt-1.5 leading-relaxed">
+                    * Isi jika memesan layanan <span className="font-semibold">home visit</span>. Kosongkan jika akan datang ke studio.
+                  </p>
+                </div>
               </div>
             )}
 
@@ -626,11 +687,23 @@ export default function Booking() {
                     </span>
                   </div>
                   <div className="flex justify-between border-b border-slate-200/60 pb-3">
-                    <span className="text-slate-500 font-medium">Bayi Gemes</span>
+                    <span className="text-slate-500 font-medium">{isMomTreatment ? 'Untuk' : 'Si Kecil'}</span>
                     <span className="font-bold text-slate-800">
-                      {formData.babyName} ({formData.babyAge} Bulan)
+                      {isMomTreatment
+                        ? '💆‍♀️ Bunda (Mom Treatment)'
+                        : `${formData.babyName} (${formData.babyAge} Bulan)`}
                     </span>
                   </div>
+                  {formData.deliveryAddress && (
+                    <div className="flex justify-between border-b border-slate-200/60 pb-3">
+                      <span className="text-slate-500 font-medium flex items-center gap-1">
+                        <MapPin size={13} /> Alamat
+                      </span>
+                      <span className="font-semibold text-slate-700 text-right max-w-[60%] text-xs leading-relaxed">
+                        {formData.deliveryAddress}
+                      </span>
+                    </div>
+                  )}
                   <div className="flex justify-between pt-2">
                     <span className="font-extrabold text-slate-800">Total Pembayaran</span>
                     <span className="font-extrabold text-pink-500 text-xl">
@@ -646,42 +719,63 @@ export default function Booking() {
               </div>
             )}
 
-            <div className="mt-8 flex justify-between">
-              {step > 1 ? (
-                <button
-                  type="button"
-                  onClick={() => setStep(step - 1)}
-                  className="px-6 py-2.5 font-semibold text-sm border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-xl transition-all cursor-pointer"
-                  disabled={isSubmitting}
-                >
-                  Kembali
-                </button>
-              ) : (
-                <div />
-              )}
 
-              <button
-                type="button"
-                onClick={handleNext}
-                disabled={isSubmitting}
-                className="btn-primary flex items-center justify-center gap-2 px-8 py-2.5 font-semibold text-sm shadow-md shadow-pink-100 cursor-pointer"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 size={16} className="animate-spin" /> Sedang Memesan...
-                  </>
-                ) : step === 4 ? (
-                  "Pesan Sesi Sekarang"
-                ) : (
-                  <>
-                    Lanjut <ChevronRight size={18} />
-                  </>
-                )}
-              </button>
-            </div>
           </>
         )}
       </motion.div>
     </div>
+
+    {/* ── Sticky Bottom Navigation Bar ─────────────────────────────── */}
+    {!isLoadingServices && (
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-t border-pink-100 shadow-[0_-4px_24px_rgba(236,72,153,0.08)]">
+        <div className="max-w-3xl mx-auto px-6 py-3 flex items-center justify-between gap-4">
+          {/* Step indicator */}
+          <div className="hidden sm:flex flex-col">
+            <span className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">
+              Langkah {step} dari {isMomTreatment ? '3' : '4'}
+            </span>
+            <span className="text-xs font-bold text-slate-700">
+              {step === 1 && 'Pilih Layanan'}
+              {step === 2 && 'Pilih Jadwal'}
+              {step === 3 && 'Data Bayi'}
+              {step === 4 && 'Konfirmasi'}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-3 ml-auto">
+            {step > 1 && (
+              <button
+                type="button"
+                onClick={() => setStep(isMomTreatment && step === 4 ? 2 : step - 1)}
+                className="px-5 py-2.5 font-semibold text-sm border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-xl transition-all cursor-pointer"
+                disabled={isSubmitting}
+              >
+                ← Kembali
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={handleNext}
+              disabled={isSubmitting}
+              className="btn-primary flex items-center justify-center gap-2 px-8 py-2.5 font-semibold text-sm shadow-md shadow-pink-100 cursor-pointer min-w-[160px]"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" /> Sedang Memesan...
+                </>
+              ) : step === 4 ? (
+                '✓ Pesan Sesi Sekarang'
+              ) : (
+                <>
+                  Lanjut <ChevronRight size={18} />
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 }

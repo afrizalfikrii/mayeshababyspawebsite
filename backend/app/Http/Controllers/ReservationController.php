@@ -174,15 +174,32 @@ class ReservationController extends Controller
                 }
 
                 // 6. Resolve Baby profile
-                $babyName = $request->baby_name;
-                $babyAge = $request->baby_age;
-                $notes = $request->notes;
+                $isMomTreatment = $service->category === 'mom_treatment';
 
-                if ($request->filled('baby_id')) {
-                    $baby = $request->user()->babies()->findOrFail($request->baby_id);
+                $babyName = null;
+                $babyAge  = null;
+                $notes    = $request->notes;
+
+                if ($isMomTreatment) {
+                    // Mom-only service: no baby data needed, skip entirely
+                    $babyName = null;
+                    $babyAge  = null;
+                } elseif ($request->filled('baby_id')) {
+                    $baby     = $request->user()->babies()->findOrFail($request->baby_id);
                     $babyName = $baby->name;
-                    $babyAge = (int) Carbon::parse($baby->birth_date)->diffInMonths(Carbon::parse($request->reservation_date));
-                    $notes = $request->notes ?? $baby->notes;
+                    $babyAge  = (int) Carbon::parse($baby->birth_date)->diffInMonths(Carbon::parse($request->reservation_date));
+                    $notes    = $request->notes ?? $baby->notes;
+                } else {
+                    // Manual input — must supply baby_name & baby_age
+                    if (! $request->baby_name || ! $request->baby_age) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Data bayi wajib diisi (nama & usia) untuk layanan ini.',
+                            'data'    => null,
+                        ], 422);
+                    }
+                    $babyName = $request->baby_name;
+                    $babyAge  = $request->baby_age;
                 }
 
                 // 7. Generate unique booking code: BSP-YYYYMMDD-XXXXX
@@ -190,20 +207,21 @@ class ReservationController extends Controller
 
                 // 8. Create reservation — pending with 15-minute expiry
                 $reservation = Reservation::create([
-                    'booking_code' => $bookingCode,
-                    'user_id' => $request->user()->id,
-                    'service_id' => $service->id,
-                    'therapist_id' => $assignedTherapistId,
-                    'baby_id' => $request->baby_id,
+                    'booking_code'     => $bookingCode,
+                    'user_id'          => $request->user()->id,
+                    'service_id'       => $service->id,
+                    'therapist_id'     => $assignedTherapistId,
+                    'baby_id'          => $isMomTreatment ? null : $request->baby_id,
                     'reservation_date' => $request->reservation_date,
-                    'start_time' => $startTime->format('H:i:s'),
-                    'end_time' => $endTime->format('H:i:s'),
-                    'total_price' => $service->price,
-                    'status' => Reservation::STATUS_PENDING,
-                    'expires_at' => now()->addMinutes(15),
-                    'baby_name' => $babyName,
-                    'baby_age' => $babyAge,
-                    'notes' => $notes,
+                    'start_time'       => $startTime->format('H:i:s'),
+                    'end_time'         => $endTime->format('H:i:s'),
+                    'total_price'      => $service->price,
+                    'status'           => Reservation::STATUS_PENDING,
+                    'expires_at'       => now()->addMinutes(15),
+                    'baby_name'        => $babyName,
+                    'baby_age'         => $babyAge,
+                    'notes'            => $notes,
+                    'delivery_address' => $request->delivery_address,
                 ]);
 
                 $reservation->load(['service', 'therapist', 'baby']);

@@ -1,5 +1,5 @@
 import apiClient from "@/lib/axios";
-import type { ApiResponse, AuthData, LoginPayload, RegisterPayload, User } from "@/types/api.types";
+import type { ApiResponse, AuthData, LoginPayload, RegisterPayload, UpdateProfilePayload, User } from "@/types/api.types";
 
 /**
  * Register a new customer account.
@@ -29,5 +29,13 @@ export const logout = async (): Promise<void> => {
  */
 export const getMe = async (): Promise<User> => {
   const res = await apiClient.get<ApiResponse<User>>("/me");
+  return res.data.data;
+};
+
+/**
+ * Update authenticated user's profile (name, phone, address).
+ */
+export const updateProfile = async (payload: UpdateProfilePayload): Promise<User> => {
+  const res = await apiClient.put<ApiResponse<User>>("/me", payload);
   return res.data.data;
 };
