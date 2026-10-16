@@ -164,16 +164,18 @@ function RecommendationCard({
 export default function RecommendationSection() {
   const [recommendations, setRecommendations] = useState<Service[]>([]);
   const [isColdStart, setIsColdStart] = useState(false);
+  const [coldStartType, setColdStartType] = useState<"age_based" | "general" | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
 
-    getRecommendations(5)
+    getRecommendations(3)
       .then((res) => {
         if (cancelled) return;
         setRecommendations(res.data);
         setIsColdStart(res.is_cold_start);
+        setColdStartType(res.cold_start_type ?? null);
       })
       .catch(() => {
         // Soft fail — section just won't render
@@ -209,16 +211,22 @@ export default function RecommendationSection() {
             </h2>
           </div>
           <p className="text-xs text-slate-500 pl-10 leading-relaxed max-w-md">
-            {isColdStart
-              ? "Temukan layanan favorit yang paling banyak dipesan oleh Bunda lainnya."
-              : "Dipilihkan khusus berdasarkan riwayat perawatan & favorit si kecil."}
+            {!isColdStart
+              ? "Dipilihkan khusus berdasarkan riwayat perawatan & favorit si kecil."
+              : coldStartType === "age_based"
+                ? "Layanan terpopuler yang sesuai untuk usia si Kecil."
+                : "Temukan layanan favorit yang paling banyak dipesan oleh Bunda lainnya."}
           </p>
         </div>
 
         {/* Top badge */}
         <div className="hidden sm:flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider text-pink-600 bg-pink-50/80 border border-pink-100 px-3 py-1.5 rounded-full whitespace-nowrap self-start shadow-xs">
           <Star size={11} className="fill-pink-400 text-pink-400" />
-          {isColdStart ? "Favorit Bunda" : "Spesial Untuk Bunda"}
+          {!isColdStart
+            ? "Spesial Untuk Bunda"
+            : coldStartType === "age_based"
+              ? "Sesuai Usia Si Kecil"
+              : "Favorit Bunda"}
         </div>
       </div>
 
@@ -242,7 +250,7 @@ export default function RecommendationSection() {
             key="cards"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4"
+            className="grid grid-cols-1 md:grid-cols-3 gap-5"
           >
             {recommendations.map((service, i) => (
               <RecommendationCard

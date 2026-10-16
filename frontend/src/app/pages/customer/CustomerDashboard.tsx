@@ -35,6 +35,14 @@ export default function CustomerDashboard() {
     return Math.max(0, total);
   };
 
+  const formatBabyAge = (birthDateString: string) => {
+    const totalMonths = calculateAgeInMonths(birthDateString);
+    if (totalMonths < 12) return `${totalMonths} Bulan`;
+    const years = Math.floor(totalMonths / 12);
+    const rem = totalMonths % 12;
+    return rem === 0 ? `${years} Tahun` : `${years} Thn ${rem} Bln`;
+  };
+
   const fetchMyData = async () => {
     try {
       const [resData, babiesData] = await Promise.all([
@@ -227,7 +235,7 @@ export default function CustomerDashboard() {
                         <div>
                           <p className="font-semibold text-slate-800 text-xs">{b.name}</p>
                           <p className="text-[10px] text-slate-500 font-medium">
-                            {calculateAgeInMonths(b.birth_date)} Bulan
+                            {formatBabyAge(b.birth_date)}
                           </p>
                         </div>
                       </div>

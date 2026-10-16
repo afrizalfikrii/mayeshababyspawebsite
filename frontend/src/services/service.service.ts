@@ -21,7 +21,7 @@ export const getTherapists = async (): Promise<Therapist[]> => {
  * Get personalized service recommendations for logged-in customer (CBF).
  * Returns top-N services with similarity_score. is_cold_start = true if no history.
  */
-export const getRecommendations = async (topN = 5): Promise<RecommendationResponse> => {
+export const getRecommendations = async (topN = 3): Promise<RecommendationResponse> => {
   const res = await apiClient.get<RecommendationResponse>(`/recommendations?top=${topN}`);
   return res.data;
 };

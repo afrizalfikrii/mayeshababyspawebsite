@@ -60,6 +60,8 @@ export interface RecommendationResponse {
   success: boolean;
   message: string;
   is_cold_start: boolean;
+  /** 'age_based' = best seller sesuai usia bayi, 'general' = best seller umum, null = hasil CBF */
+  cold_start_type: "age_based" | "general" | null;
   data: Service[];
 }
 
