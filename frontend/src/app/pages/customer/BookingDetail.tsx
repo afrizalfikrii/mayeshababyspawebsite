@@ -306,11 +306,36 @@ export default function BookingDetail() {
                       {booking.therapist?.name || "Otomatis / Belum Ditentukan"}
                     </span>
                   </div>
-                  <div className="flex justify-between border-t border-slate-200/60 pt-3 mt-3">
-                    <span className="text-slate-500 font-medium">Lokasi</span>
-                    <span className="font-bold text-slate-800">
-                      {booking.delivery_address ? `Home Care (Kunjungan Rumah)` : "Studio Mayesha Baby Spa"}
-                    </span>
+                  <div className="flex flex-col gap-1.5 border-t border-slate-200/60 pt-3 mt-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-slate-500 font-medium">Lokasi</span>
+                      <span className="font-bold text-slate-800">
+                        {booking.delivery_address ? "Home Care (Kunjungan Rumah)" : "Studio Mayesha Baby Spa"}
+                      </span>
+                    </div>
+                    {booking.delivery_address && (
+                      <div className="mt-1 p-3 bg-slate-100/70 rounded-xl text-xs text-slate-600 leading-relaxed break-words">
+                        <span className="font-bold text-slate-700 block mb-1">Detail Alamat Kunjungan:</span>
+                        {booking.delivery_address.includes("https://maps.google.com") ? (
+                          <div className="space-y-2">
+                            <p>{booking.delivery_address.replace(/\n?📍 Titik GPS: https:\/\/maps\.google\.com\/\?q=[-0-9.,]+/g, "").trim() || "Titik GPS telah disematkan."}</p>
+                            {booking.delivery_address.match(/https:\/\/maps\.google\.com\/\?q=[-0-9.,]+/g)?.map((link, idx) => (
+                              <a
+                                key={idx}
+                                href={link}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg font-bold text-[11px] transition-all shadow-sm active:scale-95"
+                              >
+                                📍 Buka Rute di Google Maps →
+                              </a>
+                            ))}
+                          </div>
+                        ) : (
+                          booking.delivery_address
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

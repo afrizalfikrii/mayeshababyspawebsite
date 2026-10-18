@@ -1073,6 +1073,25 @@ export default function AdminDashboard() {
                   <p className="text-xs text-slate-400 uppercase font-bold tracking-wider">Catatan Khusus</p>
                   <p className="font-medium text-slate-700 text-xs italic">{selectedProof.notes ?? "Tidak ada catatan."}</p>
                 </div>
+                {selectedProof.delivery_address && (
+                  <div className="col-span-2">
+                    <p className="text-xs text-slate-400 uppercase font-bold tracking-wider">Alamat Kunjungan (Home Care)</p>
+                    <div className="text-xs text-slate-700 bg-white p-2.5 rounded-lg border border-slate-200 mt-1 space-y-1.5">
+                      <p>{selectedProof.delivery_address.replace(/\n?📍 Titik GPS: https:\/\/maps\.google\.com\/\?q=[-0-9.,]+/g, "").trim() || "Titik GPS telah disematkan."}</p>
+                      {selectedProof.delivery_address.match(/https:\/\/maps\.google\.com\/\?q=[-0-9.,]+/g)?.map((link, idx) => (
+                        <a
+                          key={idx}
+                          href={link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-pink-600 hover:text-pink-700 font-bold underline text-[11px]"
+                        >
+                          📍 Buka Rute Google Maps →
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Proof Image */}

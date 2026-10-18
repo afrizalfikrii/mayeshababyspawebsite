@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
-import { Calendar, Clock, CheckCircle, ChevronRight, User, Loader2, Sparkles, Baby as BabyIcon, Plus, AlertCircle, MapPin } from "lucide-react";
+import { Calendar, Clock, CheckCircle, ChevronRight, User, Loader2, Sparkles, Baby as BabyIcon, Plus, AlertCircle, MapPin, Navigation } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "motion/react";
 import { getServices, getTherapists } from "@/services/service.service";
@@ -20,6 +20,7 @@ export default function Booking() {
   const [therapists, setTherapists] = useState<Therapist[]>([]);
   const [isLoadingServices, setIsLoadingServices] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLocating, setIsLocating] = useState(false);
 
   const [formData, setFormData] = useState({
     serviceId: 0,
@@ -131,6 +132,56 @@ export default function Booking() {
   // ── Derived: selected service & category ───────────────────────────────────
   const selectedService = services.find((s) => s.id === formData.serviceId);
   const isMomTreatment = selectedService?.category === 'mom_treatment';
+  // ── Helper: Deteksi Lokasi GPS Saat Ini ───────────────────────────────────
+  const handleGetLocation = () => {
+    if (!navigator.geolocation) {
+      toast.error("Browser Anda tidak mendukung fitur deteksi GPS.");
+      return;
+    }
+
+    setIsLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude, accuracy } = position.coords;
+        const mapsLink = `https://maps.google.com/?q=${latitude},${longitude}`;
+
+        setFormData((prev) => {
+          const baseAddress = prev.deliveryAddress
+            ? prev.deliveryAddress.replace(/\n?📍 Titik GPS: https:\/\/maps\.google\.com\/\?q=[-0-9.,]+/g, "").trim()
+            : "";
+          const newAddress = baseAddress
+            ? `${baseAddress}\n📍 Titik GPS: ${mapsLink}`
+            : `📍 Titik GPS: ${mapsLink}`;
+
+          return { ...prev, deliveryAddress: newAddress };
+        });
+
+        toast.success(`Lokasi GPS berhasil diambil! (Akurasi: ±${Math.round(accuracy)}m)`);
+        setIsLocating(false);
+      },
+      (error) => {
+        setIsLocating(false);
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            toast.error("Izin lokasi ditolak. Silakan aktifkan izin lokasi di browser Anda.");
+            break;
+          case error.POSITION_UNAVAILABLE:
+            toast.error("Sinyal GPS / lokasi tidak terdeteksi.");
+            break;
+          case error.TIMEOUT:
+            toast.error("Waktu pencarian lokasi GPS habis. Silakan coba lagi.");
+            break;
+          default:
+            toast.error("Gagal mendeteksi lokasi GPS.");
+        }
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
+      }
+    );
+  };
 
   const handleNext = async () => {
     if (step === 1 && !formData.serviceId) return toast.error("Pilih layanan terlebih dahulu ya, Bun");
@@ -633,19 +684,49 @@ export default function Booking() {
                 )}
 
                 {/* Input Alamat Pengiriman — selalu muncul di Step 3 */}
-                <div className="border-t border-slate-100 pt-4">
-                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1">
-                    <MapPin size={12} /> Alamat Pengiriman (Home Visit)
-                  </label>
+                <div className="border-t border-slate-100 pt-5">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+                    <div>
+                      <label className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                        <MapPin size={14} className="text-pink-500" /> Alamat Kunjungan (Home Visit)
+                      </label>
+                      <span className="text-[11px] text-slate-400 block mt-0.5">
+                        Tulis alamat manual atau klik bagikan titik GPS
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleGetLocation}
+                      disabled={isLocating}
+                      className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-pink-50 hover:bg-pink-100 text-pink-600 rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer disabled:opacity-50 self-start sm:self-auto border border-pink-200/60"
+                    >
+                      {isLocating ? (
+                        <Loader2 size={13} className="animate-spin text-pink-500" />
+                      ) : (
+                        <Navigation size={13} className="text-pink-500" />
+                      )}
+                      <span>{isLocating ? "Mencari Titik GPS..." : "📍 Bagikan Lokasi Saat Ini (GPS)"}</span>
+                    </button>
+                  </div>
+
                   <textarea
                     rows={3}
-                    placeholder="Contoh: Jl. Mawar No. 10, RT 02/03, Bekasi Utara — kosongkan jika datang ke studio"
+                    placeholder="Contoh: Jl. Mawar No. 10, RT 02/03, Bekasi Utara (Bisa ketik manual atau klik tombol GPS di atas) — Kosongkan jika treatment langsung di studio."
                     className="input-glass w-full resize-none py-2.5 text-sm"
                     value={formData.deliveryAddress}
                     onChange={(e) => setFormData({ ...formData, deliveryAddress: e.target.value })}
                   />
+
+                  {formData.deliveryAddress.includes("https://maps.google.com") && (
+                    <div className="mt-2 flex items-center gap-1.5 text-xs text-emerald-600 bg-emerald-50 p-2.5 rounded-xl border border-emerald-100">
+                      <CheckCircle size={14} className="shrink-0" />
+                      <span>Titik koordinat GPS berhasil disematkan ke dalam alamat reservasi.</span>
+                    </div>
+                  )}
+
                   <p className="text-[10px] text-slate-400 mt-1.5 leading-relaxed">
-                    * Isi jika memesan layanan <span className="font-semibold">home visit</span>. Kosongkan jika akan datang ke studio.
+                    * Isi kolom di atas jika memesan layanan <span className="font-semibold text-slate-600">Home Visit (terapis datang ke rumah)</span>. Kosongkan jika Anda ingin datang ke studio Mayesha.
                   </p>
                 </div>
               </div>
