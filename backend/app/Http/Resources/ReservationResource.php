@@ -53,6 +53,7 @@ class ReservationResource extends JsonResource
                 : null,
             // Reschedule flag
             'is_rescheduled'      => $this->notes ? str_contains($this->notes, '[Rescheduled]') : false,
+            'delivery_address'    => $this->delivery_address,
         ];
     }
 }

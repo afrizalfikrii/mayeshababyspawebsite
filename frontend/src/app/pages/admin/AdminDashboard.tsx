@@ -21,6 +21,7 @@ import {
   FileText,
   BarChart2,
   Download,
+  MapPin,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { toast } from "sonner";
@@ -671,6 +672,31 @@ export default function AdminDashboard() {
                               </p>
                             )}
                             <p className="text-xs text-slate-400 font-mono mt-0.5">{r.user?.phone_number ?? '-'}</p>
+                            {r.delivery_address ? (
+                              <div className="mt-2 bg-pink-50/90 p-2 rounded-xl border border-pink-100 max-w-xs">
+                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-pink-700 uppercase tracking-wider">
+                                  <MapPin size={11} className="text-pink-500" /> Home Care
+                                </span>
+                                <p className="text-xs text-slate-700 leading-snug mt-0.5 break-words line-clamp-2">
+                                  {r.delivery_address.replace(/\n?📍 Titik GPS: https:\/\/maps\.google\.com\/\?q=[-0-9.,]+/g, "").trim() || "Titik GPS Terlampir"}
+                                </p>
+                                {r.delivery_address.match(/https:\/\/maps\.google\.com\/\?q=[-0-9.,]+/g)?.map((link, idx) => (
+                                  <a
+                                    key={idx}
+                                    href={link}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1 text-[11px] font-bold text-pink-600 hover:text-pink-800 underline mt-1"
+                                  >
+                                    📍 Buka Rute Google Maps →
+                                  </a>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-slate-400 mt-1">
+                                🏠 Studio Mayesha
+                              </span>
+                            )}
                           </td>
                           <td className="py-4 px-6">
                             <p className="font-medium text-slate-800 text-sm">{r.service?.name}</p>
