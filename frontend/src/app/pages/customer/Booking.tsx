@@ -247,7 +247,7 @@ export default function Booking() {
         key={step}
         initial={{ opacity: 0, x: 20 }}
         animate={{ opacity: 1, x: 0 }}
-        className="glass-panel p-8"
+        className="glass-panel p-5 sm:p-8 overflow-hidden w-full max-w-full"
       >
         {isLoadingServices ? (
           <div className="flex flex-col items-center justify-center py-20 gap-3">
@@ -311,15 +311,15 @@ export default function Booking() {
             {step === 2 && (
               <div className="flex flex-col gap-6">
                 <h2 className="text-xl font-bold text-slate-800">2. Kapan mau datang?</h2>
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-full">
+                  <div className="w-full min-w-0">
                     <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Tanggal Sesi</label>
-                    <div className="relative">
-                      <Calendar className="absolute left-4 top-3.5 text-slate-400" size={18} />
+                    <div className="relative w-full max-w-full">
+                      <Calendar className="absolute left-4 top-3.5 text-slate-400 pointer-events-none" size={18} />
                       <input
                         type="date"
                         min={new Date().toISOString().split("T")[0]}
-                        className="input-glass pl-11"
+                        className="input-glass pl-11 w-full max-w-full"
                         value={formData.date}
                         onChange={(e) => {
                           setFormData({ ...formData, date: e.target.value, time: "" });

@@ -51,6 +51,19 @@
   }
   
   .input-glass {
-    @apply w-full px-4 py-3 bg-white/50 border border-pink-100 rounded-2xl focus:outline-none focus:ring-2 focus:ring-pink-300 focus:bg-white transition-all shadow-sm backdrop-blur-sm;
+    @apply w-full max-w-full box-border px-4 py-3 bg-white/50 border border-pink-100 rounded-2xl focus:outline-none focus:ring-2 focus:ring-pink-300 focus:bg-white transition-all shadow-sm backdrop-blur-sm;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  input[type="date"].input-glass {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    min-height: 48px;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
   }
 }
