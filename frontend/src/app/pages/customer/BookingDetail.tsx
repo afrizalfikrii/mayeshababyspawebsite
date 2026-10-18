@@ -27,6 +27,7 @@ import {
   getSlotAvailability,
 } from "@/services/reservation.service";
 import type { Reservation, SlotAvailability } from "@/types/api.types";
+import { getStorageUrl } from "@/lib/axios";
 
 export default function BookingDetail() {
   const { id } = useParams();
@@ -545,11 +546,7 @@ export default function BookingDetail() {
               </h3>
               <div className="w-full aspect-[3/4] bg-slate-50 border border-slate-200 rounded-2xl overflow-hidden p-2">
                 <img
-                  src={
-                    booking.payment_proof_url.startsWith("http")
-                      ? booking.payment_proof_url
-                      : `http://localhost:8000${booking.payment_proof_url}`
-                  }
+                  src={getStorageUrl(booking.payment_proof_url)}
                   alt="Bukti Transfer QRIS"
                   className="w-full h-full object-cover rounded-xl"
                 />

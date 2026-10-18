@@ -53,6 +53,7 @@ import {
   adminRescheduleReservation,
 } from "@/services/reservation.service";
 import type { Reservation, Service, Therapist } from "@/types/api.types";
+import { getStorageUrl } from "@/lib/axios";
 
 export default function AdminDashboard() {
   const [activeMenu, setActiveMenu] = useState<"reservations" | "services" | "reports" | "therapists">("reservations");
@@ -1078,11 +1079,7 @@ export default function AdminDashboard() {
               <div className="w-full aspect-video bg-slate-100 rounded-xl overflow-hidden border border-slate-200/60 relative flex items-center justify-center">
                 {selectedProof.payment_proof_url ? (
                   <img
-                    src={
-                      selectedProof.payment_proof_url.startsWith("http")
-                        ? selectedProof.payment_proof_url
-                        : `http://localhost:8000${selectedProof.payment_proof_url}`
-                    }
+                    src={getStorageUrl(selectedProof.payment_proof_url)}
                     alt="Bukti Transfer QRIS"
                     className="w-full h-full object-contain"
                   />
