@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
-import { ArrowRight, Sparkles, Heart, MapPin, CheckCircle2, Loader2, Calendar, Star } from "lucide-react";
+import { ArrowRight, Sparkles, Heart, MapPin, CheckCircle2, Loader2, Calendar, Star, Building2, X as CloseIcon } from "lucide-react";
 import { motion } from "motion/react";
 import { getServices } from "@/services/service.service";
 import { getPublicReviews } from "@/services/reservation.service";
@@ -10,6 +10,7 @@ export default function Home() {
   const [services, setServices] = useState<Service[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedImage, setSelectedImage] = useState<{ src: string; title: string; desc: string } | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -42,6 +43,52 @@ export default function Home() {
     const colors = ["bg-blue-50", "bg-pink-50", "bg-purple-50"];
     return colors[index % colors.length];
   };
+
+  const activities = [
+    {
+      title: "Fun Baby Swim",
+      desc: "Pengalaman renang seru",
+      img: "/images/activity-swim-purple.png",
+    },
+    {
+      title: "Bidan Profesional",
+      desc: "Ditangani tenaga ahli",
+      img: "/images/activity-team.jpg",
+    },
+    {
+      title: "Baby Massage",
+      desc: "Relaksasi untuk si kecil",
+      img: "/images/activity-massage.jpg",
+    },
+    {
+      title: "Layanan Kesehatan",
+      desc: "Terapi infrared & uap",
+      img: "/images/activity-therapy.png",
+    },
+  ];
+
+  const facilities = [
+    {
+      title: "Kolam Renang",
+      desc: "Air hangat & nyaman",
+      img: "/images/facility-pool.png",
+    },
+    {
+      title: "Baby Gym",
+      desc: "Area bermain edukatif",
+      img: "/images/facility-gym.jpg",
+    },
+    {
+      title: "Ruang Private",
+      desc: "Bersih & higienis",
+      img: "/images/facility-treatment.png",
+    },
+    {
+      title: "Matras Empuk",
+      desc: "Nyaman untuk bayi",
+      img: "/images/facility-massage.png",
+    },
+  ];
 
   return (
     <div className="flex flex-col gap-24 pb-20 overflow-x-hidden">
@@ -113,6 +160,89 @@ export default function Home() {
               </div>
             </div>
           </motion.div>
+        </div>
+      </section>
+
+      {/* Gallery Section */}
+      <section id="galeri" className="px-6 max-w-7xl mx-auto w-full scroll-mt-24">
+        <div className="text-center mb-12">
+          <span className="text-pink-500 font-bold tracking-wider text-xs md:text-sm uppercase mb-2 block">
+            Galeri Kami
+          </span>
+          <h2 className="text-3xl md:text-4xl font-extrabold text-slate-800 mb-4">
+            Galeri Mayesha Baby Spa
+          </h2>
+          <p className="text-slate-500 max-w-2xl mx-auto text-sm md:text-base">
+            Lihat aktivitas layanan dan fasilitas lengkap kami.
+          </p>
+        </div>
+
+        {/* Aktivitas Kami */}
+        <div className="mb-14">
+          <h3 className="text-2xl font-bold mb-6 text-slate-800 flex items-center gap-2">
+            <Star className="text-pink-500 fill-pink-500 w-5 h-5" /> Aktivitas Kami
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {activities.map((item, idx) => (
+              <motion.div
+                key={idx}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: idx * 0.1 }}
+                onClick={() => setSelectedImage({ src: item.img, title: item.title, desc: item.desc })}
+                className="group relative overflow-hidden rounded-3xl shadow-md hover:shadow-2xl transition-all duration-300 cursor-pointer bg-slate-100 h-64 border border-white/60"
+              >
+                <img
+                  src={item.img}
+                  alt={item.title}
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                  loading="lazy"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-900/20 to-transparent opacity-90 group-hover:opacity-100 transition-opacity duration-300" />
+                <div className="absolute bottom-0 left-0 right-0 p-5 text-white">
+                  <h4 className="font-bold text-lg leading-tight group-hover:text-pink-300 transition-colors">
+                    {item.title}
+                  </h4>
+                  <p className="text-xs text-slate-200 mt-1">{item.desc}</p>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+
+        {/* Fasilitas Kami */}
+        <div>
+          <h3 className="text-2xl font-bold mb-6 text-slate-800 flex items-center gap-2">
+            <Building2 className="text-pink-500 w-5 h-5" /> Fasilitas Kami
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {facilities.map((item, idx) => (
+              <motion.div
+                key={idx}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: idx * 0.1 }}
+                onClick={() => setSelectedImage({ src: item.img, title: item.title, desc: item.desc })}
+                className="group relative overflow-hidden rounded-3xl shadow-md hover:shadow-2xl transition-all duration-300 cursor-pointer bg-slate-100 h-64 border border-white/60"
+              >
+                <img
+                  src={item.img}
+                  alt={item.title}
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                  loading="lazy"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-900/20 to-transparent opacity-90 group-hover:opacity-100 transition-opacity duration-300" />
+                <div className="absolute bottom-0 left-0 right-0 p-5 text-white">
+                  <h4 className="font-bold text-lg leading-tight group-hover:text-pink-300 transition-colors">
+                    {item.title}
+                  </h4>
+                  <p className="text-xs text-slate-200 mt-1">{item.desc}</p>
+                </div>
+              </motion.div>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -267,6 +397,36 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* Image Preview Modal / Lightbox */}
+      {selectedImage && (
+        <div
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200"
+          onClick={() => setSelectedImage(null)}
+        >
+          <div
+            className="relative max-w-3xl w-full bg-slate-900 rounded-3xl overflow-hidden shadow-2xl border border-white/10"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setSelectedImage(null)}
+              className="absolute top-4 right-4 z-10 p-2 rounded-full bg-black/50 text-white hover:bg-pink-500 transition-colors cursor-pointer"
+              aria-label="Tutup preview"
+            >
+              <CloseIcon size={20} />
+            </button>
+            <img
+              src={selectedImage.src}
+              alt={selectedImage.title}
+              className="w-full max-h-[70vh] object-contain bg-black/40"
+            />
+            <div className="p-6 text-white bg-slate-900">
+              <h3 className="text-xl font-bold text-pink-400">{selectedImage.title}</h3>
+              <p className="text-sm text-slate-300 mt-1">{selectedImage.desc}</p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
