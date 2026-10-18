@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
-import { Baby, Mail, Lock, User as UserIcon, Phone, Loader2 } from "lucide-react";
+import { Baby, Mail, Lock, User as UserIcon, Phone, Loader2, Eye, EyeOff } from "lucide-react";
 import { motion } from "motion/react";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
@@ -9,6 +9,8 @@ import type { LoginPayload, RegisterPayload } from "@/types/api.types";
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showPasswordConfirmation, setShowPasswordConfirmation] = useState(false);
   const { login, register, user } = useAuth();
   const navigate = useNavigate();
 
@@ -71,6 +73,8 @@ export default function Auth() {
 
   const switchMode = () => {
     setIsLogin((v) => !v);
+    setShowPassword(false);
+    setShowPasswordConfirmation(false);
     setForm({ name: "", email: "", phone_number: "", password: "", password_confirmation: "" });
   };
 
@@ -154,14 +158,24 @@ export default function Auth() {
             <Lock className="absolute left-4 top-3.5 text-slate-400" size={18} />
             <input
               name="password"
-              type="password"
+              type={showPassword ? "text" : "password"}
               placeholder="Kata Sandi"
-              className="input-glass pl-11"
+              className="input-glass pl-11 pr-11"
               value={form.password}
               onChange={handleChange}
               required
               minLength={8}
             />
+            <button
+              type="button"
+              tabIndex={-1}
+              onClick={() => setShowPassword((prev) => !prev)}
+              className="absolute right-3.5 top-3 text-slate-400 hover:text-pink-500 transition-colors cursor-pointer p-0.5"
+              title={showPassword ? "Sembunyikan kata sandi" : "Tampilkan kata sandi"}
+              aria-label={showPassword ? "Sembunyikan kata sandi" : "Tampilkan kata sandi"}
+            >
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
           </div>
 
           {!isLogin && (
@@ -169,13 +183,23 @@ export default function Auth() {
               <Lock className="absolute left-4 top-3.5 text-slate-400" size={18} />
               <input
                 name="password_confirmation"
-                type="password"
+                type={showPasswordConfirmation ? "text" : "password"}
                 placeholder="Konfirmasi Kata Sandi"
-                className="input-glass pl-11"
+                className="input-glass pl-11 pr-11"
                 value={form.password_confirmation}
                 onChange={handleChange}
                 required
               />
+              <button
+                type="button"
+                tabIndex={-1}
+                onClick={() => setShowPasswordConfirmation((prev) => !prev)}
+                className="absolute right-3.5 top-3 text-slate-400 hover:text-pink-500 transition-colors cursor-pointer p-0.5"
+                title={showPasswordConfirmation ? "Sembunyikan konfirmasi kata sandi" : "Tampilkan konfirmasi kata sandi"}
+                aria-label={showPasswordConfirmation ? "Sembunyikan konfirmasi kata sandi" : "Tampilkan konfirmasi kata sandi"}
+              >
+                {showPasswordConfirmation ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
             </div>
           )}
 
