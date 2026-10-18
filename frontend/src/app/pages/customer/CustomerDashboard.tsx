@@ -315,7 +315,7 @@ export default function CustomerDashboard() {
                             </span>
                             <span className="flex items-center gap-1">
                               <MapPin size={13} />
-                              Studio Bliss
+                              {booking.delivery_address ? "Home Care" : "Studio Mayesha"}
                             </span>
                           </div>
                         </div>

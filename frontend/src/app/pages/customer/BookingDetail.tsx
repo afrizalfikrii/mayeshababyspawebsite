@@ -308,7 +308,9 @@ export default function BookingDetail() {
                   </div>
                   <div className="flex justify-between border-t border-slate-200/60 pt-3 mt-3">
                     <span className="text-slate-500 font-medium">Lokasi</span>
-                    <span className="font-bold text-slate-800">Studio Bliss</span>
+                    <span className="font-bold text-slate-800">
+                      {booking.delivery_address ? `Home Care (Kunjungan Rumah)` : "Studio Mayesha Baby Spa"}
+                    </span>
                   </div>
                 </div>
               </div>
