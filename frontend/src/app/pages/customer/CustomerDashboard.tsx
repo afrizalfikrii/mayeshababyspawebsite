@@ -230,12 +230,12 @@ export default function CustomerDashboard() {
                     >
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 bg-pink-100 text-pink-600 rounded-full flex items-center justify-center text-xs font-extrabold uppercase">
-                          {b.name.substring(0, 2)}
+                          {(b.name ?? "A").substring(0, 2)}
                         </div>
                         <div>
-                          <p className="font-semibold text-slate-800 text-xs">{b.name}</p>
+                          <p className="font-semibold text-slate-800 text-xs">{b.name ?? "-"}</p>
                           <p className="text-[10px] text-slate-500 font-medium">
-                            {formatBabyAge(b.birth_date)}
+                            {b.birth_date ? formatBabyAge(b.birth_date) : "-"}
                           </p>
                         </div>
                       </div>
@@ -302,16 +302,18 @@ export default function CustomerDashboard() {
                               {status.label}
                             </span>
                           </div>
-                          <h4 className="font-bold text-slate-800 text-base">{booking.service?.name}</h4>
+                          <h4 className="font-bold text-slate-800 text-base">{booking.service?.name ?? "Layanan"}</h4>
                           <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs font-medium text-slate-500">
                             <span className="flex items-center gap-1">
                               <Clock size={13} />
-                              {new Date(booking.reservation_date).toLocaleDateString("id-ID", {
-                                day: "numeric",
-                                month: "short",
-                                year: "numeric",
-                              })}
-                              , {booking.start_time.substring(0, 5)} WIB
+                              {booking.reservation_date
+                                ? new Date(booking.reservation_date).toLocaleDateString("id-ID", {
+                                    day: "numeric",
+                                    month: "short",
+                                    year: "numeric",
+                                  })
+                                : "-"}
+                              , {booking.start_time ? booking.start_time.substring(0, 5) : "-"} WIB
                             </span>
                             <span className="flex items-center gap-1">
                               <MapPin size={13} />
@@ -322,7 +324,7 @@ export default function CustomerDashboard() {
                       </div>
                       <div className="flex flex-col items-stretch sm:items-end gap-2">
                         <span className="font-extrabold text-slate-800 text-sm sm:text-right">
-                          Rp {booking.total_price.toLocaleString("id-ID")}
+                          Rp {Number(booking.total_price ?? 0).toLocaleString("id-ID")}
                         </span>
                         <Link
                           to={`/dashboard/reservasi/${booking.id}`}
