@@ -142,7 +142,7 @@ function RecommendationCard({
         <div className="flex items-baseline justify-between pt-0.5">
           <span className="text-[11px] font-medium text-slate-400">Harga</span>
           <span className="text-sm font-extrabold text-slate-900 group-hover:text-pink-600 transition-colors">
-            Rp {service.price.toLocaleString("id-ID")}
+            Rp {Number(service.price ?? 0).toLocaleString("id-ID")}
           </span>
         </div>
 

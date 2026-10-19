@@ -19,8 +19,8 @@ interface AuthContextValue {
   token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (payload: LoginPayload) => Promise<void>;
-  register: (payload: RegisterPayload) => Promise<void>;
+  login: (payload: LoginPayload) => Promise<User>;
+  register: (payload: RegisterPayload) => Promise<User>;
   logout: () => Promise<void>;
   setUser: (user: User) => void;
 }
@@ -66,14 +66,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   // ── Actions ─────────────────────────────────────────────────────────────────
-  const login = useCallback(async (payload: LoginPayload) => {
+  const login = useCallback(async (payload: LoginPayload): Promise<User> => {
     const data = await apiLogin(payload);
     persist(data.user, data.token);
+    return data.user;
   }, []);
 
-  const register = useCallback(async (payload: RegisterPayload) => {
+  const register = useCallback(async (payload: RegisterPayload): Promise<User> => {
     const data = await apiRegister(payload);
     persist(data.user, data.token);
+    return data.user;
   }, []);
 
   const logout = useCallback(async () => {

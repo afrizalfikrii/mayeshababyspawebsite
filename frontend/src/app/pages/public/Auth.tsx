@@ -35,11 +35,10 @@ export default function Auth() {
     try {
       if (isLogin) {
         const payload: LoginPayload = { email: form.email, password: form.password };
-        await login(payload);
+        const loggedUser = await login(payload);
         toast.success("Selamat datang kembali! 👋");
-        // Redirect based on role will happen via the route guard
-        // We read user after login — but since state updates async, use navigate
-        navigate("/dashboard");
+        const destination = loggedUser?.role === "admin" ? "/admin" : "/dashboard";
+        navigate(destination, { replace: true });
       } else {
         if (form.password !== form.password_confirmation) {
           toast.error("Konfirmasi kata sandi tidak cocok.");
@@ -52,9 +51,10 @@ export default function Auth() {
           password: form.password,
           password_confirmation: form.password_confirmation,
         };
-        await register(payload);
+        const newUser = await register(payload);
         toast.success("Pendaftaran berhasil! Selamat datang 🎉");
-        navigate("/dashboard");
+        const destination = newUser?.role === "admin" ? "/admin" : "/dashboard";
+        navigate(destination, { replace: true });
       }
     } catch (error: unknown) {
       const err = error as { response?: { data?: { message?: string; data?: Record<string, string[]> } } };
