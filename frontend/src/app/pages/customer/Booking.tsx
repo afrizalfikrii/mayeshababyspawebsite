@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
-import { Calendar, Clock, CheckCircle, ChevronRight, User, Loader2, Sparkles, Baby as BabyIcon, Plus, AlertCircle, MapPin, Navigation } from "lucide-react";
+import { Calendar, Clock, CheckCircle, ChevronRight, User, Loader2, Sparkles, Baby as BabyIcon, Plus, AlertCircle, MapPin, Navigation, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "motion/react";
 import { getServices, getTherapists } from "@/services/service.service";
@@ -514,35 +514,49 @@ export default function Booking() {
                   </p>
                 </div>
 
-                <div className="flex bg-slate-100 p-1 rounded-xl gap-1">
+                {/* Segmented Control Mode Profil Anak */}
+                <div
+                  className={`grid ${
+                    babies.length > 0 ? "grid-cols-3" : "grid-cols-2"
+                  } bg-slate-100/90 p-1.5 rounded-2xl gap-1.5 border border-slate-200/60 shadow-xs`}
+                >
                   {babies.length > 0 && (
                     <button
                       type="button"
                       onClick={() => setBabyProfileMode("select")}
-                      className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                        babyProfileMode === "select" ? "bg-white text-pink-600 shadow-sm" : "text-slate-500 hover:text-slate-800"
+                      className={`py-2.5 px-2 text-xs font-bold rounded-xl transition-all flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 cursor-pointer text-center leading-tight ${
+                        babyProfileMode === "select"
+                          ? "bg-white text-pink-600 shadow-sm ring-1 ring-slate-900/5 font-extrabold"
+                          : "text-slate-500 hover:text-slate-800 hover:bg-white/60"
                       }`}
                     >
-                      <BabyIcon size={14} /> Pilih Profil Anak ({babies.length})
+                      <BabyIcon size={14} className="shrink-0 text-pink-500" />
+                      <span className="truncate">Profil Anak ({babies.length})</span>
                     </button>
                   )}
                   <button
                     type="button"
                     onClick={() => setBabyProfileMode("manual")}
-                    className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                      babyProfileMode === "manual" ? "bg-white text-pink-600 shadow-sm" : "text-slate-500 hover:text-slate-800"
+                    className={`py-2.5 px-2 text-xs font-bold rounded-xl transition-all flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 cursor-pointer text-center leading-tight ${
+                      babyProfileMode === "manual"
+                        ? "bg-white text-pink-600 shadow-sm ring-1 ring-slate-900/5 font-extrabold"
+                        : "text-slate-500 hover:text-slate-800 hover:bg-white/60"
                     }`}
                   >
-                    Tulis Manual
+                    <Pencil size={13} className="shrink-0 text-slate-400" />
+                    <span className="truncate">Tulis Manual</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setBabyProfileMode("create")}
-                    className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                      babyProfileMode === "create" ? "bg-white text-pink-600 shadow-sm" : "text-slate-500 hover:text-slate-800"
+                    className={`py-2.5 px-2 text-xs font-bold rounded-xl transition-all flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 cursor-pointer text-center leading-tight ${
+                      babyProfileMode === "create"
+                        ? "bg-white text-pink-600 shadow-sm ring-1 ring-slate-900/5 font-extrabold"
+                        : "text-slate-500 hover:text-slate-800 hover:bg-white/60"
                     }`}
                   >
-                    <Plus size={14} /> Tambah Profil Baru
+                    <Plus size={14} className="shrink-0 text-slate-400" />
+                    <span className="truncate">Tambah Baru</span>
                   </button>
                 </div>
 
