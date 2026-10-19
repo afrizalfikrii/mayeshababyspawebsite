@@ -30,18 +30,67 @@ export default function Home() {
     fetchData();
   }, []);
 
-  const getServiceIcon = (index: number) => {
-    const icons = [
-      <Sparkles className="text-pink-400 w-6 h-6" />,
-      <Heart className="text-pink-400 w-6 h-6" />,
-      <MapPin className="text-pink-400 w-6 h-6" />,
-    ];
-    return icons[index % icons.length];
-  };
+  const getServiceCardDetails = (service: Service, index: number) => {
+    const name = service.name.toLowerCase();
+    const category = service.category;
 
-  const getServiceColor = (index: number) => {
-    const colors = ["bg-blue-50", "bg-pink-50", "bg-purple-50"];
-    return colors[index % colors.length];
+    // 1. Mom Treatments (Pijat Hamil, Pijat Laktasi, dsb.)
+    if (category === "mom_treatment" || name.includes("mom") || name.includes("laktasi") || name.includes("hamil") || name.includes("ibu") || name.includes("nifas")) {
+      return {
+        image: "/images/service-mom-spa.jpg",
+        badge: "Mom Care",
+        badgeColor: "bg-purple-500",
+        ageLabel: "Bunda",
+      };
+    }
+
+    // 2. Health & Medical Therapy (Infra Red, Batuk Pilek, Nebulizer, Kolik, dsb.)
+    if (name.includes("+ir") || name.includes("terapi") || name.includes("infra") || name.includes("batuk") || name.includes("pilek") || name.includes("kolik") || name.includes("nebulizer")) {
+      return {
+        image: "/images/service-health-therapy.jpg",
+        badge: "Terapi Medis",
+        badgeColor: "bg-amber-500",
+        ageLabel: service.age_min_months !== null ? `${service.age_min_months} - ${service.age_max_months || 24} Bln` : "Semua Usia",
+      };
+    }
+
+    // 3. Baby Spa, Swim, Bath (Baby Swim, Fun Swim, Bubble Bath)
+    if (name.includes("swim") || name.includes("spa") || name.includes("renang") || name.includes("bubble")) {
+      return {
+        image: name.includes("kids") ? "/images/service-kids-care.jpg" : "/images/service-baby-spa.jpg",
+        badge: index % 4 === 0 ? "Best Seller" : "Favorit",
+        badgeColor: "bg-pink-500",
+        ageLabel: name.includes("kids") ? "3 - 7 Tahun" : "0 - 24 Bulan",
+      };
+    }
+
+    // 4. Newborn & Grooming (Mandi Bayi, Cukur Gundul, Tali Pusar)
+    if (name.includes("newborn") || name.includes("mandi") || name.includes("cukur") || name.includes("gundul") || name.includes("lahir")) {
+      return {
+        image: "/images/service-newborn-care.jpg",
+        badge: "Perawatan Bayi",
+        badgeColor: "bg-sky-500",
+        ageLabel: "0 - 12 Bulan",
+      };
+    }
+
+    // 5. Kids Care (Kids, Anak, Masker)
+    if (name.includes("kids") || name.includes("anak") || name.includes("masker") || (service.age_min_months && service.age_min_months >= 36)) {
+      return {
+        image: "/images/service-kids-care.jpg",
+        badge: "Kids Care",
+        badgeColor: "bg-emerald-500",
+        ageLabel: "3 - 7 Tahun",
+      };
+    }
+
+    // 6. Default: Baby Massage / Pijat Lembut Bayi
+    return {
+      image: "/images/service-baby-massage.jpg",
+      badge: "Baby Massage",
+      badgeColor: "bg-rose-500",
+      ageLabel: service.age_min_months !== null && service.age_max_months !== null ? `${service.age_min_months} - ${service.age_max_months} Bln` : "0 - 24 Bulan",
+    };
   };
 
   const activities = [
@@ -270,24 +319,41 @@ export default function Home() {
           </div>
         ) : (
           <div className="grid md:grid-cols-3 gap-8">
-            {services.map((service, idx) => (
-              <motion.div
-                key={service.id}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: idx * 0.1 }}
-                className="glass-card p-8 flex flex-col h-full border border-white/50 hover:border-pink-200 transition-colors shadow-lg hover:shadow-xl"
-              >
-                <div
-                  className={`w-14 h-14 rounded-2xl ${getServiceColor(idx)} flex items-center justify-center mb-6`}
+            {services.map((service, idx) => {
+              const card = getServiceCardDetails(service, idx);
+              return (
+                <motion.div
+                  key={service.id}
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: idx * 0.05 }}
+                  className="group glass-card p-8 flex flex-col h-full border border-white/50 hover:border-pink-200 transition-all shadow-lg hover:shadow-xl overflow-hidden"
                 >
-                  {getServiceIcon(idx)}
-                </div>
-                <h3 className="text-xl font-bold text-slate-800 mb-3">{service.name}</h3>
-                <p className="text-slate-500 mb-6 flex-1 text-sm leading-relaxed line-clamp-3">
-                  {service.description}
-                </p>
+                  {/* Photo Thumbnail Banner */}
+                  <div className="relative -mx-8 -mt-8 mb-6 h-48 overflow-hidden bg-slate-100">
+                    <img
+                      src={card.image}
+                      alt={service.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      loading="lazy"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 via-transparent to-transparent" />
+                    {/* Floating Badges */}
+                    <div className="absolute top-4 left-4 flex flex-wrap gap-2">
+                      <span className={`px-3 py-1 rounded-full text-[11px] font-bold text-white shadow-md ${card.badgeColor}`}>
+                        {card.badge}
+                      </span>
+                      <span className="px-3 py-1 rounded-full text-[11px] font-semibold bg-white/90 backdrop-blur-md text-slate-800 shadow-sm">
+                        {card.ageLabel}
+                      </span>
+                    </div>
+                  </div>
+
+                  <h3 className="text-xl font-bold text-slate-800 mb-3">{service.name}</h3>
+                  <p className="text-slate-500 mb-6 flex-1 text-sm leading-relaxed line-clamp-3">
+                    {service.description}
+                  </p>
                 <div className="pt-6 border-t border-slate-100/60 flex items-center justify-between mt-auto">
                   <div>
                     <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mb-0.5">
@@ -309,7 +375,8 @@ export default function Home() {
                   </Link>
                 </div>
               </motion.div>
-            ))}
+            );
+          })}
           </div>
         )}
       </section>
