@@ -41,7 +41,7 @@ class ReservationController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'All reservations retrieved successfully.',
+            'message' => 'Seluruh data reservasi berhasil dimuat.',
             'data' => ReservationResource::collection($reservations),
         ]);
     }
@@ -69,7 +69,7 @@ class ReservationController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Statistics retrieved successfully.',
+            'message' => 'Data statistik berhasil dimuat.',
             'data' => [
                 'today_bookings' => $todayBookings,
                 'total_customers' => $totalCustomers,

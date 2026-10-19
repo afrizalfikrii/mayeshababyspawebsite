@@ -20,7 +20,7 @@ class ServiceController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Services retrieved successfully.',
+            'message' => 'Data seluruh layanan berhasil dimuat.',
             'data' => ServiceResource::collection($services),
         ]);
     }
@@ -32,7 +32,7 @@ class ServiceController extends Controller
     {
         return response()->json([
             'success' => true,
-            'message' => 'Service retrieved successfully.',
+            'message' => 'Data layanan berhasil dimuat.',
             'data' => new ServiceResource($service),
         ]);
     }
@@ -47,13 +47,13 @@ class ServiceController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Service created successfully.',
+                'message' => 'Layanan baru berhasil ditambahkan.',
                 'data' => new ServiceResource($service),
             ], 201);
         } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to create service: ' . $e->getMessage(),
+                'message' => 'Gagal menambahkan layanan: ' . $e->getMessage(),
                 'data' => null,
             ], 500);
         }
@@ -69,13 +69,13 @@ class ServiceController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Service updated successfully.',
+                'message' => 'Data layanan berhasil diperbarui.',
                 'data' => new ServiceResource($service->fresh()),
             ]);
         } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to update service: ' . $e->getMessage(),
+                'message' => 'Gagal memperbarui layanan: ' . $e->getMessage(),
                 'data' => null,
             ], 500);
         }
@@ -95,7 +95,7 @@ class ServiceController extends Controller
             if ($activeReservations > 0) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Cannot delete service with active reservations. Deactivate it instead.',
+                    'message' => 'Layanan tidak dapat dihapus karena masih terkait reservasi aktif. Anda dapat menonaktifkan statusnya.',
                     'data' => null,
                 ], 422);
             }
@@ -104,13 +104,13 @@ class ServiceController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Service deleted successfully.',
+                'message' => 'Layanan berhasil dihapus.',
                 'data' => null,
             ]);
         } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to delete service: ' . $e->getMessage(),
+                'message' => 'Gagal menghapus layanan: ' . $e->getMessage(),
                 'data' => null,
             ], 500);
         }

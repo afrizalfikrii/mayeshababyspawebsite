@@ -15,7 +15,7 @@ class BabyController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Baby profiles retrieved successfully.',
+            'message' => 'Data profil si Kecil berhasil dimuat.',
             'data'    => $babies,
         ]);
     }
@@ -27,6 +27,11 @@ class BabyController extends Controller
             'name'       => ['required', 'string', 'max:255'],
             'birth_date' => ['required', 'date', 'before_or_equal:today'],
             'notes'      => ['nullable', 'string', 'max:1000'],
+        ], [
+            'name.required'              => 'Nama si Kecil wajib diisi.',
+            'name.max'                   => 'Nama si Kecil maksimal 255 karakter.',
+            'birth_date.required'        => 'Tanggal lahir si Kecil wajib diisi.',
+            'birth_date.before_or_equal' => 'Tanggal lahir tidak boleh di masa depan.',
         ]);
 
         $baby = $request->user()->babies()->create($validated);
@@ -45,7 +50,7 @@ class BabyController extends Controller
         if ($baby->user_id !== $request->user()->id) {
             return response()->json([
                 'success' => false,
-                'message' => 'Unauthorized action.',
+                'message' => 'Anda tidak memiliki akses ke profil anak ini.',
             ], 403);
         }
 
@@ -53,6 +58,11 @@ class BabyController extends Controller
             'name'       => ['sometimes', 'required', 'string', 'max:255'],
             'birth_date' => ['sometimes', 'required', 'date', 'before_or_equal:today'],
             'notes'      => ['nullable', 'string', 'max:1000'],
+        ], [
+            'name.required'              => 'Nama si Kecil wajib diisi.',
+            'name.max'                   => 'Nama si Kecil maksimal 255 karakter.',
+            'birth_date.required'        => 'Tanggal lahir si Kecil wajib diisi.',
+            'birth_date.before_or_equal' => 'Tanggal lahir tidak boleh di masa depan.',
         ]);
 
         $baby->update($validated);
@@ -71,7 +81,7 @@ class BabyController extends Controller
         if ($baby->user_id !== $request->user()->id) {
             return response()->json([
                 'success' => false,
-                'message' => 'Unauthorized action.',
+                'message' => 'Anda tidak memiliki akses ke profil anak ini.',
             ], 403);
         }
 

@@ -16,7 +16,7 @@ class ReviewController extends Controller
         if ($reservation->user_id !== $request->user()->id) {
             return response()->json([
                 'success' => false,
-                'message' => 'Unauthorized action.',
+                'message' => 'Anda tidak memiliki izin untuk mengulas reservasi ini.',
             ], 403);
         }
 
@@ -41,6 +41,11 @@ class ReviewController extends Controller
         $validated = $request->validate([
             'rating'  => ['required', 'integer', 'min:1', 'max:5'],
             'comment' => ['nullable', 'string', 'max:1000'],
+        ], [
+            'rating.required' => 'Bintang penilaian wajib dipilih.',
+            'rating.min'      => 'Penilaian minimal 1 bintang.',
+            'rating.max'      => 'Penilaian maksimal 5 bintang.',
+            'comment.max'     => 'Komentar ulasan maksimal 1000 karakter.',
         ]);
 
         // Simpan ulasan ke tabel reviews

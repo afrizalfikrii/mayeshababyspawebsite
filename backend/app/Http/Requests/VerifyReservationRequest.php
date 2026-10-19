@@ -22,7 +22,9 @@ class VerifyReservationRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'action.in' => 'Action must be either "confirmed", "cancelled", or "completed".',
+            'action.required' => 'Status tindakan verifikasi wajib dipilih.',
+            'action.in'       => 'Tindakan harus berupa dikonfirmasi (confirmed), dibatalkan (cancelled), atau selesai (completed).',
+            'notes.max'       => 'Catatan maksimal 500 karakter.',
         ];
     }
 }

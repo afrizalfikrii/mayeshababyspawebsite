@@ -21,10 +21,10 @@ class UploadProofRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'payment_proof.required' => 'Please upload a payment proof image.',
-            'payment_proof.image'    => 'The file must be a valid image.',
-            'payment_proof.mimes'    => 'Accepted formats: JPG, JPEG, PNG, WEBP.',
-            'payment_proof.max'      => 'The image must not exceed 2MB.',
+            'payment_proof.required' => 'Silakan unggah foto bukti pembayaran terlebih dahulu.',
+            'payment_proof.image'    => 'File yang diunggah harus berupa gambar yang valid.',
+            'payment_proof.mimes'    => 'Format gambar yang didukung: JPG, JPEG, PNG, atau WEBP.',
+            'payment_proof.max'      => 'Ukuran foto bukti pembayaran maksimal 2MB.',
         ];
     }
 }

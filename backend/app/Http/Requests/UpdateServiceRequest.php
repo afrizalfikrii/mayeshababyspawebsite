@@ -21,4 +21,15 @@ class UpdateServiceRequest extends FormRequest
             'is_active'        => ['sometimes', 'boolean'],
         ];
     }
+
+    public function messages(): array
+    {
+        return [
+            'name.max'                 => 'Nama layanan maksimal 255 karakter.',
+            'duration_minutes.integer' => 'Durasi layanan harus berupa angka menit.',
+            'duration_minutes.min'     => 'Durasi layanan minimal 1 menit.',
+            'price.numeric'            => 'Harga layanan harus berupa angka.',
+            'price.min'                => 'Harga layanan tidak boleh bernilai negatif.',
+        ];
+    }
 }
