@@ -21,4 +21,19 @@ class StoreServiceRequest extends FormRequest
             'is_active'        => ['sometimes', 'boolean'],
         ];
     }
+
+    public function messages(): array
+    {
+        return [
+            'name.required'             => 'Nama layanan wajib diisi.',
+            'name.max'                  => 'Nama layanan maksimal 255 karakter.',
+            'description.required'      => 'Deskripsi layanan wajib diisi.',
+            'duration_minutes.required' => 'Durasi layanan wajib diisi.',
+            'duration_minutes.integer'  => 'Durasi layanan harus berupa angka menit.',
+            'duration_minutes.min'      => 'Durasi layanan minimal 1 menit.',
+            'price.required'            => 'Harga layanan wajib diisi.',
+            'price.numeric'             => 'Harga layanan harus berupa angka.',
+            'price.min'                 => 'Harga layanan tidak boleh bernilai negatif.',
+        ];
+    }
 }

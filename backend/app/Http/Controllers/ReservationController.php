@@ -32,7 +32,7 @@ class ReservationController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Reservations retrieved successfully.',
+            'message' => 'Daftar riwayat reservasi berhasil dimuat.',
             'data' => ReservationResource::collection($reservations),
         ]);
     }
@@ -48,6 +48,11 @@ class ReservationController extends Controller
         $request->validate([
             'date' => ['required', 'date'],
             'service_id' => ['required', 'integer', 'exists:services,id'],
+        ], [
+            'date.required'       => 'Tanggal reservasi wajib dipilih.',
+            'date.date'           => 'Format tanggal tidak valid.',
+            'service_id.required' => 'Pilihan layanan wajib ditentukan.',
+            'service_id.exists'   => 'Layanan yang dipilih tidak valid atau tidak ditemukan.',
         ]);
 
         $date = $request->date;

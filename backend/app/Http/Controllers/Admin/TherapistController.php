@@ -16,7 +16,7 @@ class TherapistController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'All therapists retrieved successfully.',
+            'message' => 'Data seluruh terapis berhasil dimuat.',
             'data'    => $therapists,
         ]);
     }
@@ -27,6 +27,9 @@ class TherapistController extends Controller
         $validated = $request->validate([
             'name'      => ['required', 'string', 'max:255'],
             'is_active' => ['nullable', 'boolean'],
+        ], [
+            'name.required' => 'Nama terapis wajib diisi.',
+            'name.max'      => 'Nama terapis maksimal 255 karakter.',
         ]);
 
         $therapist = Therapist::create([
@@ -36,7 +39,7 @@ class TherapistController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Therapist created successfully.',
+            'message' => 'Data terapis berhasil ditambahkan.',
             'data'    => $therapist,
         ], 201);
     }
@@ -46,7 +49,7 @@ class TherapistController extends Controller
     {
         return response()->json([
             'success' => true,
-            'message' => 'Therapist retrieved successfully.',
+            'message' => 'Data detail terapis berhasil dimuat.',
             'data'    => $therapist,
         ]);
     }
@@ -57,13 +60,16 @@ class TherapistController extends Controller
         $validated = $request->validate([
             'name'      => ['sometimes', 'required', 'string', 'max:255'],
             'is_active' => ['sometimes', 'required', 'boolean'],
+        ], [
+            'name.required' => 'Nama terapis wajib diisi.',
+            'name.max'      => 'Nama terapis maksimal 255 karakter.',
         ]);
 
         $therapist->update($validated);
 
         return response()->json([
             'success' => true,
-            'message' => 'Therapist updated successfully.',
+            'message' => 'Data terapis berhasil diperbarui.',
             'data'    => $therapist,
         ]);
     }
@@ -77,7 +83,7 @@ class TherapistController extends Controller
         if ($hasBookings) {
             return response()->json([
                 'success' => false,
-                'message' => 'Cannot delete therapist. They have active/pending reservations.',
+                'message' => 'Terapis tidak dapat dihapus karena masih memiliki jadwal reservasi aktif atau pending.',
             ], 422);
         }
 
@@ -85,7 +91,7 @@ class TherapistController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Therapist deleted successfully.',
+            'message' => 'Data terapis berhasil dihapus.',
             'data'    => null,
         ]);
     }

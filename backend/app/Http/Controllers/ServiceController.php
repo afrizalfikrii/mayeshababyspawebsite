@@ -17,7 +17,7 @@ class ServiceController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Services retrieved successfully.',
+            'message' => 'Daftar layanan berhasil dimuat.',
             'data'    => ServiceResource::collection($services),
         ]);
     }
@@ -31,7 +31,7 @@ class ServiceController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Therapists retrieved successfully.',
+            'message' => 'Daftar terapis berhasil dimuat.',
             'data'    => $therapists,
         ]);
     }

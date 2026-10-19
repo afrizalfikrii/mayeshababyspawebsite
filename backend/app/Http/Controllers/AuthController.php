@@ -31,7 +31,7 @@ class AuthController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Registration successful.',
+                'message' => 'Pendaftaran akun berhasil! Selamat datang di Mayesha Baby Spa.',
                 'data'    => [
                     'user'  => new UserResource($user),
                     'token' => $token,
@@ -40,7 +40,7 @@ class AuthController extends Controller
         } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Registration failed: ' . $e->getMessage(),
+                'message' => 'Pendaftaran akun gagal: ' . $e->getMessage(),
                 'data'    => null,
             ], 500);
         }
@@ -54,7 +54,7 @@ class AuthController extends Controller
         try {
             if (! Auth::attempt($request->only('email', 'password'))) {
                 throw ValidationException::withMessages([
-                    'email' => ['The provided credentials are incorrect.'],
+                    'email' => ['Email atau kata sandi yang Anda masukkan salah.'],
                 ]);
             }
 
@@ -68,7 +68,7 @@ class AuthController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Login successful.',
+                'message' => 'Berhasil masuk! Selamat datang kembali.',
                 'data'    => [
                     'user'  => new UserResource($user),
                     'token' => $token,
@@ -77,13 +77,13 @@ class AuthController extends Controller
         } catch (ValidationException $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Invalid credentials.',
+                'message' => 'Email atau kata sandi yang Anda masukkan salah. Silakan periksa kembali.',
                 'data'    => $e->errors(),
             ], 422);
         } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Login failed: ' . $e->getMessage(),
+                'message' => 'Gagal masuk: ' . $e->getMessage(),
                 'data'    => null,
             ], 500);
         }
@@ -98,7 +98,7 @@ class AuthController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Logged out successfully.',
+            'message' => 'Berhasil keluar dari akun.',
             'data'    => null,
         ]);
     }
@@ -110,7 +110,7 @@ class AuthController extends Controller
     {
         return response()->json([
             'success' => true,
-            'message' => 'Authenticated user retrieved.',
+            'message' => 'Data pengguna berhasil dimuat.',
             'data'    => new UserResource($request->user()),
         ]);
     }

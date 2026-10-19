@@ -61,10 +61,29 @@ export default function Auth() {
       const msg = err?.response?.data?.message ?? "Terjadi kesalahan, coba lagi.";
       const validationErrors = err?.response?.data?.data;
 
+      const translateErrorMessage = (text: string) => {
+        if (/provided credentials are incorrect/i.test(text) || /invalid credentials/i.test(text)) {
+          return "Email atau kata sandi yang Anda masukkan salah. Silakan periksa kembali.";
+        }
+        if (/email has already been taken/i.test(text)) {
+          return "Alamat email ini sudah terdaftar. Silakan gunakan email lain atau langsung masuk.";
+        }
+        if (/password field must be at least/i.test(text)) {
+          return "Kata sandi minimal terdiri dari 8 karakter.";
+        }
+        if (/password confirmation does not match/i.test(text)) {
+          return "Konfirmasi kata sandi tidak cocok.";
+        }
+        if (/email field must be a valid email/i.test(text)) {
+          return "Format alamat email tidak valid.";
+        }
+        return text;
+      };
+
       if (validationErrors && typeof validationErrors === "object") {
-        Object.values(validationErrors).flat().forEach((e) => toast.error(e));
+        Object.values(validationErrors).flat().forEach((e) => toast.error(translateErrorMessage(e)));
       } else {
-        toast.error(msg);
+        toast.error(translateErrorMessage(msg));
       }
     } finally {
       setIsLoading(false);
@@ -101,7 +120,7 @@ export default function Auth() {
         {/* Header */}
         <div className="text-center mb-8">
           <h2 className="text-2xl font-bold text-slate-800">
-            {isLogin ? "Welcome Back!" : "Yuk, Bikin Akun"}
+            {isLogin ? "Selamat Datang Kembali!" : "Yuk, Bikin Akun"}
           </h2>
           <p className="text-slate-500 text-sm mt-1">
             {isLogin
