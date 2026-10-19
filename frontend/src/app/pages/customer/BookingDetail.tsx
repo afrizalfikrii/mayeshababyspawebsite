@@ -275,49 +275,70 @@ export default function BookingDetail() {
                 <h3 className="font-bold text-slate-800 flex items-center gap-2 text-sm uppercase tracking-wider text-slate-400">
                   <Calendar className="text-pink-500" size={16} /> Info Sesi Spa
                 </h3>
-                <div className="bg-slate-50/70 p-4 rounded-2xl border border-slate-100 space-y-3 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-slate-500 font-medium">Tanggal Sesi</span>
-                    <span className="font-bold text-slate-800">
-                      {new Date(booking.reservation_date).toLocaleDateString("id-ID", {
-                        day: "numeric",
-                        month: "long",
-                        year: "numeric",
-                      })}
+                <div className="bg-slate-50/80 p-5 rounded-2xl border border-slate-100 flex flex-col gap-3.5 text-sm shadow-xs">
+                  {/* Tanggal Sesi */}
+                  <div className="flex items-start justify-between gap-3 pb-3 border-b border-slate-200/50">
+                    <span className="text-slate-500 font-medium text-xs sm:text-sm shrink-0 w-32">Tanggal Sesi</span>
+                    <span className="font-bold text-slate-800 text-xs sm:text-sm text-right flex-1">
+                      {booking.reservation_date
+                        ? new Date(booking.reservation_date).toLocaleDateString("id-ID", {
+                            day: "numeric",
+                            month: "long",
+                            year: "numeric",
+                          })
+                        : "-"}
                     </span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500 font-medium">Jam Kedatangan</span>
-                    <span className="font-bold text-slate-800">{booking.start_time.substring(0, 5)} WIB</span>
-                  </div>
-                  <div className="flex justify-between items-start gap-4">
-                    <span className="text-slate-500 font-medium shrink-0">Layanan</span>
-                    <span className="font-bold text-slate-800 text-right max-w-[65%] leading-tight">
-                      {booking.service?.name}
+
+                  {/* Jam Kedatangan */}
+                  <div className="flex items-center justify-between gap-3 pb-3 border-b border-slate-200/50">
+                    <span className="text-slate-500 font-medium text-xs sm:text-sm shrink-0 w-32">Jam Kedatangan</span>
+                    <span className="font-bold text-slate-800 text-xs sm:text-sm text-right flex-1">
+                      {booking.start_time ? booking.start_time.substring(0, 5) : "-"} WIB
                     </span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500 font-medium">Durasi</span>
-                    <span className="font-bold text-slate-800">{booking.service?.duration_minutes} Menit</span>
+
+                  {/* Layanan */}
+                  <div className="flex items-start justify-between gap-3 pb-3 border-b border-slate-200/50">
+                    <span className="text-slate-500 font-medium text-xs sm:text-sm shrink-0 w-32">Layanan</span>
+                    <span className="font-bold text-slate-800 text-xs sm:text-sm text-right flex-1 leading-snug">
+                      {booking.service?.name ?? "-"}
+                    </span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500 font-medium">Terapis</span>
-                    <span className="font-bold text-slate-800">
+
+                  {/* Durasi */}
+                  <div className="flex items-center justify-between gap-3 pb-3 border-b border-slate-200/50">
+                    <span className="text-slate-500 font-medium text-xs sm:text-sm shrink-0 w-32">Durasi</span>
+                    <span className="font-bold text-slate-800 text-xs sm:text-sm text-right flex-1">
+                      {booking.service?.duration_minutes ?? 0} Menit
+                    </span>
+                  </div>
+
+                  {/* Terapis */}
+                  <div className="flex items-start justify-between gap-3 pb-3 border-b border-slate-200/50">
+                    <span className="text-slate-500 font-medium text-xs sm:text-sm shrink-0 w-32">Terapis</span>
+                    <span className="font-bold text-slate-800 text-xs sm:text-sm text-right flex-1 leading-snug">
                       {booking.therapist?.name || "Otomatis / Belum Ditentukan"}
                     </span>
                   </div>
-                  <div className="flex flex-col gap-1.5 border-t border-slate-200/60 pt-3 mt-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-slate-500 font-medium">Lokasi</span>
-                      <span className="font-bold text-slate-800">
+
+                  {/* Lokasi */}
+                  <div className="flex flex-col gap-2 pt-1">
+                    <div className="flex items-start justify-between gap-3">
+                      <span className="text-slate-500 font-medium text-xs sm:text-sm shrink-0 w-32">Lokasi</span>
+                      <span className="font-bold text-slate-800 text-xs sm:text-sm text-right flex-1 leading-snug">
                         {booking.delivery_address ? "Home Care (Kunjungan Rumah)" : "Studio Mayesha Baby Spa"}
                       </span>
                     </div>
+
                     {booking.delivery_address && (
-                      <div className="mt-1 p-3 bg-slate-100/70 rounded-xl text-xs text-slate-600 leading-relaxed break-words">
-                        <span className="font-bold text-slate-700 block mb-1">Detail Alamat Kunjungan:</span>
+                      <div className="mt-2 p-3.5 bg-white rounded-xl border border-slate-200/80 text-xs text-slate-600 leading-relaxed shadow-xs break-words">
+                        <span className="font-bold text-slate-700 flex items-center gap-1.5 mb-1.5">
+                          <MapPin size={13} className="text-pink-500 shrink-0" />
+                          Detail Alamat Kunjungan:
+                        </span>
                         {booking.delivery_address.includes("https://maps.google.com") ? (
-                          <div className="space-y-2">
+                          <div className="space-y-2 mt-1">
                             <p>{booking.delivery_address.replace(/\n?📍 Titik GPS: https:\/\/maps\.google\.com\/\?q=[-0-9.,]+/g, "").trim() || "Titik GPS telah disematkan."}</p>
                             {booking.delivery_address.match(/https:\/\/maps\.google\.com\/\?q=[-0-9.,]+/g)?.map((link, idx) => (
                               <a
@@ -332,7 +353,7 @@ export default function BookingDetail() {
                             ))}
                           </div>
                         ) : (
-                          booking.delivery_address
+                          <p className="mt-0.5">{booking.delivery_address}</p>
                         )}
                       </div>
                     )}
@@ -345,20 +366,24 @@ export default function BookingDetail() {
                 <h3 className="font-bold text-slate-800 flex items-center gap-2 text-sm uppercase tracking-wider text-slate-400">
                   <User className="text-pink-500" size={16} /> Profil Si Kecil
                 </h3>
-                <div className="bg-slate-50/70 p-4 rounded-2xl border border-slate-100 space-y-3 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-slate-500 font-medium">Nama Panggilan</span>
-                    <span className="font-bold text-slate-800">{booking.baby_name}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500 font-medium">Usia Bayi</span>
-                    <span className="font-bold text-slate-800">{booking.baby_age} Bulan</span>
-                  </div>
-                  <div className="flex flex-col gap-1 mt-2 pt-3 border-t border-slate-200/60">
-                    <span className="text-slate-500 font-medium">Catatan / Pesan:</span>
-                    <span className="text-slate-700 font-medium italic">
-                      {booking.notes ? `"${booking.notes}"` : "Tidak ada catatan khusus."}
+                <div className="bg-slate-50/80 p-5 rounded-2xl border border-slate-100 flex flex-col gap-3.5 text-sm shadow-xs h-full">
+                  <div className="flex items-center justify-between gap-3 pb-3 border-b border-slate-200/50">
+                    <span className="text-slate-500 font-medium text-xs sm:text-sm shrink-0 w-32">Nama Panggilan</span>
+                    <span className="font-bold text-slate-800 text-xs sm:text-sm text-right flex-1">
+                      {booking.baby_name ?? "-"}
                     </span>
+                  </div>
+                  <div className="flex items-center justify-between gap-3 pb-3 border-b border-slate-200/50">
+                    <span className="text-slate-500 font-medium text-xs sm:text-sm shrink-0 w-32">Usia Bayi</span>
+                    <span className="font-bold text-slate-800 text-xs sm:text-sm text-right flex-1">
+                      {booking.baby_age != null ? `${booking.baby_age} Bulan` : "-"}
+                    </span>
+                  </div>
+                  <div className="flex flex-col gap-1.5 pt-1">
+                    <span className="text-slate-500 font-medium text-xs sm:text-sm">Catatan / Pesan:</span>
+                    <div className="p-3.5 bg-white rounded-xl border border-slate-200/70 text-xs sm:text-sm text-slate-700 italic leading-relaxed mt-0.5 shadow-xs">
+                      {booking.notes ? `"${booking.notes}"` : "Tidak ada catatan khusus."}
+                    </div>
                   </div>
                 </div>
               </div>
