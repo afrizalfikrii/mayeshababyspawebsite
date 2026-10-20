@@ -119,7 +119,7 @@ export interface RegisterPayload {
   email: string;
   password: string;
   password_confirmation: string;
-  phone_number?: string;
+  phone_number: string;
 }
 
 export interface LoginPayload {

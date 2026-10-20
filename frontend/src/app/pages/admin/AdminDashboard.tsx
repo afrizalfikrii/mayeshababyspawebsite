@@ -22,6 +22,10 @@ import {
   BarChart2,
   Download,
   MapPin,
+  MessageCircle,
+  ZoomIn,
+  ZoomOut,
+  ExternalLink,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { toast } from "sonner";
@@ -65,6 +69,8 @@ export default function AdminDashboard() {
   const [resFilter, setResFilter] = useState<string>("all");
   const [isResLoading, setIsResLoading] = useState(false);
   const [selectedProof, setSelectedProof] = useState<Reservation | null>(null);
+  const [zoomedProofImage, setZoomedProofImage] = useState<string | null>(null);
+  const [zoomScale, setZoomScale] = useState<number>(1);
 
   // ── Services State ──────────────────────────────────────────────────────────
   const [services, setServices] = useState<Service[]>([]);
@@ -201,13 +207,15 @@ export default function AdminDashboard() {
       .slice(0, 5);
   };
 
-  const getWaLinkFromPhone = (phone: string | null | undefined) => {
+  const getWaLinkFromPhone = (phone: string | null | undefined, message?: string) => {
     if (!phone) return "-";
     let cleaned = phone.replace(/\D/g, "");
     if (cleaned.startsWith("0")) {
       cleaned = "62" + cleaned.substring(1);
     }
-    return `https://wa.me/${cleaned}`;
+    if (!cleaned) return "-";
+    const textParam = message ? `?text=${encodeURIComponent(message)}` : "";
+    return `https://wa.me/${cleaned}${textParam}`;
   };
 
   const handleExportCSV = () => {
@@ -671,7 +679,23 @@ export default function AdminDashboard() {
                                 Anak: <span className="font-semibold">{r.baby_name}</span> ({r.baby_age} Bln)
                               </p>
                             )}
-                            <p className="text-xs text-slate-400 font-mono mt-0.5">{r.user?.phone_number ?? '-'}</p>
+                            {r.user?.phone_number ? (
+                              <a
+                                href={getWaLinkFromPhone(
+                                  r.user.phone_number,
+                                  `Halo Kak ${r.user.name || "Bunda"}, kami dari Admin Mayesha Baby Spa terkait reservasi (${r.booking_code}) untuk ${r.baby_name ? `anak ${r.baby_name}` : `layanan ${r.service?.name || "Baby Spa"}`}.`
+                                )}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 hover:text-emerald-800 px-2 py-0.5 rounded-lg border border-emerald-200 mt-1 transition-all group"
+                                title="Klik untuk chat WhatsApp pelanggan"
+                              >
+                                <MessageCircle size={12} className="text-emerald-600 group-hover:scale-110 transition-transform" />
+                                <span className="font-mono">{r.user.phone_number}</span>
+                              </a>
+                            ) : (
+                              <p className="text-xs text-slate-400 font-mono mt-0.5">-</p>
+                            )}
                             {r.delivery_address ? (
                               <div className="mt-2 bg-pink-50/90 p-2 rounded-xl border border-pink-100 max-w-xs">
                                 <span className="inline-flex items-center gap-1 text-[10px] font-bold text-pink-700 uppercase tracking-wider">
@@ -1085,7 +1109,27 @@ export default function AdminDashboard() {
                 </div>
                 <div>
                   <p className="text-xs text-slate-400 uppercase font-bold tracking-wider">Pelanggan</p>
-                  <p className="font-semibold text-slate-800">{selectedProof.user?.name}</p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <p className="font-semibold text-slate-800">{selectedProof.user?.name}</p>
+                    {selectedProof.user?.phone_number && (
+                      <a
+                        href={getWaLinkFromPhone(
+                          selectedProof.user.phone_number,
+                          `Halo Kak ${selectedProof.user.name || "Bunda"}, kami dari Admin Mayesha Baby Spa terkait konfirmasi bukti pembayaran reservasi (${selectedProof.booking_code}).`
+                        )}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#25D366]/15 text-[#128C7E] hover:bg-[#25D366]/25 border border-[#25D366]/30 transition-colors"
+                        title="Chat WhatsApp Pelanggan"
+                      >
+                        <MessageCircle size={11} className="text-[#25D366]" />
+                        <span>Chat WA</span>
+                      </a>
+                    )}
+                  </div>
+                  {selectedProof.user?.phone_number && (
+                    <p className="text-xs text-slate-500 font-mono mt-0.5">{selectedProof.user.phone_number}</p>
+                  )}
                 </div>
                 <div>
                   <p className="text-xs text-slate-400 uppercase font-bold tracking-wider">Layanan</p>
@@ -1121,13 +1165,30 @@ export default function AdminDashboard() {
               </div>
 
               {/* Proof Image */}
-              <div className="w-full aspect-video bg-slate-100 rounded-xl overflow-hidden border border-slate-200/60 relative flex items-center justify-center">
+              <div
+                onClick={() => {
+                  if (selectedProof.payment_proof_url) {
+                    setZoomedProofImage(getStorageUrl(selectedProof.payment_proof_url));
+                    setZoomScale(1);
+                  }
+                }}
+                className={`w-full aspect-video bg-slate-100 rounded-xl overflow-hidden border border-slate-200/60 relative flex items-center justify-center ${
+                  selectedProof.payment_proof_url ? "cursor-zoom-in group" : ""
+                }`}
+                title={selectedProof.payment_proof_url ? "Klik untuk melihat gambar ukuran penuh" : undefined}
+              >
                 {selectedProof.payment_proof_url ? (
-                  <img
-                    src={getStorageUrl(selectedProof.payment_proof_url)}
-                    alt="Bukti Transfer QRIS"
-                    className="w-full h-full object-contain"
-                  />
+                  <>
+                    <img
+                      src={getStorageUrl(selectedProof.payment_proof_url)}
+                      alt="Bukti Transfer QRIS"
+                      className="w-full h-full object-contain transition-transform group-hover:scale-[1.02]"
+                    />
+                    <div className="absolute inset-0 bg-slate-900/35 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 text-white font-semibold text-xs backdrop-blur-[1px]">
+                      <ZoomIn size={18} />
+                      <span>Klik untuk perbesar layar penuh</span>
+                    </div>
+                  </>
                 ) : (
                   <div className="text-slate-400 flex flex-col items-center gap-2">
                     <FileImage size={40} />
@@ -1150,6 +1211,85 @@ export default function AdminDashboard() {
                 >
                   <CheckCircle size={16} /> Konfirmasi / Terima
                 </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Image Lightbox Fullscreen Modal ────────────────────────────────────── */}
+      <AnimatePresence>
+        {zoomedProofImage && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="relative max-w-4xl max-h-[92vh] w-full flex flex-col items-center"
+            >
+              {/* Control Toolbar */}
+              <div className="w-full flex items-center justify-between pb-3 text-white">
+                <span className="text-xs font-semibold bg-white/10 px-3 py-1 rounded-full backdrop-blur-sm border border-white/20">
+                  Perbesaran: {Math.round(zoomScale * 100)}%
+                </span>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setZoomScale((prev) => Math.max(0.5, Number((prev - 0.25).toFixed(2))))}
+                    className="p-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 transition-all text-white cursor-pointer"
+                    title="Perkecil (-)"
+                  >
+                    <ZoomOut size={18} />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setZoomScale(1)}
+                    className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 transition-all text-white cursor-pointer"
+                    title="Reset Ukuran (100%)"
+                  >
+                    100%
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setZoomScale((prev) => Math.min(3, Number((prev + 0.25).toFixed(2))))}
+                    className="p-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 transition-all text-white cursor-pointer"
+                    title="Perbesar (+)"
+                  >
+                    <ZoomIn size={18} />
+                  </button>
+
+                  <a
+                    href={zoomedProofImage}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 transition-all text-white cursor-pointer inline-flex items-center"
+                    title="Buka Gambar di Tab Baru"
+                  >
+                    <ExternalLink size={18} />
+                  </a>
+
+                  <button
+                    type="button"
+                    onClick={() => setZoomedProofImage(null)}
+                    className="p-2 rounded-xl bg-rose-500/80 hover:bg-rose-600 border border-rose-400/40 transition-all text-white cursor-pointer ml-2"
+                    title="Tutup (Esc)"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Zoomable Image Container */}
+              <div className="w-full max-h-[82vh] overflow-auto rounded-2xl bg-slate-900/50 border border-white/10 p-2 flex items-center justify-center shadow-2xl">
+                <img
+                  src={zoomedProofImage}
+                  alt="Bukti Transfer Diperbesar"
+                  style={{ transform: `scale(${zoomScale})`, transformOrigin: "center center" }}
+                  className="max-h-[78vh] object-contain transition-transform duration-200 select-none shadow-lg rounded-lg"
+                />
               </div>
             </motion.div>
           </div>
@@ -1419,9 +1559,26 @@ export default function AdminDashboard() {
                   <span className="text-amber-800 font-bold">Booking Code:</span>
                   <span className="font-mono font-bold text-amber-900">{rescheduleModal.reservation.booking_code}</span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between items-center">
                   <span className="text-amber-800 font-bold">Pelanggan:</span>
-                  <span className="text-slate-800 font-semibold">{rescheduleModal.reservation.user?.name}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-slate-800 font-semibold">{rescheduleModal.reservation.user?.name}</span>
+                    {rescheduleModal.reservation.user?.phone_number && (
+                      <a
+                        href={getWaLinkFromPhone(
+                          rescheduleModal.reservation.user.phone_number,
+                          `Halo Kak ${rescheduleModal.reservation.user.name || "Bunda"}, kami dari Admin Mayesha Baby Spa ingin mengonfirmasi terkait jadwal reservasi (${rescheduleModal.reservation.booking_code}).`
+                        )}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#25D366]/15 text-[#128C7E] hover:bg-[#25D366]/25 border border-[#25D366]/30 transition-colors"
+                        title="Chat WhatsApp Pelanggan"
+                      >
+                        <MessageCircle size={10} className="text-[#25D366]" />
+                        <span>Chat WA</span>
+                      </a>
+                    )}
+                  </div>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-amber-800 font-bold">Layanan:</span>

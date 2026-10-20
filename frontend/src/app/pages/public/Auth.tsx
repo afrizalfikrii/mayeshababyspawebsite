@@ -40,6 +40,10 @@ export default function Auth() {
         const destination = loggedUser?.role === "admin" ? "/admin" : "/dashboard";
         navigate(destination, { replace: true });
       } else {
+        if (!form.phone_number.trim()) {
+          toast.error("Nomor WhatsApp / telepon wajib diisi.");
+          return;
+        }
         if (form.password !== form.password_confirmation) {
           toast.error("Konfirmasi kata sandi tidak cocok.");
           return;
@@ -47,7 +51,7 @@ export default function Auth() {
         const payload: RegisterPayload = {
           name: form.name,
           email: form.email,
-          phone_number: form.phone_number || undefined,
+          phone_number: form.phone_number.trim(),
           password: form.password,
           password_confirmation: form.password_confirmation,
         };
@@ -67,6 +71,9 @@ export default function Auth() {
         }
         if (/email has already been taken/i.test(text)) {
           return "Alamat email ini sudah terdaftar. Silakan gunakan email lain atau langsung masuk.";
+        }
+        if (/phone number field is required/i.test(text) || /nomor whatsapp.*wajib diisi/i.test(text)) {
+          return "Nomor WhatsApp / telepon wajib diisi.";
         }
         if (/password field must be at least/i.test(text)) {
           return "Kata sandi minimal terdiri dari 8 karakter.";
@@ -165,10 +172,11 @@ export default function Auth() {
               <input
                 name="phone_number"
                 type="tel"
-                placeholder="Nomor Telepon (opsional)"
+                placeholder="Nomor WhatsApp / HP (Wajib)"
                 className="input-glass pl-11"
                 value={form.phone_number}
                 onChange={handleChange}
+                required
               />
             </div>
           )}
