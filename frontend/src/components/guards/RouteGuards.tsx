@@ -1,5 +1,7 @@
+import { useEffect, useState } from "react";
 import { Navigate, Outlet } from "react-router";
 import { useAuth } from "@/context/AuthContext";
+import { getMe } from "@/services/auth.service";
 import type { User } from "@/types/api.types";
 
 function getStoredUser(): User | null {
@@ -57,12 +59,50 @@ export function RedirectIfAuth() {
 
 /**
  * Ensures authenticated user has the 'admin' role.
- * Redirects to /dashboard otherwise.
+ * Verifies directly with the server (/api/me) to prevent client-side role tampering.
+ * Redirects to /dashboard immediately if the server rejects or role is customer.
  */
 export function RequireAdmin() {
-  const { user, isAuthenticated, isLoading } = useAuth();
+  const { user, isAuthenticated, isLoading, setUser } = useAuth();
+  const [isVerifying, setIsVerifying] = useState(true);
+  const [isServerAdmin, setIsServerAdmin] = useState(false);
 
-  if (isLoading) {
+  useEffect(() => {
+    let isMounted = true;
+
+    const verifyWithServer = async () => {
+      const token = localStorage.getItem("babyspa_token");
+      if (!token) {
+        if (isMounted) {
+          setIsServerAdmin(false);
+          setIsVerifying(false);
+        }
+        return;
+      }
+
+      try {
+        const realUser = await getMe();
+        if (isMounted) {
+          setUser(realUser);
+          setIsServerAdmin(realUser.role === "admin");
+          setIsVerifying(false);
+        }
+      } catch {
+        if (isMounted) {
+          setIsServerAdmin(false);
+          setIsVerifying(false);
+        }
+      }
+    };
+
+    verifyWithServer();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  if (isLoading || isVerifying) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-pink-400 border-t-transparent rounded-full animate-spin" />
@@ -71,10 +111,8 @@ export function RequireAdmin() {
   }
 
   const tokenInStorage = localStorage.getItem("babyspa_token");
-  const currentUser = user || getStoredUser();
-
   if (!isAuthenticated && !tokenInStorage) return <Navigate to="/auth" replace />;
-  if (currentUser && currentUser.role !== "admin") return <Navigate to="/dashboard" replace />;
+  if (!isServerAdmin) return <Navigate to="/dashboard" replace />;
 
   return <Outlet />;
 }
