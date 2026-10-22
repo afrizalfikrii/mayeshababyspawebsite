@@ -40,4 +40,4 @@ RUN composer install --no-dev --prefer-dist --optimize-autoloader
 EXPOSE 8000
 
 # Start server using Render's $PORT
-CMD ["sh", "-c", "php artisan storage:link --force && php artisan config:clear && php artisan serve --host 0.0.0.0 --port ${PORT:-8000}"]
+CMD ["sh", "-c", "php -v && php artisan storage:link --force && php artisan config:clear && php artisan serve --host 0.0.0.0 --port ${PORT:-8000}"]
