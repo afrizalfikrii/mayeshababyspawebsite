@@ -69,6 +69,7 @@ export default function AdminDashboard() {
   const [resFilter, setResFilter] = useState<string>("all");
   const [isResLoading, setIsResLoading] = useState(false);
   const [selectedProof, setSelectedProof] = useState<Reservation | null>(null);
+  const [proofImgError, setProofImgError] = useState(false);
   const [zoomedProofImage, setZoomedProofImage] = useState<string | null>(null);
   const [zoomScale, setZoomScale] = useState<number>(1);
 
@@ -757,7 +758,10 @@ export default function AdminDashboard() {
                           <td className="py-4 px-6 text-right flex items-center justify-end gap-1.5">
                             {r.status === "waiting_verification" ? (
                               <button
-                                onClick={() => setSelectedProof(r)}
+                                onClick={() => {
+                                  setSelectedProof(r);
+                                  setProofImgError(false);
+                                }}
                                 className="px-3 py-1.5 text-xs font-semibold bg-pink-500 hover:bg-pink-600 text-white rounded-lg shadow-sm hover:shadow transition-all inline-flex items-center gap-1 cursor-pointer"
                               >
                                 <Eye size={12} /> Verifikasi
@@ -1167,22 +1171,23 @@ export default function AdminDashboard() {
               {/* Proof Image */}
               <div
                 onClick={() => {
-                  if (selectedProof.payment_proof_url) {
+                  if (selectedProof.payment_proof_url && !proofImgError) {
                     setZoomedProofImage(getStorageUrl(selectedProof.payment_proof_url));
                     setZoomScale(1);
                   }
                 }}
                 className={`w-full aspect-video bg-slate-100 rounded-xl overflow-hidden border border-slate-200/60 relative flex items-center justify-center ${
-                  selectedProof.payment_proof_url ? "cursor-zoom-in group" : ""
+                  selectedProof.payment_proof_url && !proofImgError ? "cursor-zoom-in group" : ""
                 }`}
-                title={selectedProof.payment_proof_url ? "Klik untuk melihat gambar ukuran penuh" : undefined}
+                title={selectedProof.payment_proof_url && !proofImgError ? "Klik untuk melihat gambar ukuran penuh" : undefined}
               >
-                {selectedProof.payment_proof_url ? (
+                {selectedProof.payment_proof_url && !proofImgError ? (
                   <>
                     <img
                       src={getStorageUrl(selectedProof.payment_proof_url)}
                       alt="Bukti Transfer QRIS"
                       className="w-full h-full object-contain transition-transform group-hover:scale-[1.02]"
+                      onError={() => setProofImgError(true)}
                     />
                     <div className="absolute inset-0 bg-slate-900/35 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 text-white font-semibold text-xs backdrop-blur-[1px]">
                       <ZoomIn size={18} />
@@ -1190,9 +1195,10 @@ export default function AdminDashboard() {
                     </div>
                   </>
                 ) : (
-                  <div className="text-slate-400 flex flex-col items-center gap-2">
-                    <FileImage size={40} />
-                    <p className="text-xs">Gambar bukti pembayaran tidak ditemukan</p>
+                  <div className="text-slate-400 flex flex-col items-center gap-2 p-4 text-center">
+                    <FileImage size={40} className="text-slate-300" />
+                    <p className="text-xs font-semibold text-slate-600">Gambar bukti transfer tidak dapat dimuat</p>
+                    <p className="text-[11px] text-slate-400">File pada server sementara mungkin telah terhapus saat redeploy.</p>
                   </div>
                 )}
               </div>

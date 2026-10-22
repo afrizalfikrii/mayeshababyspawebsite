@@ -8,6 +8,7 @@ use App\Http\Resources\ReservationResource;
 use App\Models\Reservation;
 use App\Models\Service;
 use App\Models\Therapist;
+use App\Services\SupabaseStorageService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -278,12 +279,24 @@ class ReservationController extends Controller
 
             // Delete old proof file if it exists
             if ($reservation->payment_proof_path) {
-                Storage::disk('public')->delete($reservation->payment_proof_path);
+                if (str_starts_with($reservation->payment_proof_path, 'http')) {
+                    app(SupabaseStorageService::class)->delete($reservation->payment_proof_path);
+                } else {
+                    Storage::disk('public')->delete($reservation->payment_proof_path);
+                }
             }
 
-            // Store file under public/payment-proofs/
-            $path = $request->file('payment_proof')
-                ->store('payment-proofs', 'public');
+            // Upload to Supabase Storage if configured, otherwise fallback to local public disk
+            $supabase = app(SupabaseStorageService::class);
+            $path = null;
+
+            if ($supabase->isConfigured()) {
+                $path = $supabase->upload($request->file('payment_proof'));
+            }
+
+            if (!$path) {
+                $path = $request->file('payment_proof')->store('payment-proofs', 'public');
+            }
 
             $reservation->update([
                 'payment_proof_path' => $path,
