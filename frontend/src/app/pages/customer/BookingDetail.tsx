@@ -526,13 +526,23 @@ export default function BookingDetail() {
                 </div>
               )}
 
-              {/* QR Image Simulation */}
-              <div className="w-full aspect-square bg-white border border-slate-200 rounded-2xl overflow-hidden p-4 relative flex items-center justify-center">
+              {/* Clean Minimal QRIS Card */}
+              <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col items-center gap-5">
+                {/* Official QRIS Logo */}
                 <img
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=qris-booking-pay-${booking.booking_code}`}
-                  alt="Official QRIS Mayesha"
-                  className="w-full h-full object-contain"
+                  src="/qris-logo.png"
+                  alt="QRIS"
+                  className="h-11 w-auto object-contain"
                 />
+
+                {/* QR Barcode */}
+                <div className="w-full aspect-square max-w-[210px] bg-white p-2.5 border border-slate-200/80 rounded-xl flex items-center justify-center shadow-xs">
+                  <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=qris-mayesha-${booking.booking_code}`}
+                    alt="Barcode Pembayaran QRIS"
+                    className="w-full h-full object-contain"
+                  />
+                </div>
               </div>
 
               <div className="text-center text-sm font-semibold text-slate-700">
