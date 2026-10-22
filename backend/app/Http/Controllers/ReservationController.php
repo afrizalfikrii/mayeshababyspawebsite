@@ -66,10 +66,27 @@ class ReservationController extends Controller
         $timeSlots = ['08:30', '09:30', '10:30', '11:30', '13:00', '14:00', '15:00', '16:00'];
 
         $slots = [];
+        $now = Carbon::now('Asia/Jakarta');
+        $isToday = $date === $now->toDateString();
+        $isPastDate = $date < $now->toDateString();
 
         foreach ($timeSlots as $slotTime) {
             $startTime = Carbon::createFromFormat('H:i', $slotTime);
             $endTime = $startTime->copy()->addMinutes($service->duration_minutes);
+
+            // If the date is in the past, or today and the slot time has already passed
+            $slotDateTime = Carbon::createFromFormat('Y-m-d H:i', "{$date} {$slotTime}", 'Asia/Jakarta');
+            $isPast = $isPastDate || ($isToday && $slotDateTime->lessThanOrEqualTo($now));
+
+            if ($isPast) {
+                $slots[$slotTime] = [
+                    'available' => 0,
+                    'booked'    => $totalCapacity,
+                    'is_full'   => true,
+                    'is_past'   => true,
+                ];
+                continue;
+            }
 
             // Count how many active reservations overlap with this slot
             $booked = Reservation::where('reservation_date', $date)
@@ -82,8 +99,9 @@ class ReservationController extends Controller
 
             $slots[$slotTime] = [
                 'available' => $available,
-                'booked' => $booked,
-                'is_full' => $available === 0,
+                'booked'    => $booked,
+                'is_full'   => $available === 0,
+                'is_past'   => false,
             ];
         }
 
@@ -348,10 +366,19 @@ class ReservationController extends Controller
         }
 
         $request->validate([
-            'reservation_date' => ['required', 'date'],
+            'reservation_date' => ['required', 'date', 'after_or_equal:today'],
             'start_time' => ['required', 'date_format:H:i'],
             'notes' => ['nullable', 'string', 'max:500'],
         ]);
+
+        $newDateTime = Carbon::createFromFormat('Y-m-d H:i', "{$request->reservation_date} {$request->start_time}", 'Asia/Jakarta');
+        if ($newDateTime->lessThanOrEqualTo(Carbon::now('Asia/Jakarta'))) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Jam sesi perubahan yang Anda pilih sudah lewat untuk hari ini. Silakan pilih jam atau tanggal berikutnya.',
+                'data' => null,
+            ], 422);
+        }
 
         try {
             return DB::transaction(function () use ($request, $reservation): JsonResponse {

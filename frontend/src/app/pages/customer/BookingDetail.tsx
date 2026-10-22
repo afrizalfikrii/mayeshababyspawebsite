@@ -677,7 +677,8 @@ export default function BookingDetail() {
                   <div className="grid grid-cols-2 gap-2">
                     {["08:30", "09:30", "10:30", "11:30", "13:00", "14:00", "15:00", "16:00"].map((t) => {
                       const slotInfo = slotAvailability?.slots[t];
-                      const isFull = slotInfo?.is_full ?? false;
+                      const isPast = slotInfo?.is_past ?? false;
+                      const isFull = (slotInfo?.is_full ?? false) || isPast;
                       const isLimited = slotInfo?.available === 1;
                       const isSelected = rescheduleTime === t;
 
@@ -688,7 +689,7 @@ export default function BookingDetail() {
                           disabled={isFull}
                           onClick={() => !isFull && setRescheduleTime(t)}
                           className={`py-2 px-3 border rounded-xl text-xs font-bold transition-all flex flex-col items-center justify-center ${isFull
-                              ? "bg-slate-100 border-slate-200 text-slate-300 cursor-not-allowed"
+                              ? "bg-slate-100 border-slate-200 text-slate-300 cursor-not-allowed opacity-60"
                               : isSelected
                                 ? "bg-pink-500 text-white border-pink-500 shadow-md shadow-pink-100"
                                 : isLimited
@@ -697,8 +698,13 @@ export default function BookingDetail() {
                             }`}
                         >
                           <span>{t} WIB</span>
-                          {isFull && <span className="text-[8px] uppercase tracking-wider text-slate-400 font-bold">Penuh</span>}
-                          {isLimited && !isSelected && <span className="text-[8px] uppercase tracking-wider text-amber-600 font-bold">Sisa 1</span>}
+                          {isPast ? (
+                            <span className="text-[8px] uppercase tracking-wider text-slate-400 font-bold">Lewat</span>
+                          ) : isFull ? (
+                            <span className="text-[8px] uppercase tracking-wider text-slate-400 font-bold">Penuh</span>
+                          ) : isLimited && !isSelected ? (
+                            <span className="text-[8px] uppercase tracking-wider text-amber-600 font-bold">Sisa 1</span>
+                          ) : null}
                         </button>
                       );
                     })}
