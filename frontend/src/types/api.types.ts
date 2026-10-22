@@ -150,6 +150,7 @@ export interface SlotInfo {
   available: number;
   booked: number;
   is_full: boolean;
+  is_past?: boolean;
 }
 
 export interface SlotAvailability {

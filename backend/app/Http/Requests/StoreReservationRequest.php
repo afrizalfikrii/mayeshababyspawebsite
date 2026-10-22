@@ -39,4 +39,31 @@ class StoreReservationRequest extends FormRequest
             'baby_age.min'                    => 'Usia anak minimal 1 bulan.',
         ];
     }
+
+    /**
+     * Configure the validator instance with custom datetime validation.
+     */
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator) {
+            if ($this->filled('reservation_date') && $this->filled('start_time')) {
+                try {
+                    $sessionDateTime = \Carbon\Carbon::createFromFormat(
+                        'Y-m-d H:i',
+                        "{$this->reservation_date} {$this->start_time}",
+                        'Asia/Jakarta'
+                    );
+
+                    if ($sessionDateTime->lessThanOrEqualTo(\Carbon\Carbon::now('Asia/Jakarta'))) {
+                        $validator->errors()->add(
+                            'start_time',
+                            'Jam sesi yang Anda pilih sudah lewat untuk hari ini. Silakan pilih jam atau tanggal berikutnya.'
+                        );
+                    }
+                } catch (\Throwable $e) {
+                    // Ignore format parsing exceptions (handled by date_format validation)
+                }
+            }
+        });
+    }
 }

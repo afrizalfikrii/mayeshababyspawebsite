@@ -119,8 +119,21 @@ export default function Booking() {
     fetchSlots();
   }, [formData.date, formData.serviceId, step]);
 
+  // Helper: check if a slot time is already in the past
+  const isSlotPast = (time: string): boolean => {
+    if (!formData.date) return false;
+    if (slotAvailability?.slots[time]?.is_past) return true;
+
+    // Client-side fallback check
+    const [year, month, day] = formData.date.split("-").map(Number);
+    const [hours, minutes] = time.split(":").map(Number);
+    const slotDate = new Date(year, month - 1, day, hours, minutes);
+    return slotDate.getTime() <= Date.now();
+  };
+
   // Helper: get slot status for a given time
-  const getSlotStatus = (time: string): "available" | "limited" | "full" | "unknown" => {
+  const getSlotStatus = (time: string): "available" | "limited" | "full" | "past" | "unknown" => {
+    if (isSlotPast(time)) return "past";
     if (!slotAvailability) return "unknown";
     const slot = slotAvailability.slots[time];
     if (!slot) return "unknown";
@@ -399,7 +412,8 @@ export default function Booking() {
                         <div className="grid grid-cols-2 gap-3">
                           {TIME_SLOTS.map((t) => {
                             const status = getSlotStatus(t);
-                            const isFull = status === "full";
+                            const isPast = status === "past";
+                            const isFull = status === "full" || isPast;
                             const isSelected = formData.time === t;
                             const isLimited = status === "limited";
 
@@ -411,7 +425,7 @@ export default function Booking() {
                                 onClick={() => !isFull && setFormData({ ...formData, time: t })}
                                 className={`relative flex flex-col items-center justify-center py-3 border rounded-xl text-sm font-semibold transition-all ${
                                   isFull
-                                    ? "bg-slate-100 border-slate-200 text-slate-300 cursor-not-allowed"
+                                    ? "bg-slate-100 border-slate-200 text-slate-300 cursor-not-allowed opacity-60"
                                     : isSelected
                                     ? "bg-pink-500 text-white border-pink-500 shadow-md shadow-pink-100"
                                     : isLimited
@@ -420,15 +434,15 @@ export default function Booking() {
                                 }`}
                               >
                                 <span>{t} WIB</span>
-                                {isFull && (
+                                {isPast ? (
+                                  <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 mt-0.5">Lewat</span>
+                                ) : isFull ? (
                                   <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 mt-0.5">Penuh</span>
-                                )}
-                                {isLimited && !isSelected && (
+                                ) : isLimited && !isSelected ? (
                                   <span className="text-[9px] font-bold uppercase tracking-wider text-amber-500 mt-0.5">Sisa 1 Slot</span>
-                                )}
-                                {isSelected && isLimited && (
+                                ) : isSelected && isLimited ? (
                                   <span className="text-[9px] font-bold uppercase tracking-wider text-pink-100 mt-0.5">Sisa 1 Slot</span>
-                                )}
+                                ) : null}
                               </button>
                             );
                           })}

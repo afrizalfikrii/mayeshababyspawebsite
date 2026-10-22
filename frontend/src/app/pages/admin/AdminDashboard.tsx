@@ -1619,9 +1619,19 @@ export default function AdminDashboard() {
                     required
                   >
                     <option value="">-- Pilih Jam Baru --</option>
-                    {["08:30", "09:30", "10:30", "11:30", "13:00", "14:00", "15:00", "16:00"].map((t) => (
-                      <option key={t} value={t}>{t} WIB</option>
-                    ))}
+                    {["08:30", "09:30", "10:30", "11:30", "13:00", "14:00", "15:00", "16:00"].map((t) => {
+                      let isPast = false;
+                      if (rescheduleModal.date) {
+                        const [year, month, day] = rescheduleModal.date.split("-").map(Number);
+                        const [hours, minutes] = t.split(":").map(Number);
+                        isPast = new Date(year, month - 1, day, hours, minutes).getTime() <= Date.now();
+                      }
+                      return (
+                        <option key={t} value={t} disabled={isPast}>
+                          {t} WIB {isPast ? "(Lewat)" : ""}
+                        </option>
+                      );
+                    })}
                   </select>
                 </div>
 
