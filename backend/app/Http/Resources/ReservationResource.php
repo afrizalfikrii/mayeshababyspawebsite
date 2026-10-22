@@ -19,7 +19,9 @@ class ReservationResource extends JsonResource
             'total_price'         => (float) $this->total_price,
             'status'              => $this->status,
             'payment_proof_url'   => $this->payment_proof_path
-                ? Storage::url($this->payment_proof_path)
+                ? (str_starts_with($this->payment_proof_path, 'http')
+                    ? $this->payment_proof_path
+                    : Storage::url($this->payment_proof_path))
                 : null,
             'expires_at'          => $this->expires_at?->toISOString(),
             'baby_name'           => $this->baby_name,

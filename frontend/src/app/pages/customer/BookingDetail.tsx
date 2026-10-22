@@ -38,6 +38,7 @@ export default function BookingDetail() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [filePreview, setFilePreview] = useState<string | null>(null);
   const [timeLeft, setTimeLeft] = useState<string>("");
+  const [imageError, setImageError] = useState(false);
 
   // State untuk form ulasan / rating
   const [rating, setRating] = useState(5);
@@ -596,12 +597,23 @@ export default function BookingDetail() {
               <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
                 <FileImage size={16} className="text-pink-500" /> Bukti Pembayaran Anda
               </h3>
-              <div className="w-full aspect-[3/4] bg-slate-50 border border-slate-200 rounded-2xl overflow-hidden p-2">
-                <img
-                  src={getStorageUrl(booking.payment_proof_url)}
-                  alt="Bukti Transfer QRIS"
-                  className="w-full h-full object-cover rounded-xl"
-                />
+              <div className="w-full aspect-[3/4] bg-slate-50 border border-slate-200 rounded-2xl overflow-hidden p-2 relative flex items-center justify-center">
+                {imageError ? (
+                  <div className="text-center p-4 flex flex-col items-center gap-2 text-slate-400">
+                    <FileImage size={36} className="text-slate-300" />
+                    <p className="text-xs font-medium text-slate-600">File bukti tidak dapat dimuat</p>
+                    <p className="text-[11px] text-slate-400">
+                      Foto pada server sementara mungkin telah terhapus saat redeploy.
+                    </p>
+                  </div>
+                ) : (
+                  <img
+                    src={getStorageUrl(booking.payment_proof_url)}
+                    alt="Bukti Transfer QRIS"
+                    className="w-full h-full object-cover rounded-xl"
+                    onError={() => setImageError(true)}
+                  />
+                )}
               </div>
             </motion.div>
           )}
