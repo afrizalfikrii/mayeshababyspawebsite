@@ -31,14 +31,36 @@ apiClient.interceptors.request.use(
 
 // ── Response Interceptor ──────────────────────────────────────────────────────
 // Auto-logout on 401 (expired/invalid token)
+// Auto-kick on 403 (unauthorized role access attempt)
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401 && !window.location.pathname.includes("/auth")) {
+    const status = error.response?.status;
+
+    if (status === 401 && !window.location.pathname.includes("/auth")) {
       localStorage.removeItem("babyspa_token");
       localStorage.removeItem("babyspa_user");
       window.location.href = "/auth";
+    } else if (status === 403) {
+      // Role tampering or unauthorized access detected by backend
+      try {
+        const stored = localStorage.getItem("babyspa_user");
+        if (stored) {
+          const user = JSON.parse(stored);
+          if (user.role === "admin") {
+            user.role = "customer";
+            localStorage.setItem("babyspa_user", JSON.stringify(user));
+          }
+        }
+      } catch {
+        // ignore parse error
+      }
+
+      if (window.location.pathname.startsWith("/admin")) {
+        window.location.href = "/dashboard";
+      }
     }
+
     return Promise.reject(error);
   }
 );

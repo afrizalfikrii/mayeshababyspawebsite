@@ -24,6 +24,9 @@ return Application::configure(basePath: dirname(__DIR__))
         // Using Laravel's built-in HandleCors (fruitcake/php-cors)
         $middleware->prependToGroup('api', \Illuminate\Http\Middleware\HandleCors::class);
 
+        // Do not redirect unauthenticated API requests to a web login route
+        $middleware->redirectGuestsTo(fn (Request $request) => null);
+
         // NOTE: statefulApi() is intentionally NOT called here.
         // We are using Bearer token authentication, NOT cookie-based SPA auth.
         // Calling statefulApi() would enable CSRF verification which breaks token-based auth.
