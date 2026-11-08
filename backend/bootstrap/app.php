@@ -4,6 +4,7 @@ use App\Http\Middleware\CheckRole;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -15,6 +16,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Trust reverse proxies (Render / Cloudflare) for accurate client IP rate-limiting
+        $middleware->trustProxies(at: '*');
+
         // Register role middleware alias
         $middleware->alias([
             'role' => CheckRole::class,
@@ -51,6 +55,18 @@ return Application::configure(basePath: dirname(__DIR__))
                     'message' => 'Unauthenticated. Please login first.',
                     'data'    => null,
                 ], 401);
+            }
+        });
+
+        // Return Indonesian JSON message when rate limit (429) is exceeded
+        $exceptions->render(function (ThrottleRequestsException $e, Request $request) {
+            if ($request->is('api/*')) {
+                $retryAfter = $e->getHeaders()['Retry-After'] ?? 60;
+                return response()->json([
+                    'success' => false,
+                    'message' => "Terlalu banyak percobaan. Silakan tunggu {$retryAfter} detik sebelum mencoba kembali.",
+                    'data'    => null,
+                ], 429);
             }
         });
     })->create();

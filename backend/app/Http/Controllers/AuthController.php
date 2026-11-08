@@ -9,6 +9,8 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
@@ -48,15 +50,34 @@ class AuthController extends Controller
 
     /**
      * Login and return a Sanctum token.
+     * Protected by per-account + IP rate limiting (max 5 failed attempts per minute).
      */
     public function login(LoginRequest $request): JsonResponse
     {
+        $throttleKey = Str::transliterate(Str::lower($request->input('email')) . '|' . $request->ip());
+
+        if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
+            $seconds = RateLimiter::availableIn($throttleKey);
+
+            return response()->json([
+                'success' => false,
+                'message' => "Terlalu banyak percobaan masuk yang gagal. Silakan tunggu {$seconds} detik sebelum mencoba kembali.",
+                'data'    => [
+                    'email' => ["Terlalu banyak percobaan masuk. Coba lagi dalam {$seconds} detik."],
+                ],
+            ], 429);
+        }
+
         try {
             if (! Auth::attempt($request->only('email', 'password'))) {
+                RateLimiter::hit($throttleKey, 60);
+
                 throw ValidationException::withMessages([
                     'email' => ['Email atau kata sandi yang Anda masukkan salah.'],
                 ]);
             }
+
+            RateLimiter::clear($throttleKey);
 
             /** @var User $user */
             $user = Auth::user();
