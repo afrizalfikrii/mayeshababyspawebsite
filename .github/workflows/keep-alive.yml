@@ -13,5 +13,5 @@ jobs:
     steps:
       - name: Wake up Render API, TiDB Cloud, and Supabase Storage
         run: |
-          curl -sS --max-time 90 --retry 2 --retry-delay 5 https://mayesha-babyspa-api.onrender.com/api/services > /dev/null
+          curl -sS --max-time 90 --retry 2 --retry-delay 5 https://mayesha-babyspa-api.onrender.com/api/keep-alive
           echo "Keep-alive ping berhasil dijalankan!"

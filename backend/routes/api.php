@@ -20,8 +20,9 @@ Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login',    [AuthController::class, 'login'])->name('login');
 
 // Route Public (Bisa diakses tanpa login)
-Route::get('/services', [ServiceController::class, 'index']);
-Route::get('/reviews',  [ReviewController::class, 'index']);
+Route::get('/keep-alive', [ServiceController::class, 'keepAlive']);
+Route::get('/services',   [ServiceController::class, 'index']);
+Route::get('/reviews',    [ReviewController::class, 'index']);
 
 // Route yang wajib menggunakan Token (Sanctum)
 Route::middleware('auth:sanctum')->group(function () {
