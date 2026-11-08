@@ -104,4 +104,25 @@ class SupabaseStorageService
             return false;
         }
     }
+
+    /**
+     * Lightweight keep-alive ping to prevent Supabase Free Tier from pausing after 7 days of inactivity.
+     */
+    public function ping(): bool
+    {
+        if (!$this->isConfigured()) {
+            return false;
+        }
+
+        try {
+            $response = Http::timeout(4)->withHeaders([
+                'apikey'        => $this->key,
+                'Authorization' => 'Bearer ' . $this->key,
+            ])->get("{$this->url}/storage/v1/bucket/{$this->bucket}");
+
+            return $response->successful();
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
 }
