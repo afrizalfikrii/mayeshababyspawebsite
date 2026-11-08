@@ -15,9 +15,9 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 */
 
-// Auth (Register & Login)
-Route::post('/register', [AuthController::class, 'register']);
-Route::post('/login',    [AuthController::class, 'login'])->name('login');
+// Auth (Register & Login) dengan proteksi Rate Limiting (Anti Brute-Force)
+Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:5,1');
+Route::post('/login',    [AuthController::class, 'login'])->middleware('throttle:10,1')->name('login');
 
 // Route Public (Bisa diakses tanpa login)
 Route::get('/keep-alive', [ServiceController::class, 'keepAlive']);
