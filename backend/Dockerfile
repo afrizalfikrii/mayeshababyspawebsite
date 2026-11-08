@@ -40,5 +40,5 @@ RUN composer install --no-dev --prefer-dist --optimize-autoloader
 ENV PHP_CLI_SERVER_WORKERS=4
 EXPOSE 8000
 
-# Start server using Render's $PORT
-CMD ["sh", "-c", "php -v && php artisan storage:link --force && php artisan config:clear && PHP_CLI_SERVER_WORKERS=4 php artisan serve --host 0.0.0.0 --port ${PORT:-8000}"]
+# Start server directly using PHP built-in server (bypasses artisan serve log parser crash)
+CMD ["sh", "-c", "php -v && php artisan storage:link --force && php artisan config:clear && exec php -S 0.0.0.0:${PORT:-8000} -t public"]

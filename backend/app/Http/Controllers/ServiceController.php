@@ -6,7 +6,7 @@ use App\Http\Resources\ServiceResource;
 use App\Models\Service;
 use App\Services\SupabaseStorageService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class ServiceController extends Controller
 {
@@ -17,19 +17,36 @@ class ServiceController extends Controller
     {
         $services = Service::active()->orderBy('name')->get();
 
-        // Keep Supabase active automatically (runs at most once every 12 hours)
-        try {
-            Cache::remember('supabase_keep_alive_ping', 43200, function () {
-                return app(SupabaseStorageService::class)->ping();
-            });
-        } catch (\Throwable) {
-            // Ignore any cache or network error so catalog always loads smoothly
-        }
-
         return response()->json([
             'success' => true,
             'message' => 'Daftar layanan berhasil dimuat.',
             'data'    => ServiceResource::collection($services),
+        ]);
+    }
+
+    /**
+     * Lightweight keep-alive endpoint for Render, TiDB Cloud, and Supabase Storage.
+     */
+    public function keepAlive(): JsonResponse
+    {
+        $dbOk       = false;
+        $supabaseOk = false;
+
+        try {
+            DB::select('SELECT 1');
+            $dbOk = true;
+        } catch (\Throwable) {
+        }
+
+        try {
+            $supabaseOk = app(SupabaseStorageService::class)->ping();
+        } catch (\Throwable) {
+        }
+
+        return response()->json([
+            'success'  => true,
+            'database' => $dbOk,
+            'supabase' => $supabaseOk,
         ]);
     }
 
