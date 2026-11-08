@@ -6,6 +6,7 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -36,14 +37,30 @@ return Application::configure(basePath: dirname(__DIR__))
         // Calling statefulApi() would enable CSRF verification which breaks token-based auth.
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        // Force JSON responses for all /api/* requests (prevents HTML debug stack trace exposure)
+        $exceptions->shouldRenderJsonWhen(function (Request $request, \Throwable $e) {
+            return $request->is('api/*') || $request->expectsJson();
+        });
+
         // Return JSON for all API 404 errors
         $exceptions->render(function (NotFoundHttpException $e, Request $request) {
             if ($request->is('api/*')) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Resource not found.',
+                    'message' => 'Endpoint atau data yang diminta tidak ditemukan.',
                     'data'    => null,
                 ], 404);
+            }
+        });
+
+        // Return JSON for 405 Method Not Allowed (e.g. opening POST /api/login via GET in browser)
+        $exceptions->render(function (MethodNotAllowedHttpException $e, Request $request) {
+            if ($request->is('api/*')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Metode akses HTTP tidak diizinkan untuk endpoint ini.',
+                    'data'    => null,
+                ], 405);
             }
         });
 
@@ -52,7 +69,7 @@ return Application::configure(basePath: dirname(__DIR__))
             if ($request->is('api/*')) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Unauthenticated. Please login first.',
+                    'message' => 'Sesi tidak valid atau belum login. Silakan login terlebih dahulu.',
                     'data'    => null,
                 ], 401);
             }
