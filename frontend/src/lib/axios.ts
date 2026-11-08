@@ -30,12 +30,26 @@ apiClient.interceptors.request.use(
 );
 
 // ── Response Interceptor ──────────────────────────────────────────────────────
+// Auto-retry GET requests on cold-start network/5xx errors
 // Auto-logout on 401 (expired/invalid token)
 // Auto-kick on 403 (unauthorized role access attempt)
 apiClient.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
+    const config = error.config;
     const status = error.response?.status;
+
+    // Automatically retry GET requests up to 2 times if backend/TiDB is waking from cold sleep
+    if (
+      config &&
+      config.method === "get" &&
+      (!status || status >= 500) &&
+      (config.__retryCount ?? 0) < 2
+    ) {
+      config.__retryCount = (config.__retryCount ?? 0) + 1;
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      return apiClient(config);
+    }
 
     if (status === 401 && !window.location.pathname.includes("/auth")) {
       localStorage.removeItem("babyspa_token");
