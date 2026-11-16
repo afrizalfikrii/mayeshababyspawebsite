@@ -356,22 +356,10 @@ export default function Booking() {
                 {/* Filter Klasifikasi Layanan (Bayi / Anak / Ibu) */}
                 <div className="flex flex-wrap items-center gap-2">
                   {[
-                    { id: "all", label: `Semua (${services.length})`, dot: "" },
-                    {
-                      id: "Bayi",
-                      label: `Bayi (${services.filter((s) => getServiceClassification(s) === "Bayi").length})`,
-                      dot: "bg-sky-500",
-                    },
-                    {
-                      id: "Anak",
-                      label: `Anak (${services.filter((s) => getServiceClassification(s) === "Anak").length})`,
-                      dot: "bg-amber-500",
-                    },
-                    {
-                      id: "Ibu",
-                      label: `Ibu (${services.filter((s) => getServiceClassification(s) === "Ibu").length})`,
-                      dot: "bg-pink-500",
-                    },
+                    { id: "all", label: "Semua Layanan", dot: "" },
+                    { id: "Bayi", label: "Bayi", dot: "bg-sky-500" },
+                    { id: "Anak", label: "Anak", dot: "bg-amber-500" },
+                    { id: "Ibu", label: "Ibu", dot: "bg-pink-500" },
                   ].map((tab) => (
                     <button
                       key={tab.id}
