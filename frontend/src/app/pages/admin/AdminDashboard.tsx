@@ -75,12 +75,25 @@ export default function AdminDashboard() {
 
   // ── Services State ──────────────────────────────────────────────────────────
   const [services, setServices] = useState<Service[]>([]);
+  const [serviceSegmentFilter, setServiceSegmentFilter] = useState<"all" | "Bayi" | "Anak" | "Ibu">("all");
   const [isServLoading, setIsServLoading] = useState(false);
   const [serviceModal, setServiceModal] = useState<{
     isOpen: boolean;
     mode: "create" | "edit";
     data: Partial<Service> | null;
   }>({ isOpen: false, mode: "create", data: null });
+
+  // ── Reports & Analytics Filter State ────────────────────────────────────────
+  const [reportPreset, setReportPreset] = useState<"all" | "today" | "week" | "month" | "year" | "custom">("all");
+  const [reportStartDate, setReportStartDate] = useState<string>("");
+  const [reportEndDate, setReportEndDate] = useState<string>("");
+  const [reportSegment, setReportSegment] = useState<"all" | "Bayi" | "Anak" | "Ibu">("all");
+  const [reportServiceId, setReportServiceId] = useState<string>("all");
+  const [reportStatusFilter, setReportStatusFilter] = useState<"valid" | "all" | "completed" | "confirmed" | "cancelled">("all");
+  const [chartTimeMode, setChartTimeMode] = useState<"monthly" | "daily">("monthly");
+  const [chartYear, setChartYear] = useState<number>(new Date().getFullYear());
+  const [topServicesSort, setTopServicesSort] = useState<"most" | "least">("most");
+  const [showAllTopServices, setShowAllTopServices] = useState<boolean>(false);
 
 
 
@@ -157,55 +170,355 @@ export default function AdminDashboard() {
     }
   };
 
-  const getIncomeData = () => {
-    const data = [];
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      
-      const year = d.getFullYear();
-      const month = String(d.getMonth() + 1).padStart(2, "0");
-      const day = String(d.getDate()).padStart(2, "0");
-      const dateStr = `${year}-${month}-${day}`;
-      
-      const dailySum = reservations
-        .filter((r) => {
-          if (!r.created_at || (r.status !== "confirmed" && r.status !== "completed")) {
-            return false;
-          }
-          const createdDate = new Date(r.created_at);
-          const cYear = createdDate.getFullYear();
-          const cMonth = String(createdDate.getMonth() + 1).padStart(2, "0");
-          const cDay = String(createdDate.getDate()).padStart(2, "0");
-          const createdDateStr = `${cYear}-${cMonth}-${cDay}`;
-          return createdDateStr === dateStr;
-        })
-        .reduce((sum, r) => sum + Number(r.total_price), 0);
-
-      data.push({
-        date: d.toLocaleDateString("id-ID", { day: "numeric", month: "short" }),
-        "Pendapatan": dailySum,
-      });
+  // ── Klasifikasi Segmen (Bayi / Anak / Ibu) ──────────────────────────────────
+  const getServiceClassification = (s?: Service | null): "Bayi" | "Anak" | "Ibu" => {
+    if (!s) return "Bayi";
+    if (s.category === "mom_treatment" || (s.age_min_months !== null && s.age_min_months >= 216)) {
+      return "Ibu";
     }
-    return data;
+    if (
+      (s.age_min_months !== null && s.age_min_months >= 13) ||
+      /kids|anak|1-3th|3-4th/i.test(s.name)
+    ) {
+      return "Anak";
+    }
+    return "Bayi";
   };
 
-  const getPopularServicesData = () => {
-    const counts: Record<string, number> = {};
-    reservations
-      .filter((r) => r.status === "confirmed" || r.status === "completed")
-      .forEach((r) => {
-        const name = r.service?.name || "Layanan Lain";
-        counts[name] = (counts[name] || 0) + 1;
-      });
+  const getReservationClassification = (r: Reservation): "Bayi" | "Anak" | "Ibu" => {
+    const s = r.service;
+    if (s?.category === "mom_treatment" || (s?.age_min_months !== null && s?.age_min_months !== undefined && s.age_min_months >= 216)) {
+      return "Ibu";
+    }
+    if (
+      (s?.age_min_months !== null && s?.age_min_months !== undefined && s.age_min_months >= 13) ||
+      /kids|anak|1-3th|3-4th/i.test(s?.name ?? "")
+    ) {
+      return "Anak";
+    }
+    if (s?.age_max_months !== null && s?.age_max_months !== undefined && s.age_max_months <= 12) {
+      return "Bayi";
+    }
+    if (r.baby_age > 12) {
+      return "Anak";
+    }
+    return "Bayi";
+  };
 
-    return Object.entries(counts)
-      .map(([name, value]) => ({
-        name: name.length > 15 ? name.substring(0, 12) + "..." : name,
-        "Jumlah Sesi": value,
-      }))
-      .sort((a, b) => b["Jumlah Sesi"] - a["Jumlah Sesi"])
-      .slice(0, 5);
+  const getClassificationBadge = (cls: "Bayi" | "Anak" | "Ibu") => {
+    const styles: Record<"Bayi" | "Anak" | "Ibu", { bg: string; dot: string; label: string }> = {
+      Bayi: { bg: "bg-sky-50 text-sky-700 border-sky-200", dot: "bg-sky-500", label: "Bayi" },
+      Anak: { bg: "bg-amber-50 text-amber-700 border-amber-200", dot: "bg-amber-500", label: "Anak" },
+      Ibu: { bg: "bg-pink-50 text-pink-700 border-pink-200", dot: "bg-pink-500", label: "Ibu" },
+    };
+    const st = styles[cls];
+    return (
+      <span className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border font-bold whitespace-nowrap ${st.bg}`}>
+        <span className={`w-1.5 h-1.5 rounded-full ${st.dot}`} />
+        <span>{st.label}</span>
+      </span>
+    );
+  };
+
+  const getReservationDateStr = (r: Reservation): string => {
+    if (r.reservation_date) return r.reservation_date.slice(0, 10);
+    if (r.created_at) return r.created_at.slice(0, 10);
+    return "";
+  };
+
+  const formatLocalYMD = (d: Date): string => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  };
+
+  const applyReportPreset = (preset: "all" | "today" | "week" | "month" | "year") => {
+    setReportPreset(preset);
+    const now = new Date();
+    if (preset === "all") {
+      setReportStartDate("");
+      setReportEndDate("");
+    } else if (preset === "today") {
+      const todayStr = formatLocalYMD(now);
+      setReportStartDate(todayStr);
+      setReportEndDate(todayStr);
+      setChartTimeMode("daily");
+    } else if (preset === "week") {
+      const endStr = formatLocalYMD(now);
+      const start = new Date(now);
+      start.setDate(start.getDate() - 6);
+      setReportStartDate(formatLocalYMD(start));
+      setReportEndDate(endStr);
+      setChartTimeMode("daily");
+    } else if (preset === "month") {
+      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      setReportStartDate(formatLocalYMD(firstDay));
+      setReportEndDate(formatLocalYMD(lastDay));
+      setChartTimeMode("daily");
+    } else if (preset === "year") {
+      setReportStartDate(`${now.getFullYear()}-01-01`);
+      setReportEndDate(`${now.getFullYear()}-12-31`);
+      setChartYear(now.getFullYear());
+      setChartTimeMode("monthly");
+    }
+  };
+
+  const resetReportFilters = () => {
+    setReportPreset("all");
+    setReportStartDate("");
+    setReportEndDate("");
+    setReportSegment("all");
+    setReportServiceId("all");
+    setReportStatusFilter("all");
+    setSearchQuery("");
+  };
+
+  const isPaidReservation = (r: Reservation) =>
+    r.status === "confirmed" || r.status === "completed";
+
+  // ── Data Laporan Terfilter ──────────────────────────────────────────────────
+  const reportFilteredReservations = reservations.filter((r) => {
+    // 1. Filter Status
+    if (reportStatusFilter === "valid") {
+      if (r.status !== "confirmed" && r.status !== "completed") return false;
+    } else if (reportStatusFilter !== "all") {
+      if (r.status !== reportStatusFilter) return false;
+    }
+
+    // 2. Filter Rentang Tanggal (Start Date & End Date)
+    const rDate = getReservationDateStr(r);
+    if (reportStartDate && rDate < reportStartDate) return false;
+    if (reportEndDate && rDate > reportEndDate) return false;
+
+    // 3. Filter Klasifikasi Segmen (Bayi / Anak / Ibu)
+    const cls = getReservationClassification(r);
+    if (reportSegment !== "all" && cls !== reportSegment) return false;
+
+    // 4. Filter Jenis Layanan Spesifik (dari 36 Layanan)
+    if (reportServiceId !== "all" && String(r.service?.id ?? "") !== reportServiceId) return false;
+
+    // 5. Filter Pencarian Kata Kunci
+    const q = searchQuery.toLowerCase().trim();
+    if (q) {
+      const matches =
+        r.booking_code.toLowerCase().includes(q) ||
+        (r.user?.name ?? "").toLowerCase().includes(q) ||
+        (r.baby_name ?? "").toLowerCase().includes(q) ||
+        (r.service?.name ?? "").toLowerCase().includes(q) ||
+        (r.therapist?.name ?? "").toLowerCase().includes(q) ||
+        cls.toLowerCase().includes(q);
+      if (!matches) return false;
+    }
+
+    return true;
+  });
+
+  // ── Statistik Kuantitatif Dashboard (Bulan Ini vs Bulan Lalu, Tahun Ini, Segmen) ──
+  const validReservations = reservations.filter(
+    (r) => r.status === "confirmed" || r.status === "completed"
+  );
+
+  const nowDate = new Date();
+  const currentYearNum = nowDate.getFullYear();
+  const currentMonthNum = nowDate.getMonth(); // 0-11
+  const currentYearMonthPrefix = `${currentYearNum}-${String(currentMonthNum + 1).padStart(2, "0")}`;
+
+  const prevMonthDate = new Date(currentYearNum, currentMonthNum - 1, 1);
+  const prevYearMonthPrefix = `${prevMonthDate.getFullYear()}-${String(prevMonthDate.getMonth() + 1).padStart(2, "0")}`;
+
+  const thisMonthReservations = validReservations.filter((r) =>
+    getReservationDateStr(r).startsWith(currentYearMonthPrefix)
+  );
+  const lastMonthReservations = validReservations.filter((r) =>
+    getReservationDateStr(r).startsWith(prevYearMonthPrefix)
+  );
+  const thisYearReservations = validReservations.filter((r) =>
+    getReservationDateStr(r).startsWith(`${currentYearNum}-`)
+  );
+
+  const thisMonthRevenue = thisMonthReservations.reduce((sum, r) => sum + Number(r.total_price), 0);
+  const lastMonthRevenue = lastMonthReservations.reduce((sum, r) => sum + Number(r.total_price), 0);
+  const thisYearRevenue = thisYearReservations.reduce((sum, r) => sum + Number(r.total_price), 0);
+
+  const monthGrowthPct =
+    lastMonthRevenue > 0
+      ? Math.round(((thisMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100)
+      : thisMonthRevenue > 0
+        ? 100
+        : 0;
+
+  const overallSegmentStats = {
+    Bayi: validReservations.filter((r) => getReservationClassification(r) === "Bayi").length,
+    Anak: validReservations.filter((r) => getReservationClassification(r) === "Anak").length,
+    Ibu: validReservations.filter((r) => getReservationClassification(r) === "Ibu").length,
+  };
+
+  // ── Ringkasan Kuantitatif pada Periode Laporan Terfilter ────────────────────
+  const filteredPaidReservations = reportFilteredReservations.filter(isPaidReservation);
+  const filteredTotalRevenue = filteredPaidReservations.reduce(
+    (sum, r) => sum + Number(r.total_price),
+    0
+  );
+  const filteredSegmentStats = {
+    Bayi: {
+      count: filteredPaidReservations.filter((r) => getReservationClassification(r) === "Bayi").length,
+      revenue: filteredPaidReservations
+        .filter((r) => getReservationClassification(r) === "Bayi")
+        .reduce((sum, r) => sum + Number(r.total_price), 0),
+    },
+    Anak: {
+      count: filteredPaidReservations.filter((r) => getReservationClassification(r) === "Anak").length,
+      revenue: filteredPaidReservations
+        .filter((r) => getReservationClassification(r) === "Anak")
+        .reduce((sum, r) => sum + Number(r.total_price), 0),
+    },
+    Ibu: {
+      count: filteredPaidReservations.filter((r) => getReservationClassification(r) === "Ibu").length,
+      revenue: filteredPaidReservations
+        .filter((r) => getReservationClassification(r) === "Ibu")
+        .reduce((sum, r) => sum + Number(r.total_price), 0),
+    },
+  };
+
+  // ── Data Grafik Fluktuasi Bulanan (Januari – Desember) & Harian ─────────────
+  const availableYears = Array.from(
+    new Set([
+      currentYearNum,
+      currentYearNum - 1,
+      ...reservations
+        .map((r) => Number(getReservationDateStr(r).slice(0, 4)))
+        .filter((y) => y > 2020),
+    ])
+  ).sort((a, b) => b - a);
+
+  const getFluctuationChartData = () => {
+    const baseList = reservations.filter((r) => {
+      if (reportStatusFilter === "all" || reportStatusFilter === "valid") {
+        if (!isPaidReservation(r)) return false;
+      } else if (r.status !== reportStatusFilter) {
+        return false;
+      }
+      if (reportSegment !== "all" && getReservationClassification(r) !== reportSegment) return false;
+      if (reportServiceId !== "all" && String(r.service?.id ?? "") !== reportServiceId) return false;
+      return true;
+    });
+
+    if (chartTimeMode === "monthly") {
+      const monthNames = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
+      return monthNames.map((mName, idx) => {
+        const prefix = `${chartYear}-${String(idx + 1).padStart(2, "0")}`;
+        const monthItems = baseList.filter((r) => getReservationDateStr(r).startsWith(prefix));
+        const bayiItems = monthItems.filter((r) => getReservationClassification(r) === "Bayi");
+        const anakItems = monthItems.filter((r) => getReservationClassification(r) === "Anak");
+        const ibuItems = monthItems.filter((r) => getReservationClassification(r) === "Ibu");
+
+        return {
+          label: mName,
+          Pendapatan: monthItems.reduce((sum, r) => sum + Number(r.total_price), 0),
+          "Total Transaksi": monthItems.length,
+          Bayi: bayiItems.length,
+          Anak: anakItems.length,
+          Ibu: ibuItems.length,
+          "Omset Bayi": bayiItems.reduce((s, r) => s + Number(r.total_price), 0),
+          "Omset Anak": anakItems.reduce((s, r) => s + Number(r.total_price), 0),
+          "Omset Ibu": ibuItems.reduce((s, r) => s + Number(r.total_price), 0),
+        };
+      });
+    }
+
+    // Mode Harian: Gunakan rentang reportStartDate s/d reportEndDate (atau 14 hari terakhir jika kosong)
+    let startD = reportStartDate ? new Date(reportStartDate + "T00:00:00") : new Date();
+    const endD = reportEndDate ? new Date(reportEndDate + "T00:00:00") : new Date();
+    if (!reportStartDate) {
+      startD = new Date(endD);
+      startD.setDate(startD.getDate() - 13);
+    }
+
+    const dailyData = [];
+    const cur = new Date(startD);
+    let safety = 0;
+    while (cur <= endD && safety < 62) {
+      const dStr = formatLocalYMD(cur);
+      const dayItems = baseList.filter((r) => getReservationDateStr(r) === dStr);
+      dailyData.push({
+        label: cur.toLocaleDateString("id-ID", { day: "numeric", month: "short" }),
+        Pendapatan: dayItems.reduce((sum, r) => sum + Number(r.total_price), 0),
+        "Total Transaksi": dayItems.length,
+        Bayi: dayItems.filter((r) => getReservationClassification(r) === "Bayi").length,
+        Anak: dayItems.filter((r) => getReservationClassification(r) === "Anak").length,
+        Ibu: dayItems.filter((r) => getReservationClassification(r) === "Ibu").length,
+      });
+      cur.setDate(cur.getDate() + 1);
+      safety++;
+    }
+    return dailyData;
+  };
+
+  // ── Data Rekap Peringkat Layanan Paling Laris (Top Services dari 36 Layanan) ──
+  const getRankedServicesData = () => {
+    const map: Record<
+      string,
+      {
+        id: number;
+        name: string;
+        shortName: string;
+        classification: "Bayi" | "Anak" | "Ibu";
+        unitPrice: number;
+        count: number;
+        revenue: number;
+      }
+    > = {};
+
+    // Inisialisasi dari master 36 layanan agar layanan dengan 0 transaksi juga bisa dianalisis
+    services.forEach((s) => {
+      const cls = getServiceClassification(s);
+      if (reportSegment !== "all" && cls !== reportSegment) return;
+      if (reportServiceId !== "all" && String(s.id) !== reportServiceId) return;
+      map[s.name] = {
+        id: s.id,
+        name: s.name,
+        shortName: s.name.length > 18 ? s.name.substring(0, 15) + "..." : s.name,
+        classification: cls,
+        unitPrice: Number(s.price),
+        count: 0,
+        revenue: 0,
+      };
+    });
+
+    // Hitung dari transaksi terfilter yang sah (dikonfirmasi / selesai)
+    filteredPaidReservations.forEach((r) => {
+      const sName = r.service?.name || "Layanan Lain";
+      const cls = getReservationClassification(r);
+      if (!map[sName]) {
+        map[sName] = {
+          id: r.service?.id ?? 0,
+          name: sName,
+          shortName: sName.length > 18 ? sName.substring(0, 15) + "..." : sName,
+          classification: cls,
+          unitPrice: Number(r.service?.price ?? r.total_price),
+          count: 0,
+          revenue: 0,
+        };
+      }
+      map[sName].count += 1;
+      map[sName].revenue += Number(r.total_price);
+    });
+
+    const list = Object.values(map);
+    list.sort((a, b) => {
+      if (topServicesSort === "most") {
+        return b.count - a.count || b.revenue - a.revenue;
+      }
+      return a.count - b.count || a.revenue - b.revenue;
+    });
+
+    return list.map((item, idx) => ({
+      ...item,
+      rank: idx + 1,
+      "Jumlah Sesi": item.count,
+    }));
   };
 
   const getWaLinkFromPhone = (phone: string | null | undefined, message?: string) => {
@@ -220,42 +533,93 @@ export default function AdminDashboard() {
   };
 
   const handleExportCSV = () => {
-    const headers = ["Tanggal", "NO", "Nama Bayi", "Umur", "Alamat / Catatan", "No WA", "Link WA", "Tindakan/Layanan", "Terapis", "Tarif"];
-    const rows = reservations.map((r, idx) => {
-      const dateFormatted = new Date(r.reservation_date).toLocaleDateString("id-ID", { day: "2-digit", month: "2-digit", year: "numeric" });
-      const babyName = `"${r.baby_name.replace(/"/g, '""')}"`;
+    const sourceData = activeMenu === "reports" ? reportFilteredReservations : filteredReservations;
+    const headers = [
+      "NO",
+      "Kode Booking",
+      "Tanggal Transaksi",
+      "Jam Sesi",
+      "ID & Nama Customer",
+      "Nama Bayi/Anak",
+      "Umur",
+      "Klasifikasi (Bayi/Anak/Ibu)",
+      "Nama Layanan",
+      "Terapis",
+      "No WA",
+      "Link WA",
+      "Alamat / Catatan",
+      "Status",
+      "Nominal Dibayar (Rp)",
+    ];
+    const rows = sourceData.map((r, idx) => {
+      const dateFormatted = new Date(getReservationDateStr(r)).toLocaleDateString("id-ID", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      });
+      const timeSlot = `"${(r.start_time ?? "").slice(0, 5)} - ${(r.end_time ?? "").slice(0, 5)} WIB"`;
+      const customerInfo = `"#${r.user?.id ?? "-"} - ${(r.user?.name ?? "Pelanggan").replace(/"/g, '""')}"`;
+      const babyName = `"${(r.baby_name ?? "-").replace(/"/g, '""')}"`;
       const babyAge = `"${r.baby_age} Bulan"`;
-      const notes = r.notes ? `"${r.notes.replace(/"/g, '""')}"` : '"-"';
-      const phone = `"${r.user?.phone_number ?? '-'}"`;
-      const waLink = !r.user?.phone_number ? '"-"' : `"${getWaLinkFromPhone(r.user.phone_number)}"`;
+      const classification = `"${getReservationClassification(r)}"`;
       const serviceName = r.service?.name ? `"${r.service.name.replace(/"/g, '""')}"` : '"-"';
-      const therapistName = `"${r.therapist?.name ?? 'Otomatis'}"`;
-      const price = `"${r.total_price.toLocaleString("id-ID")}"`;
+      const therapistName = `"${r.therapist?.name ?? "Otomatis"}"`;
+      const phone = `"${r.user?.phone_number ?? "-"}"`;
+      const waLink = !r.user?.phone_number ? '"-"' : `"${getWaLinkFromPhone(r.user.phone_number)}"`;
+      const notes = r.notes ? `"${r.notes.replace(/"/g, '""')}"` : '"-"';
+      const statusLabel = `"${r.status}"`;
+      const price = `"${Number(r.total_price).toLocaleString("id-ID")}"`;
 
       return [
-        dateFormatted,
         idx + 1,
+        `"${r.booking_code}"`,
+        dateFormatted,
+        timeSlot,
+        customerInfo,
         babyName,
         babyAge,
-        notes,
-        phone,
-        waLink,
+        classification,
         serviceName,
         therapistName,
+        phone,
+        waLink,
+        notes,
+        statusLabel,
         price,
       ].join(",");
     });
 
-    const csvContent = "\uFEFF" + [headers.join(","), ...rows].join("\n");
+    const totalSum = sourceData
+      .filter(isPaidReservation)
+      .reduce((sum, r) => sum + Number(r.total_price), 0);
+    const footerRow = [
+      '""',
+      '""',
+      '""',
+      '""',
+      '""',
+      '""',
+      '""',
+      '""',
+      '""',
+      '""',
+      '""',
+      '""',
+      '""',
+      '"TOTAL PENDAPATAN"',
+      `"Rp ${totalSum.toLocaleString("id-ID")}"`,
+    ].join(",");
+
+    const csvContent = "\uFEFF" + [headers.join(","), ...rows, footerRow].join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", `Rekap_Data_Mayesha_Spa_${new Date().toISOString().split("T")[0]}.csv`);
+    link.setAttribute("download", `Laporan_Transaksi_Mayesha_Spa_${new Date().toISOString().split("T")[0]}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    toast.success("Laporan Spreadsheet (CSV/Excel) 10 Kolom berhasil di-download!");
+    toast.success("Laporan Transaksi & Keuangan (CSV/Excel) berhasil di-download!");
   };
 
   useEffect(() => {
@@ -422,11 +786,16 @@ export default function AdminDashboard() {
   });
 
   const filteredServices = services.filter((s) => {
+    const cls = getServiceClassification(s);
+    if (serviceSegmentFilter !== "all" && cls !== serviceSegmentFilter) {
+      return false;
+    }
     const q = searchQuery.toLowerCase().trim();
     if (!q) return true;
     return (
       s.name.toLowerCase().includes(q) ||
-      (s.description ?? "").toLowerCase().includes(q)
+      (s.description ?? "").toLowerCase().includes(q) ||
+      cls.toLowerCase().includes(q)
     );
   });
 
@@ -502,54 +871,129 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Stats Summary Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        {[
-          {
-            title: "Booking Hari Ini",
-            value: stats.today_bookings,
-            icon: <Calendar size={20} />,
-            color: "text-blue-500",
-            bg: "bg-blue-50",
-          },
-          {
-            title: "Total Pelanggan",
-            value: stats.total_customers,
-            icon: <Users size={20} />,
-            color: "text-purple-500",
-            bg: "bg-purple-50",
-          },
-          {
-            title: "Sesi Selesai",
-            value: stats.completed_sessions,
-            icon: <CheckCircle size={20} />,
-            color: "text-green-500",
-            bg: "bg-green-50",
-          },
-          {
-            title: "Pendapatan",
-            value: `Rp ${stats.total_revenue.toLocaleString("id-ID")}`,
-            icon: <TrendingUp size={20} />,
-            color: "text-pink-500",
-            bg: "bg-pink-50",
-          },
-        ].map((stat, idx) => (
-          <motion.div
-            key={idx}
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: idx * 0.05 }}
-            className="glass-panel p-5 flex items-center gap-4 border border-white/50 shadow-md shadow-slate-100/50"
-          >
-            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${stat.bg} ${stat.color}`}>
-              {stat.icon}
+      {/* Stats Summary Grid (Data Kuantitatif Dashboard) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        {/* Card 1: Pendapatan & Transaksi Bulan Ini vs Bulan Lalu */}
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="glass-panel p-5 border border-white/50 shadow-md shadow-slate-100/50 flex flex-col justify-between"
+        >
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Pendapatan Bulan Ini</p>
+            <div className="w-9 h-9 rounded-xl bg-pink-50 text-pink-500 flex items-center justify-center">
+              <TrendingUp size={18} />
             </div>
-            <div>
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{stat.title}</p>
-              <h3 className="text-lg font-extrabold text-slate-800 mt-0.5">{stat.value}</h3>
+          </div>
+          <div className="mt-2">
+            <h3 className="text-xl font-extrabold text-slate-800">
+              Rp {thisMonthRevenue.toLocaleString("id-ID")}
+            </h3>
+            <div className="flex items-center justify-between mt-1.5 text-[11px]">
+              <span className="font-semibold text-slate-600">{thisMonthReservations.length} Transaksi</span>
+              <span
+                className={`font-bold px-2 py-0.5 rounded-full ${
+                  monthGrowthPct >= 0
+                    ? "bg-emerald-50 text-emerald-600 border border-emerald-200"
+                    : "bg-rose-50 text-rose-600 border border-rose-200"
+                }`}
+                title={`Bulan lalu: Rp ${lastMonthRevenue.toLocaleString("id-ID")} (${lastMonthReservations.length} transaksi)`}
+              >
+                {monthGrowthPct >= 0 ? `▲ +${monthGrowthPct}%` : `▼ ${monthGrowthPct}%`} vs Bln Lalu
+              </span>
             </div>
-          </motion.div>
-        ))}
+            <p className="text-[10px] text-slate-400 mt-1">
+              Bulan lalu: Rp {lastMonthRevenue.toLocaleString("id-ID")} ({lastMonthReservations.length} sesi)
+            </p>
+          </div>
+        </motion.div>
+
+        {/* Card 2: Pendapatan & Transaksi Tahun Ini */}
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+          className="glass-panel p-5 border border-white/50 shadow-md shadow-slate-100/50 flex flex-col justify-between"
+        >
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+              Pendapatan Tahun {currentYearNum}
+            </p>
+            <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-500 flex items-center justify-center">
+              <BarChart2 size={18} />
+            </div>
+          </div>
+          <div className="mt-2">
+            <h3 className="text-xl font-extrabold text-slate-800">
+              Rp {thisYearRevenue.toLocaleString("id-ID")}
+            </h3>
+            <div className="flex items-center justify-between mt-1.5 text-[11px]">
+              <span className="font-semibold text-emerald-600">{thisYearReservations.length} Transaksi Tahun Ini</span>
+            </div>
+            <p className="text-[10px] text-slate-400 mt-1">
+              Total Akumulasi: Rp {stats.total_revenue.toLocaleString("id-ID")}
+            </p>
+          </div>
+        </motion.div>
+
+        {/* Card 3: Rincian Kuantitatif Segmen (Bayi / Anak / Ibu) */}
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="glass-panel p-5 border border-white/50 shadow-md shadow-slate-100/50 flex flex-col justify-between"
+        >
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Transaksi per Segmen</p>
+            <div className="w-9 h-9 rounded-xl bg-sky-50 text-sky-500 flex items-center justify-center">
+              <Sparkles size={18} />
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-1.5 mt-2 pt-1">
+            <div className="bg-sky-50/80 border border-sky-100 rounded-lg p-1.5 text-center">
+              <p className="text-[10px] font-bold text-sky-700">Bayi</p>
+              <p className="text-sm font-extrabold text-slate-800">{overallSegmentStats.Bayi}</p>
+            </div>
+            <div className="bg-amber-50/80 border border-amber-100 rounded-lg p-1.5 text-center">
+              <p className="text-[10px] font-bold text-amber-700">Anak</p>
+              <p className="text-sm font-extrabold text-slate-800">{overallSegmentStats.Anak}</p>
+            </div>
+            <div className="bg-pink-50/80 border border-pink-100 rounded-lg p-1.5 text-center">
+              <p className="text-[10px] font-bold text-pink-700">Ibu</p>
+              <p className="text-sm font-extrabold text-slate-800">{overallSegmentStats.Ibu}</p>
+            </div>
+          </div>
+          <p className="text-[10px] text-slate-400 mt-1.5">
+            Total {validReservations.length} transaksi terkonfirmasi & selesai
+          </p>
+        </motion.div>
+
+        {/* Card 4: Operasional Hari Ini & Pelanggan */}
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          className="glass-panel p-5 border border-white/50 shadow-md shadow-slate-100/50 flex flex-col justify-between"
+        >
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Operasional & Pelanggan</p>
+            <div className="w-9 h-9 rounded-xl bg-purple-50 text-purple-500 flex items-center justify-center">
+              <Users size={18} />
+            </div>
+          </div>
+          <div className="mt-2">
+            <h3 className="text-xl font-extrabold text-slate-800">
+              {stats.completed_sessions} <span className="text-xs font-semibold text-slate-500">Sesi Selesai</span>
+            </h3>
+            <div className="flex items-center justify-between mt-1.5 text-[11px]">
+              <span className="font-semibold text-blue-600">Hari Ini: {stats.today_bookings} Booking</span>
+              <span className="font-semibold text-purple-600">{stats.total_customers} Pelanggan</span>
+            </div>
+            <p className="text-[10px] text-slate-400 mt-1">
+              Katalog Aktif: {services.filter((s) => s.is_active).length} dari {services.length} Layanan
+            </p>
+          </div>
+        </motion.div>
       </div>
 
       {/* Navigation Tabs */}
@@ -811,11 +1255,50 @@ export default function AdminDashboard() {
             exit={{ opacity: 0, y: -15 }}
             className="flex flex-col gap-6"
           >
-            {/* Create Service Trigger */}
-            <div className="flex justify-end">
+            {/* Filter Klasifikasi Layanan (Bayi / Anak / Ibu) & Tombol Tambah */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { id: "all", label: `Semua Layanan (${services.length})`, dot: "" },
+                  {
+                    id: "Bayi",
+                    label: `Bayi (${services.filter((s) => getServiceClassification(s) === "Bayi").length})`,
+                    dot: "bg-sky-500",
+                  },
+                  {
+                    id: "Anak",
+                    label: `Anak (${services.filter((s) => getServiceClassification(s) === "Anak").length})`,
+                    dot: "bg-amber-500",
+                  },
+                  {
+                    id: "Ibu",
+                    label: `Ibu (${services.filter((s) => getServiceClassification(s) === "Ibu").length})`,
+                    dot: "bg-pink-500",
+                  },
+                ].map((f) => (
+                  <button
+                    key={f.id}
+                    onClick={() => setServiceSegmentFilter(f.id as "all" | "Bayi" | "Anak" | "Ibu")}
+                    className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-all cursor-pointer inline-flex items-center gap-1.5 ${
+                      serviceSegmentFilter === f.id
+                        ? "bg-pink-500 text-white border-pink-500 shadow-md shadow-pink-100"
+                        : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                    }`}
+                  >
+                    {f.dot && (
+                      <span
+                        className={`w-1.5 h-1.5 rounded-full ${
+                          serviceSegmentFilter === f.id ? "bg-white" : f.dot
+                        }`}
+                      />
+                    )}
+                    {f.label}
+                  </button>
+                ))}
+              </div>
               <button
                 onClick={() => setServiceModal({ isOpen: true, mode: "create", data: {} })}
-                className="btn-primary py-2.5 px-5 text-sm flex items-center gap-2"
+                className="btn-primary py-2.5 px-5 text-sm flex items-center gap-2 self-end sm:self-auto"
               >
                 <Plus size={16} /> Tambah Layanan Baru
               </button>
@@ -828,12 +1311,12 @@ export default function AdminDashboard() {
                   <Loader2 size={32} className="animate-spin text-pink-500" />
                   <p className="text-slate-500 text-sm">Mengambil data layanan...</p>
                 </div>
-              ) : services.length === 0 ? (
+              ) : filteredServices.length === 0 ? (
                 <div className="text-center py-20">
                   <Sparkles className="mx-auto text-slate-300 mb-4" size={48} />
-                  <p className="text-slate-600 font-semibold text-lg">Belum ada layanan</p>
+                  <p className="text-slate-600 font-semibold text-lg">Tidak ada layanan ditemukan</p>
                   <p className="text-slate-400 text-sm max-w-sm mx-auto mt-1">
-                    Mulai dengan menambahkan layanan baru untuk ditampilkan di menu booking.
+                    Coba pilih filter klasifikasi lain atau tambahkan layanan baru.
                   </p>
                 </div>
               ) : (
@@ -842,6 +1325,7 @@ export default function AdminDashboard() {
                     <thead>
                       <tr className="bg-slate-50/70 border-b border-slate-100">
                         <th className="py-4 px-6 text-xs font-bold text-slate-500 uppercase tracking-wider">Nama Layanan</th>
+                        <th className="py-4 px-6 text-xs font-bold text-slate-500 uppercase tracking-wider">Klasifikasi</th>
                         <th className="py-4 px-6 text-xs font-bold text-slate-500 uppercase tracking-wider">Deskripsi</th>
                         <th className="py-4 px-6 text-xs font-bold text-slate-500 uppercase tracking-wider">Durasi</th>
                         <th className="py-4 px-6 text-xs font-bold text-slate-500 uppercase tracking-wider">Harga</th>
@@ -853,6 +1337,7 @@ export default function AdminDashboard() {
                       {filteredServices.map((s) => (
                         <tr key={s.id} className="hover:bg-slate-50/50 transition-colors">
                           <td className="py-4 px-6 font-semibold text-slate-800 text-sm">{s.name}</td>
+                          <td className="py-4 px-6">{getClassificationBadge(getServiceClassification(s))}</td>
                           <td className="py-4 px-6 text-slate-500 text-xs max-w-xs truncate">{s.description}</td>
                           <td className="py-4 px-6 text-slate-700 text-sm font-medium">{s.duration_minutes} Menit</td>
                           <td className="py-4 px-6 font-bold text-slate-800 text-sm">
@@ -990,85 +1475,658 @@ export default function AdminDashboard() {
             exit={{ opacity: 0, y: -15 }}
             className="flex flex-col gap-6"
           >
-            {/* Charts Grid */}
-            <div className="grid md:grid-cols-2 gap-6">
-              {/* Chart 1: Revenue Trend */}
-              <div className="glass-panel p-6 border border-white/50 shadow-lg">
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="w-8 h-8 rounded-lg bg-pink-50 text-pink-500 flex items-center justify-center">
-                    <TrendingUp size={16} />
-                  </div>
-                  <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wider">Tren Pendapatan (7 Hari Terakhir)</h3>
+            {/* ── PANEL 3 FILTER WAJIB LAPORAN TRANSAKSI & KEUANGAN ─────────────── */}
+            <div className="glass-panel p-6 border border-white/50 shadow-lg flex flex-col gap-5">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+                <div>
+                  <h3 className="font-extrabold text-slate-800 text-base flex items-center gap-2">
+                    <FileText className="text-pink-500" size={18} />
+                    Filter Laporan Transaksi, Keuangan & Analitik
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Saring laporan berdasarkan rentang tanggal (Start–End Date), preset periode, klasifikasi (Bayi, Anak, Ibu), maupun jenis layanan.
+                  </p>
                 </div>
-                <div className="w-full h-80 pt-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={resetReportFilters}
+                    className="px-3.5 py-2 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors cursor-pointer"
+                  >
+                    Reset Filter
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleExportCSV}
+                    className="px-4 py-2 font-bold text-xs bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl flex items-center gap-1.5 shadow-md shadow-emerald-100 transition-all cursor-pointer"
+                  >
+                    <Download size={14} /> Export CSV/Excel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => window.print()}
+                    className="px-4 py-2 font-bold text-xs bg-slate-800 hover:bg-slate-900 text-white rounded-xl flex items-center gap-1.5 shadow-md shadow-slate-200 transition-all cursor-pointer"
+                  >
+                    <Printer size={14} /> Cetak Laporan (PDF)
+                  </button>
+                </div>
+              </div>
+
+              {/* Filter 1: Preset Waktu Cepat */}
+              <div className="flex flex-col gap-2">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                  1. Preset Periode Waktu & Rentang Tanggal (Start Date – End Date)
+                </label>
+                <div className="flex flex-wrap items-center gap-2">
+                  {[
+                    { id: "all", label: "Semua Waktu" },
+                    { id: "today", label: "Harian (Hari Ini)" },
+                    { id: "week", label: "Mingguan (7 Hari)" },
+                    { id: "month", label: "Bulanan (Bulan Ini)" },
+                    { id: "year", label: "Tahunan (Tahun Ini)" },
+                  ].map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => applyReportPreset(p.id as "all" | "today" | "week" | "month" | "year")}
+                      className={`px-3.5 py-1.5 rounded-full text-xs font-bold border transition-all cursor-pointer ${
+                        reportPreset === p.id
+                          ? "bg-pink-500 text-white border-pink-500 shadow-sm shadow-pink-100"
+                          : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                      }`}
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Input Start Date & End Date + Filter Klasifikasi & Layanan */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mt-2">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-500 mb-1">
+                      Dari Tanggal (Start Date)
+                    </label>
+                    <input
+                      type="date"
+                      value={reportStartDate}
+                      onChange={(e) => {
+                        setReportStartDate(e.target.value);
+                        setReportPreset("custom");
+                      }}
+                      className="input-glass w-full py-2 px-3 text-xs font-medium"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-500 mb-1">
+                      Sampai Tanggal (End Date)
+                    </label>
+                    <input
+                      type="date"
+                      value={reportEndDate}
+                      onChange={(e) => {
+                        setReportEndDate(e.target.value);
+                        setReportPreset("custom");
+                      }}
+                      className="input-glass w-full py-2 px-3 text-xs font-medium"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-500 mb-1">
+                      2. Jenis Layanan (36 Layanan)
+                    </label>
+                    <select
+                      value={reportServiceId}
+                      onChange={(e) => setReportServiceId(e.target.value)}
+                      className="input-glass w-full py-2 px-3 text-xs font-medium bg-white"
+                    >
+                      <option value="all">Semua Layanan ({services.length} Layanan)</option>
+                      {services.map((s) => (
+                        <option key={s.id} value={String(s.id)}>
+                          [{getServiceClassification(s)}] {s.name} — Rp {Number(s.price).toLocaleString("id-ID")}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-500 mb-1">
+                      Status Transaksi
+                    </label>
+                    <select
+                      value={reportStatusFilter}
+                      onChange={(e) => setReportStatusFilter(e.target.value as any)}
+                      className="input-glass w-full py-2 px-3 text-xs font-medium bg-white"
+                    >
+                      <option value="all">Semua Status Reservasi (Sinkron Kelola Reservasi)</option>
+                      <option value="valid">Transaksi Sah Saja (Dikonfirmasi & Selesai)</option>
+                      <option value="completed">Selesai Saja</option>
+                      <option value="confirmed">Dikonfirmasi Saja</option>
+                      <option value="cancelled">Dibatalkan Saja</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Filter 2: Klasifikasi Segmen (Bayi / Anak / Ibu) */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-slate-100">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wider mr-1">
+                    Klasifikasi Segmen:
+                  </span>
+                  {[
+                    { id: "all", label: "Semua Segmen", dot: "" },
+                    { id: "Bayi", label: "Bayi (0–1 Thn)", dot: "bg-sky-500" },
+                    { id: "Anak", label: "Anak (1–5 Thn)", dot: "bg-amber-500" },
+                    { id: "Ibu", label: "Ibu (Mom Treatment)", dot: "bg-pink-500" },
+                  ].map((seg) => (
+                    <button
+                      key={seg.id}
+                      type="button"
+                      onClick={() => setReportSegment(seg.id as "all" | "Bayi" | "Anak" | "Ibu")}
+                      className={`px-3.5 py-1.5 rounded-full text-xs font-bold border transition-all cursor-pointer inline-flex items-center gap-1.5 ${
+                        reportSegment === seg.id
+                          ? "bg-slate-800 text-white border-slate-800 shadow-sm"
+                          : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                      }`}
+                    >
+                      {seg.dot && (
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${
+                            reportSegment === seg.id ? "bg-white" : seg.dot
+                          }`}
+                        />
+                      )}
+                      {seg.label}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-slate-500 font-medium">
+                  Menampilkan <span className="font-bold text-pink-600">{reportFilteredReservations.length}</span> data (
+                  <span className="font-bold text-emerald-600">{filteredPaidReservations.length}</span> transaksi sah/lunas)
+                  {reportStartDate || reportEndDate
+                    ? ` • ${reportStartDate || "Awal"} s/d ${reportEndDate || "Sekarang"}`
+                    : " • Semua Periode"}
+                </p>
+              </div>
+            </div>
+
+            {/* ── KARTU KUANTITATIF PERIODE TERFILTER (KEUANGAN & SEGMEN) ────────── */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="glass-panel p-5 border border-pink-100 bg-gradient-to-br from-pink-50/60 to-white shadow-md">
+                <p className="text-[11px] font-bold text-pink-600 uppercase tracking-wider">
+                  Total Omset (Transaksi Sah)
+                </p>
+                <h4 className="text-xl font-extrabold text-slate-900 mt-1">
+                  Rp {filteredTotalRevenue.toLocaleString("id-ID")}
+                </h4>
+                <p className="text-xs text-slate-500 mt-1 font-medium">
+                  Dari <span className="font-bold text-emerald-600">{filteredPaidReservations.length}</span> transaksi sah (total {reportFilteredReservations.length} baris)
+                </p>
+              </div>
+
+              <div className="glass-panel p-5 border border-sky-100 bg-gradient-to-br from-sky-50/50 to-white shadow-md">
+                <div className="flex items-center justify-between">
+                  <p className="text-[11px] font-bold text-sky-700 uppercase tracking-wider flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-sky-500" />
+                    Segmen Bayi
+                  </p>
+                  <span className="text-[11px] font-extrabold text-sky-700 bg-sky-100 px-2 py-0.5 rounded-full">
+                    {filteredPaidReservations.length > 0
+                      ? Math.round((filteredSegmentStats.Bayi.count / filteredPaidReservations.length) * 100)
+                      : 0}
+                    %
+                  </span>
+                </div>
+                <h4 className="text-xl font-extrabold text-slate-900 mt-1">
+                  {filteredSegmentStats.Bayi.count} <span className="text-xs font-semibold text-slate-500">Transaksi Sah</span>
+                </h4>
+                <p className="text-xs text-slate-500 mt-1 font-medium">
+                  Omset: Rp {filteredSegmentStats.Bayi.revenue.toLocaleString("id-ID")}
+                </p>
+              </div>
+
+              <div className="glass-panel p-5 border border-amber-100 bg-gradient-to-br from-amber-50/50 to-white shadow-md">
+                <div className="flex items-center justify-between">
+                  <p className="text-[11px] font-bold text-amber-700 uppercase tracking-wider flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-amber-500" />
+                    Segmen Anak
+                  </p>
+                  <span className="text-[11px] font-extrabold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">
+                    {filteredPaidReservations.length > 0
+                      ? Math.round((filteredSegmentStats.Anak.count / filteredPaidReservations.length) * 100)
+                      : 0}
+                    %
+                  </span>
+                </div>
+                <h4 className="text-xl font-extrabold text-slate-900 mt-1">
+                  {filteredSegmentStats.Anak.count} <span className="text-xs font-semibold text-slate-500">Transaksi Sah</span>
+                </h4>
+                <p className="text-xs text-slate-500 mt-1 font-medium">
+                  Omset: Rp {filteredSegmentStats.Anak.revenue.toLocaleString("id-ID")}
+                </p>
+              </div>
+
+              <div className="glass-panel p-5 border border-rose-100 bg-gradient-to-br from-rose-50/50 to-white shadow-md">
+                <div className="flex items-center justify-between">
+                  <p className="text-[11px] font-bold text-rose-700 uppercase tracking-wider flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-pink-500" />
+                    Segmen Ibu
+                  </p>
+                  <span className="text-[11px] font-extrabold text-rose-700 bg-rose-100 px-2 py-0.5 rounded-full">
+                    {filteredPaidReservations.length > 0
+                      ? Math.round((filteredSegmentStats.Ibu.count / filteredPaidReservations.length) * 100)
+                      : 0}
+                    %
+                  </span>
+                </div>
+                <h4 className="text-xl font-extrabold text-slate-900 mt-1">
+                  {filteredSegmentStats.Ibu.count} <span className="text-xs font-semibold text-slate-500">Transaksi Sah</span>
+                </h4>
+                <p className="text-xs text-slate-500 mt-1 font-medium">
+                  Omset: Rp {filteredSegmentStats.Ibu.revenue.toLocaleString("id-ID")}
+                </p>
+              </div>
+            </div>
+
+            {/* ── KONTROL MODE GRAFIK FLUKTUASI (BULANAN JAN–DES / HARIAN) ──────── */}
+            <div className="glass-panel px-6 py-4 border border-white/50 shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wider">
+                  Infografis Fluktuasi Keuangan & Komparasi Segmen (Bayi vs Anak vs Ibu)
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Pilih tampilan grafik fluktuasi bulanan (Januari–Desember) atau harian.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="inline-flex rounded-xl bg-slate-100 p-1">
+                  <button
+                    type="button"
+                    onClick={() => setChartTimeMode("monthly")}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      chartTimeMode === "monthly" ? "bg-white text-pink-600 shadow-xs" : "text-slate-600"
+                    }`}
+                  >
+                    Bulanan (Jan–Des)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setChartTimeMode("daily")}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      chartTimeMode === "daily" ? "bg-white text-pink-600 shadow-xs" : "text-slate-600"
+                    }`}
+                  >
+                    Harian
+                  </button>
+                </div>
+
+                {chartTimeMode === "monthly" && (
+                  <select
+                    value={chartYear}
+                    onChange={(e) => setChartYear(Number(e.target.value))}
+                    className="input-glass py-1.5 px-3 text-xs font-bold bg-white"
+                  >
+                    {availableYears.map((yr) => (
+                      <option key={yr} value={yr}>
+                        Tahun {yr}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+            </div>
+
+            {/* ── GRID INFOGRAFIS 1 & 2 ─────────────────────────────────────────── */}
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* Infografis 1: Grafik Fluktuasi Pendapatan */}
+              <div className="glass-panel p-6 border border-white/50 shadow-lg">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-pink-50 text-pink-500 flex items-center justify-center">
+                      <TrendingUp size={16} />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wider">
+                        {chartTimeMode === "monthly"
+                          ? `Fluktuasi Pendapatan Bulanan (${chartYear})`
+                          : "Fluktuasi Pendapatan Harian"}
+                      </h3>
+                      <p className="text-[11px] text-slate-400">
+                        Tren naik-turunnya omset keuangan berdasarkan periode
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="w-full h-80 pt-2">
                   <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={getIncomeData()}>
+                    <AreaChart data={getFluctuationChartData()}>
                       <defs>
                         <linearGradient id="incomeColor" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#EC4899" stopOpacity={0.4}/>
-                          <stop offset="95%" stopColor="#EC4899" stopOpacity={0}/>
+                          <stop offset="5%" stopColor="#EC4899" stopOpacity={0.4} />
+                          <stop offset="95%" stopColor="#EC4899" stopOpacity={0} />
                         </linearGradient>
                       </defs>
-                      <XAxis dataKey="date" stroke="#94A3B8" fontSize={11} tickLine={false} />
-                      <YAxis stroke="#94A3B8" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(val) => `Rp ${val / 1000}k`} />
-                      <ChartTooltip formatter={(val: any) => [`Rp ${Number(val).toLocaleString("id-ID")}`, "Pendapatan"]} />
-                      <Area type="monotone" dataKey="Pendapatan" stroke="#EC4899" strokeWidth={3} fillOpacity={1} fill="url(#incomeColor)" />
+                      <XAxis dataKey="label" stroke="#94A3B8" fontSize={11} tickLine={false} />
+                      <YAxis
+                        stroke="#94A3B8"
+                        fontSize={11}
+                        tickLine={false}
+                        axisLine={false}
+                        tickFormatter={(val) => `Rp ${val / 1000}k`}
+                      />
+                      <ChartTooltip
+                        formatter={(val: any, name: any) =>
+                          name === "Pendapatan"
+                            ? [`Rp ${Number(val).toLocaleString("id-ID")}`, "Pendapatan"]
+                            : [`${val} Sesi`, name]
+                        }
+                      />
+                      <Legend wrapperStyle={{ fontSize: "12px" }} />
+                      <Area
+                        type="monotone"
+                        dataKey="Pendapatan"
+                        stroke="#EC4899"
+                        strokeWidth={3}
+                        fillOpacity={1}
+                        fill="url(#incomeColor)"
+                      />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
               </div>
 
-              {/* Chart 2: Popular Treatments */}
+              {/* Infografis 2: Grafik Fluktuasi & Komparasi Segmen (Bayi vs Anak vs Ibu) */}
               <div className="glass-panel p-6 border border-white/50 shadow-lg">
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-500 flex items-center justify-center">
-                    <BarChart2 size={16} />
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-sky-50 text-sky-500 flex items-center justify-center">
+                      <BarChart2 size={16} />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wider">
+                        {chartTimeMode === "monthly"
+                          ? `Komparasi & Fluktuasi Bayi, Anak, Ibu (${chartYear})`
+                          : "Komparasi Harian: Bayi vs Anak vs Ibu"}
+                      </h3>
+                      <p className="text-[11px] text-slate-400">
+                        Perbandingan jumlah sesi transaksi per klasifikasi konsumen
+                      </p>
+                    </div>
                   </div>
-                  <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wider">Layanan Terpopuler (Sesi Selesai)</h3>
                 </div>
-                <div className="w-full h-80 pt-4">
+                <div className="w-full h-80 pt-2">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={getPopularServicesData()} layout="vertical">
-                      <XAxis type="number" stroke="#94A3B8" fontSize={11} tickLine={false} axisLine={false} />
-                      <YAxis dataKey="name" type="category" stroke="#94A3B8" fontSize={10} tickLine={false} axisLine={false} width={90} />
-                      <ChartTooltip formatter={(val: any) => [val, "Jumlah Sesi"]} />
-                      <Bar dataKey="Jumlah Sesi" fill="#3B82F6" radius={[0, 4, 4, 0]} barSize={16}>
-                        {getPopularServicesData().map((_, index) => (
-                          <Cell key={`cell-${index}`} fill={["#EC4899", "#3B82F6", "#10B981", "#F59E0B", "#8B5CF6"][index % 5]} />
-                        ))}
-                      </Bar>
+                    <BarChart data={getFluctuationChartData()}>
+                      <XAxis dataKey="label" stroke="#94A3B8" fontSize={11} tickLine={false} />
+                      <YAxis allowDecimals={false} stroke="#94A3B8" fontSize={11} tickLine={false} axisLine={false} />
+                      <ChartTooltip formatter={(val: any, name: any) => [`${val} Transaksi`, `Segmen ${name}`]} />
+                      <Legend wrapperStyle={{ fontSize: "12px" }} />
+                      <Bar dataKey="Bayi" fill="#0EA5E9" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="Anak" fill="#F59E0B" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="Ibu" fill="#EC4899" radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
               </div>
             </div>
 
-            {/* Print & Export Report Section */}
-            <div className="glass-panel p-6 border border-white/50 shadow-lg flex flex-col md:flex-row items-center justify-between gap-6">
-              <div>
-                <h3 className="font-extrabold text-slate-800 text-base flex items-center gap-2">
-                  <FileText className="text-pink-500" size={18} /> Ekspor & Cetak Laporan Rekapitulasi (10 Kolom)
-                </h3>
-                <p className="text-slate-500 text-sm mt-1">
-                  Format rekapitulasi data mencakup 10 kolom standar bisnis (Tanggal, No, Nama Bayi, Umur, Alamat, No WA, Link WA, Layanan, Terapis, Tarif).
-                </p>
+            {/* ── INFOGRAFIS 3 & REKAP LAYANAN PALING LARIS (TOP SERVICES DARI 36 LAYANAN) ── */}
+            <div className="glass-panel p-6 border border-white/50 shadow-lg flex flex-col gap-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-500 flex items-center justify-center">
+                    <Sparkles size={18} />
+                  </div>
+                  <div>
+                    <h3 className="font-extrabold text-slate-800 text-sm uppercase tracking-wider">
+                      3. Peringkat & Rekapitulasi Layanan Paling Laris (Top Services)
+                    </h3>
+                    <p className="text-xs text-slate-500">
+                      Urutan layanan berdasarkan jumlah pemesanan dan kontribusi pendapatan dari total {services.length} layanan.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="inline-flex rounded-xl bg-slate-100 p-1">
+                    <button
+                      type="button"
+                      onClick={() => setTopServicesSort("most")}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        topServicesSort === "most" ? "bg-white text-pink-600 shadow-xs" : "text-slate-600"
+                      }`}
+                    >
+                      Paling Laris
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTopServicesSort("least")}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        topServicesSort === "least" ? "bg-white text-pink-600 shadow-xs" : "text-slate-600"
+                      }`}
+                    >
+                      Paling Jarang
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowAllTopServices(!showAllTopServices)}
+                    className="px-3.5 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-bold text-slate-700 cursor-pointer"
+                  >
+                    {showAllTopServices ? "Tampilkan Top 10 Saja" : `Tampilkan Semua (${getRankedServicesData().length})`}
+                  </button>
+                </div>
               </div>
-              <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-                <button
-                  type="button"
-                  onClick={handleExportCSV}
-                  className="px-5 py-3 font-bold text-sm bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl flex items-center gap-2 shadow-lg shadow-emerald-100 transition-all cursor-pointer justify-center"
-                >
-                  <FileText size={16} /> Export Spreadsheet (CSV)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => window.print()}
-                  className="px-5 py-3 font-bold text-sm bg-slate-800 hover:bg-slate-900 text-white rounded-xl flex items-center gap-2 shadow-lg shadow-slate-200 transition-all cursor-pointer justify-center"
-                >
-                  <Printer size={16} /> Cetak Laporan (PDF)
-                </button>
+
+              <div className="grid lg:grid-cols-12 gap-6 items-start">
+                {/* Grafik Top 8 Layanan */}
+                <div className="lg:col-span-5 bg-slate-50/60 rounded-2xl p-4 border border-slate-100">
+                  <p className="text-xs font-bold text-slate-600 uppercase tracking-wider mb-3">
+                    Visualisasi 8 Layanan ({topServicesSort === "most" ? "Terlaris" : "Terjarang"})
+                  </p>
+                  <div className="w-full h-72">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={getRankedServicesData().slice(0, 8)} layout="vertical">
+                        <XAxis type="number" allowDecimals={false} stroke="#94A3B8" fontSize={11} tickLine={false} axisLine={false} />
+                        <YAxis dataKey="shortName" type="category" stroke="#64748B" fontSize={10} tickLine={false} axisLine={false} width={110} />
+                        <ChartTooltip
+                          formatter={(val: any, _name: any, props: any) => [
+                            `${val} Sesi (Rp ${Number(props?.payload?.revenue ?? 0).toLocaleString("id-ID")})`,
+                            props?.payload?.name ?? "Jumlah Sesi",
+                          ]}
+                        />
+                        <Bar dataKey="Jumlah Sesi" radius={[0, 4, 4, 0]} barSize={16}>
+                          {getRankedServicesData()
+                            .slice(0, 8)
+                            .map((entry, index) => (
+                              <Cell
+                                key={`cell-${index}`}
+                                fill={
+                                  entry.classification === "Bayi"
+                                    ? "#0EA5E9"
+                                    : entry.classification === "Anak"
+                                      ? "#F59E0B"
+                                      : "#EC4899"
+                                }
+                              />
+                            ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+
+                {/* Tabel Rekap Peringkat Layanan */}
+                <div className="lg:col-span-7 overflow-x-auto border border-slate-100 rounded-2xl">
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="bg-slate-50 border-b border-slate-100">
+                        <th className="py-3 px-4 font-bold text-slate-500 uppercase">Rank</th>
+                        <th className="py-3 px-4 font-bold text-slate-500 uppercase">Nama Layanan</th>
+                        <th className="py-3 px-4 font-bold text-slate-500 uppercase">Klasifikasi</th>
+                        <th className="py-3 px-4 font-bold text-slate-500 uppercase text-right">Harga Satuan</th>
+                        <th className="py-3 px-4 font-bold text-slate-500 uppercase text-center">Terjual</th>
+                        <th className="py-3 px-4 font-bold text-slate-500 uppercase text-right">Total Omset</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {(showAllTopServices ? getRankedServicesData() : getRankedServicesData().slice(0, 10)).map((item) => (
+                        <tr key={item.name} className="hover:bg-slate-50/70">
+                          <td className="py-2.5 px-4 font-extrabold text-slate-700">#{item.rank}</td>
+                          <td className="py-2.5 px-4 font-semibold text-slate-800">{item.name}</td>
+                          <td className="py-2.5 px-4">{getClassificationBadge(item.classification)}</td>
+                          <td className="py-2.5 px-4 text-right text-slate-600">
+                            Rp {item.unitPrice.toLocaleString("id-ID")}
+                          </td>
+                          <td className="py-2.5 px-4 text-center">
+                            <span className="inline-block px-2.5 py-0.5 rounded-full font-extrabold bg-pink-50 text-pink-600 border border-pink-100">
+                              {item.count} Sesi
+                            </span>
+                          </td>
+                          <td className="py-2.5 px-4 text-right font-bold text-slate-800">
+                            Rp {item.revenue.toLocaleString("id-ID")}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
+            </div>
+
+            {/* ── TABEL DETAIL LAPORAN TRANSAKSI & KEUANGAN (DI LAYAR) ──────────── */}
+            <div className="glass-panel overflow-hidden border border-white/50 shadow-xl">
+              <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h3 className="font-extrabold text-slate-800 text-base flex items-center gap-2">
+                    <FileText className="text-pink-500" size={18} />
+                    Tabel Detail Laporan Transaksi & Keuangan
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Menampilkan rincian ID & Nama Customer, Tanggal & Jam Transaksi, Nama Layanan, Klasifikasi (Bayi/Anak/Ibu), serta Nominal Pembayaran.
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[11px] font-bold text-slate-400 uppercase">Total Pendapatan Terfilter</p>
+                  <p className="text-lg font-extrabold text-pink-600">
+                    Rp {filteredTotalRevenue.toLocaleString("id-ID")}
+                  </p>
+                </div>
+              </div>
+
+              {reportFilteredReservations.length === 0 ? (
+                <div className="text-center py-16">
+                  <Calendar className="mx-auto text-slate-300 mb-3" size={42} />
+                  <p className="text-slate-600 font-semibold text-base">
+                    Tidak ada data transaksi pada filter ini
+                  </p>
+                  <p className="text-slate-400 text-xs mt-1">
+                    Silakan ubah rentang tanggal (Start–End Date) atau pilih klasifikasi layanan lainnya.
+                  </p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-slate-50/80 border-b border-slate-100">
+                        <th className="py-3.5 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">
+                          No
+                        </th>
+                        <th className="py-3.5 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                          ID & Nama Customer
+                        </th>
+                        <th className="py-3.5 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                          Tanggal & Jam Transaksi
+                        </th>
+                        <th className="py-3.5 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                          Nama Layanan
+                        </th>
+                        <th className="py-3.5 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                          Klasifikasi
+                        </th>
+                        <th className="py-3.5 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                          Terapis & Status
+                        </th>
+                        <th className="py-3.5 px-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">
+                          Nominal Dibayar
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 text-sm">
+                      {reportFilteredReservations.map((r, idx) => {
+                        const cls = getReservationClassification(r);
+                        return (
+                          <tr key={r.id} className="hover:bg-slate-50/60 transition-colors">
+                            <td className="py-3.5 px-4 text-center font-bold text-slate-500 text-xs">
+                              {idx + 1}
+                            </td>
+                            <td className="py-3.5 px-4">
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-mono text-[11px] font-bold bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded">
+                                  #{r.user?.id ?? "-"}
+                                </span>
+                                <span className="font-bold text-slate-800">{r.user?.name ?? "Pelanggan"}</span>
+                              </div>
+                              <p className="text-xs text-pink-600 font-medium mt-0.5">
+                                Kode: <span className="font-mono font-bold">{r.booking_code}</span> • Anak:{" "}
+                                <span className="font-semibold">{r.baby_name}</span> ({r.baby_age} Bln)
+                              </p>
+                            </td>
+                            <td className="py-3.5 px-4">
+                              <p className="font-semibold text-slate-800 text-xs">
+                                {new Date(getReservationDateStr(r)).toLocaleDateString("id-ID", {
+                                  day: "2-digit",
+                                  month: "short",
+                                  year: "numeric",
+                                })}
+                              </p>
+                              <p className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
+                                <Clock size={11} className="text-pink-400" />
+                                {(r.start_time ?? "").slice(0, 5)} – {(r.end_time ?? "").slice(0, 5)} WIB
+                              </p>
+                            </td>
+                            <td className="py-3.5 px-4 font-semibold text-slate-800 text-xs">
+                              {r.service?.name ?? "-"}
+                            </td>
+                            <td className="py-3.5 px-4">{getClassificationBadge(cls)}</td>
+                            <td className="py-3.5 px-4">
+                              <p className="text-xs font-medium text-slate-700 mb-1">
+                                {r.therapist?.name ?? "Otomatis"}
+                              </p>
+                              {getStatusBadge(r.status)}
+                            </td>
+                            <td className="py-3.5 px-4 text-right">
+                              {isPaidReservation(r) ? (
+                                <span className="font-extrabold text-slate-900">
+                                  Rp {Number(r.total_price).toLocaleString("id-ID")}
+                                </span>
+                              ) : (
+                                <div className="flex flex-col items-end">
+                                  <span className="font-semibold text-slate-400 line-through text-xs">
+                                    Rp {Number(r.total_price).toLocaleString("id-ID")}
+                                  </span>
+                                  <span className="text-[10px] font-bold text-rose-500">
+                                    (Tidak masuk omset)
+                                  </span>
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                    <tfoot>
+                      <tr className="bg-pink-50/70 border-t-2 border-pink-200">
+                        <td colSpan={6} className="py-4 px-4 text-right font-extrabold text-slate-800 uppercase text-xs tracking-wider">
+                          Total Pendapatan Sah ({filteredPaidReservations.length} dari {reportFilteredReservations.length} Transaksi):
+                        </td>
+                        <td className="py-4 px-4 text-right font-extrabold text-pink-600 text-base">
+                          Rp {filteredTotalRevenue.toLocaleString("id-ID")}
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              )}
             </div>
           </motion.div>
         )}
@@ -1677,67 +2735,103 @@ export default function AdminDashboard() {
       <div className="hidden print:block text-slate-800 p-8">
         <div className="text-center border-b-2 border-slate-800 pb-4 mb-6">
           <h1 className="text-2xl font-bold uppercase tracking-wide">Mayesha Mom, Kids & Baby Spa</h1>
-          <p className="text-sm text-slate-500">Laporan Transaksi & Reservasi Layanan Spa</p>
+          <p className="text-sm text-slate-500">Laporan Transaksi, Keuangan & Analitik Layanan Spa</p>
           <p className="text-xs text-slate-400 mt-1">
-            Dicetak pada: {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
+            Periode Filter:{" "}
+            {reportStartDate || reportEndDate
+              ? `${reportStartDate || "Awal"} s/d ${reportEndDate || "Sekarang"}`
+              : "Semua Periode"}{" "}
+            | Klasifikasi: {reportSegment === "all" ? "Semua (Bayi, Anak, Ibu)" : reportSegment} | Dicetak pada:{" "}
+            {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
           </p>
         </div>
 
-        <h2 className="text-base font-bold mb-4 uppercase text-center">Ringkasan Performa Spa</h2>
-        
-        <div className="grid grid-cols-3 gap-4 mb-8 border border-slate-300 p-4 rounded-xl text-center">
+        <h2 className="text-base font-bold mb-4 uppercase text-center">Ringkasan Kuantitatif Laporan</h2>
+
+        <div className="grid grid-cols-4 gap-4 mb-8 border border-slate-300 p-4 rounded-xl text-center">
           <div>
-            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Total Booking</p>
-            <p className="text-base font-extrabold mt-0.5">{reservations.length} Sesi</p>
+            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Total Transaksi</p>
+            <p className="text-base font-extrabold mt-0.5">{reportFilteredReservations.length} Sesi</p>
           </div>
           <div>
-            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Sesi Selesai</p>
-            <p className="text-base font-extrabold mt-0.5">{stats.completed_sessions} Sesi</p>
+            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Segmen Bayi / Anak</p>
+            <p className="text-base font-extrabold mt-0.5">
+              {filteredSegmentStats.Bayi.count} Bayi / {filteredSegmentStats.Anak.count} Anak
+            </p>
+          </div>
+          <div>
+            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Segmen Ibu</p>
+            <p className="text-base font-extrabold mt-0.5">{filteredSegmentStats.Ibu.count} Sesi</p>
           </div>
           <div>
             <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Total Pendapatan</p>
-            <p className="text-base font-extrabold mt-0.5 text-pink-600">Rp {stats.total_revenue.toLocaleString("id-ID")}</p>
+            <p className="text-base font-extrabold mt-0.5 text-pink-600">
+              Rp {filteredTotalRevenue.toLocaleString("id-ID")}
+            </p>
           </div>
         </div>
 
-        <h2 className="text-xs font-bold mb-3 uppercase tracking-wider">Rekapitulasi Data Transaksi (10 Kolom Standar Spa)</h2>
+        <h2 className="text-xs font-bold mb-3 uppercase tracking-wider">
+          Tabel Rekapitulasi Data Transaksi & Keuangan
+        </h2>
         <table className="w-full text-left border-collapse border border-slate-300 text-[9px]">
           <thead>
             <tr className="bg-slate-100 border-b border-slate-300">
-              <th className="p-1.5 border border-slate-300 font-bold">1. Tanggal</th>
-              <th className="p-1.5 border border-slate-300 font-bold text-center">2. NO</th>
-              <th className="p-1.5 border border-slate-300 font-bold">3. Nama Bayi</th>
-              <th className="p-1.5 border border-slate-300 font-bold">4. Umur</th>
-              <th className="p-1.5 border border-slate-300 font-bold">5. Alamat / Catatan</th>
-              <th className="p-1.5 border border-slate-300 font-bold">6. No WA</th>
-              <th className="p-1.5 border border-slate-300 font-bold">7. Link WA</th>
-              <th className="p-1.5 border border-slate-300 font-bold">8. Tindakan/Layanan</th>
-              <th className="p-1.5 border border-slate-300 font-bold">9. Terapis</th>
-              <th className="p-1.5 border border-slate-300 font-bold">10. Tarif</th>
+              <th className="p-1.5 border border-slate-300 font-bold text-center">1. NO</th>
+              <th className="p-1.5 border border-slate-300 font-bold">2. Tanggal & Jam</th>
+              <th className="p-1.5 border border-slate-300 font-bold">3. ID & Customer</th>
+              <th className="p-1.5 border border-slate-300 font-bold">4. Nama Anak & Umur</th>
+              <th className="p-1.5 border border-slate-300 font-bold">5. Klasifikasi</th>
+              <th className="p-1.5 border border-slate-300 font-bold">6. Tindakan/Layanan</th>
+              <th className="p-1.5 border border-slate-300 font-bold">7. Terapis</th>
+              <th className="p-1.5 border border-slate-300 font-bold">8. No WA</th>
+              <th className="p-1.5 border border-slate-300 font-bold">9. Catatan</th>
+              <th className="p-1.5 border border-slate-300 font-bold text-right">10. Tarif</th>
             </tr>
           </thead>
           <tbody>
-            {reservations.map((r, idx) => {
+            {reportFilteredReservations.map((r, idx) => {
               const phone = r.user?.phone_number ?? "-";
-              const waLink = !r.user?.phone_number ? "-" : getWaLinkFromPhone(r.user.phone_number);
+              const cls = getReservationClassification(r);
               return (
                 <tr key={r.id} className="border-b border-slate-200">
-                  <td className="p-1.5 border border-slate-300">
-                    {new Date(r.reservation_date).toLocaleDateString("id-ID", { day: "2-digit", month: "2-digit", year: "numeric" })}
-                  </td>
                   <td className="p-1.5 border border-slate-300 text-center font-bold">{idx + 1}</td>
-                  <td className="p-1.5 border border-slate-300 font-bold">{r.baby_name}</td>
-                  <td className="p-1.5 border border-slate-300">{r.baby_age} Bulan</td>
-                  <td className="p-1.5 border border-slate-300 max-w-[120px] truncate">{r.notes ?? "-"}</td>
-                  <td className="p-1.5 border border-slate-300 font-mono">{phone}</td>
-                  <td className="p-1.5 border border-slate-300 font-mono text-[8px] truncate max-w-[100px]">{waLink}</td>
+                  <td className="p-1.5 border border-slate-300">
+                    {new Date(getReservationDateStr(r)).toLocaleDateString("id-ID", {
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "numeric",
+                    })}{" "}
+                    ({(r.start_time ?? "").slice(0, 5)})
+                  </td>
+                  <td className="p-1.5 border border-slate-300 font-semibold">
+                    #{r.user?.id ?? "-"} {r.user?.name ?? "-"} ({r.booking_code})
+                  </td>
+                  <td className="p-1.5 border border-slate-300">
+                    {r.baby_name} ({r.baby_age} Bln)
+                  </td>
+                  <td className="p-1.5 border border-slate-300 font-bold">{cls}</td>
                   <td className="p-1.5 border border-slate-300 font-semibold">{r.service?.name}</td>
                   <td className="p-1.5 border border-slate-300">{r.therapist?.name ?? "Otomatis"}</td>
-                  <td className="p-1.5 border border-slate-300 font-bold">Rp {r.total_price.toLocaleString("id-ID")}</td>
+                  <td className="p-1.5 border border-slate-300 font-mono">{phone}</td>
+                  <td className="p-1.5 border border-slate-300 max-w-[110px] truncate">{r.notes ?? "-"}</td>
+                  <td className="p-1.5 border border-slate-300 font-bold text-right">
+                    Rp {Number(r.total_price).toLocaleString("id-ID")}
+                  </td>
                 </tr>
               );
             })}
           </tbody>
+          <tfoot>
+            <tr className="bg-slate-100 font-bold">
+              <td colSpan={9} className="p-2 border border-slate-300 text-right uppercase">
+                Total Pendapatan ({reportFilteredReservations.length} Transaksi):
+              </td>
+              <td className="p-2 border border-slate-300 text-right font-extrabold">
+                Rp {filteredTotalRevenue.toLocaleString("id-ID")}
+              </td>
+            </tr>
+          </tfoot>
         </table>
 
         {/* Signature */}
