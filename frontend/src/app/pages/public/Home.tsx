@@ -325,36 +325,26 @@ export default function Home() {
           {!isLoading && services.length > 0 && (
             <div className="flex flex-wrap items-center justify-center gap-2.5 mt-8">
               {[
-                { id: "all", label: `Semua Layanan (${services.length})`, dot: "" },
-                {
-                  id: "Bayi",
-                  label: `Layanan Bayi (${services.filter((s) => getServiceClassification(s) === "Bayi").length})`,
-                  dot: "bg-sky-500",
-                },
-                {
-                  id: "Anak",
-                  label: `Layanan Anak (${services.filter((s) => getServiceClassification(s) === "Anak").length})`,
-                  dot: "bg-amber-500",
-                },
-                {
-                  id: "Ibu",
-                  label: `Layanan Ibu (${services.filter((s) => getServiceClassification(s) === "Ibu").length})`,
-                  dot: "bg-pink-500",
-                },
+                { id: "all", label: "Semua Layanan", dot: "" },
+                { id: "Bayi", label: "Layanan Bayi", dot: "bg-sky-500" },
+                { id: "Anak", label: "Layanan Anak", dot: "bg-amber-500" },
+                { id: "Ibu", label: "Layanan Ibu", dot: "bg-pink-500" },
               ].map((tab) => (
                 <button
                   key={tab.id}
                   type="button"
                   onClick={() => setSegmentFilter(tab.id as "all" | "Bayi" | "Anak" | "Ibu")}
-                  className={`px-5 py-2.5 rounded-full text-xs font-bold border transition-all cursor-pointer inline-flex items-center gap-2 ${segmentFilter === tab.id
+                  className={`px-5 py-2.5 rounded-full text-xs font-bold border transition-all cursor-pointer inline-flex items-center gap-2 ${
+                    segmentFilter === tab.id
                       ? "bg-pink-500 text-white border-pink-500 shadow-lg shadow-pink-100"
                       : "bg-white text-slate-600 border-slate-200 hover:border-pink-200 hover:bg-pink-50/40"
-                    }`}
+                  }`}
                 >
                   {tab.dot && (
                     <span
-                      className={`w-2 h-2 rounded-full ${segmentFilter === tab.id ? "bg-white" : tab.dot
-                        }`}
+                      className={`w-2 h-2 rounded-full ${
+                        segmentFilter === tab.id ? "bg-white" : tab.dot
+                      }`}
                     />
                   )}
                   {tab.label}
