@@ -346,17 +346,15 @@ export default function Home() {
                   key={tab.id}
                   type="button"
                   onClick={() => setSegmentFilter(tab.id as "all" | "Bayi" | "Anak" | "Ibu")}
-                  className={`px-5 py-2.5 rounded-full text-xs font-bold border transition-all cursor-pointer inline-flex items-center gap-2 ${
-                    segmentFilter === tab.id
+                  className={`px-5 py-2.5 rounded-full text-xs font-bold border transition-all cursor-pointer inline-flex items-center gap-2 ${segmentFilter === tab.id
                       ? "bg-pink-500 text-white border-pink-500 shadow-lg shadow-pink-100"
                       : "bg-white text-slate-600 border-slate-200 hover:border-pink-200 hover:bg-pink-50/40"
-                  }`}
+                    }`}
                 >
                   {tab.dot && (
                     <span
-                      className={`w-2 h-2 rounded-full ${
-                        segmentFilter === tab.id ? "bg-white" : tab.dot
-                      }`}
+                      className={`w-2 h-2 rounded-full ${segmentFilter === tab.id ? "bg-white" : tab.dot
+                        }`}
                     />
                   )}
                   {tab.label}
@@ -421,36 +419,36 @@ export default function Home() {
 
                   <div className="mb-2">
                     <span className={`inline-block text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${clsStyle}`}>
-                      Klasifikasi: {cls}
+                      {cls}
                     </span>
                   </div>
                   <h3 className="text-xl font-bold text-slate-800 mb-3">{service.name}</h3>
                   <p className="text-slate-500 mb-6 flex-1 text-sm leading-relaxed line-clamp-3">
                     {service.description}
                   </p>
-                <div className="pt-6 border-t border-slate-100/60 flex items-center justify-between mt-auto">
-                  <div>
-                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mb-0.5">
-                      {service.duration_minutes} Menit
-                    </span>
-                    <span className="text-lg font-extrabold text-pink-500">
-                      Rp {service.price.toLocaleString("id-ID")}
-                    </span>
+                  <div className="pt-6 border-t border-slate-100/60 flex items-center justify-between mt-auto">
+                    <div>
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mb-0.5">
+                        {service.duration_minutes} Menit
+                      </span>
+                      <span className="text-lg font-extrabold text-pink-500">
+                        Rp {service.price.toLocaleString("id-ID")}
+                      </span>
+                    </div>
+                    <Link
+                      to={`/reservasi?service_id=${service.id}`}
+                      className="text-sm font-bold text-slate-700 hover:text-pink-500 transition-colors flex items-center gap-1 group"
+                    >
+                      Booking{" "}
+                      <ArrowRight
+                        size={14}
+                        className="group-hover:translate-x-1 transition-transform"
+                      />
+                    </Link>
                   </div>
-                  <Link
-                    to={`/reservasi?service_id=${service.id}`}
-                    className="text-sm font-bold text-slate-700 hover:text-pink-500 transition-colors flex items-center gap-1 group"
-                  >
-                    Booking{" "}
-                    <ArrowRight
-                      size={14}
-                      className="group-hover:translate-x-1 transition-transform"
-                    />
-                  </Link>
-                </div>
-              </motion.div>
-            );
-          })}
+                </motion.div>
+              );
+            })}
           </div>
         )}
       </section>
