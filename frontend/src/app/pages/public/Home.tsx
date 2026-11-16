@@ -8,9 +8,27 @@ import type { Service, Review } from "@/types/api.types";
 
 export default function Home() {
   const [services, setServices] = useState<Service[]>([]);
+  const [segmentFilter, setSegmentFilter] = useState<"all" | "Bayi" | "Anak" | "Ibu">("all");
   const [reviews, setReviews] = useState<Review[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState<{ src: string; title: string; desc: string } | null>(null);
+
+  const getServiceClassification = (s: Service): "Bayi" | "Anak" | "Ibu" => {
+    if (s.category === "mom_treatment" || (s.age_min_months !== null && s.age_min_months >= 216)) {
+      return "Ibu";
+    }
+    if (
+      (s.age_min_months !== null && s.age_min_months >= 13) ||
+      /kids|anak|1-3th|3-4th/i.test(s.name)
+    ) {
+      return "Anak";
+    }
+    return "Bayi";
+  };
+
+  const filteredServices = services.filter((s) =>
+    segmentFilter === "all" ? true : getServiceClassification(s) === segmentFilter
+  );
 
   useEffect(() => {
     const fetchData = async () => {
@@ -297,11 +315,55 @@ export default function Home() {
 
       {/* Services Section */}
       <section id="layanan" className="px-6 max-w-7xl mx-auto w-full scroll-mt-24">
-        <div className="text-center mb-16">
+        <div className="text-center mb-10">
           <h2 className="text-3xl md:text-4xl font-bold text-slate-800 mb-4">Pilihan Layanan Kami</h2>
           <p className="text-slate-500 max-w-2xl mx-auto">
             Tiap layanan dirancang khusus biar tumbuh kembang si Kecil makin optimal sambil seru-seruan bareng kita.
           </p>
+
+          {/* Klasifikasi Filter Pills (Bayi / Anak / Ibu) */}
+          {!isLoading && services.length > 0 && (
+            <div className="flex flex-wrap items-center justify-center gap-2.5 mt-8">
+              {[
+                { id: "all", label: `Semua Layanan (${services.length})`, dot: "" },
+                {
+                  id: "Bayi",
+                  label: `Layanan Bayi (${services.filter((s) => getServiceClassification(s) === "Bayi").length})`,
+                  dot: "bg-sky-500",
+                },
+                {
+                  id: "Anak",
+                  label: `Layanan Anak (${services.filter((s) => getServiceClassification(s) === "Anak").length})`,
+                  dot: "bg-amber-500",
+                },
+                {
+                  id: "Ibu",
+                  label: `Layanan Ibu (${services.filter((s) => getServiceClassification(s) === "Ibu").length})`,
+                  dot: "bg-pink-500",
+                },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setSegmentFilter(tab.id as "all" | "Bayi" | "Anak" | "Ibu")}
+                  className={`px-5 py-2.5 rounded-full text-xs font-bold border transition-all cursor-pointer inline-flex items-center gap-2 ${
+                    segmentFilter === tab.id
+                      ? "bg-pink-500 text-white border-pink-500 shadow-lg shadow-pink-100"
+                      : "bg-white text-slate-600 border-slate-200 hover:border-pink-200 hover:bg-pink-50/40"
+                  }`}
+                >
+                  {tab.dot && (
+                    <span
+                      className={`w-2 h-2 rounded-full ${
+                        segmentFilter === tab.id ? "bg-white" : tab.dot
+                      }`}
+                    />
+                  )}
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {isLoading ? (
@@ -309,7 +371,7 @@ export default function Home() {
             <Loader2 size={32} className="animate-spin text-pink-500" />
             <p className="text-slate-400 text-sm">Menyiapkan daftar layanan...</p>
           </div>
-        ) : services.length === 0 ? (
+        ) : filteredServices.length === 0 ? (
           <div className="text-center py-16">
             <Calendar className="mx-auto text-slate-300 mb-4" size={48} />
             <p className="text-slate-600 font-semibold text-lg">Layanan Belum Tersedia</p>
@@ -319,8 +381,15 @@ export default function Home() {
           </div>
         ) : (
           <div className="grid md:grid-cols-3 gap-8">
-            {services.map((service, idx) => {
+            {filteredServices.map((service, idx) => {
               const card = getServiceCardDetails(service, idx);
+              const cls = getServiceClassification(service);
+              const clsStyle =
+                cls === "Bayi"
+                  ? "bg-sky-50 text-sky-700 border-sky-200"
+                  : cls === "Anak"
+                    ? "bg-amber-50 text-amber-700 border-amber-200"
+                    : "bg-pink-50 text-pink-700 border-pink-200";
               return (
                 <motion.div
                   key={service.id}
@@ -350,6 +419,11 @@ export default function Home() {
                     </div>
                   </div>
 
+                  <div className="mb-2">
+                    <span className={`inline-block text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${clsStyle}`}>
+                      Klasifikasi: {cls}
+                    </span>
+                  </div>
                   <h3 className="text-xl font-bold text-slate-800 mb-3">{service.name}</h3>
                   <p className="text-slate-500 mb-6 flex-1 text-sm leading-relaxed line-clamp-3">
                     {service.description}
@@ -364,7 +438,7 @@ export default function Home() {
                     </span>
                   </div>
                   <Link
-                    to="/reservasi"
+                    to={`/reservasi?service_id=${service.id}`}
                     className="text-sm font-bold text-slate-700 hover:text-pink-500 transition-colors flex items-center gap-1 group"
                   >
                     Booking{" "}

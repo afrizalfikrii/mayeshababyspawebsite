@@ -17,10 +17,28 @@ export default function Booking() {
   const { user } = useAuth();
   const [step, setStep] = useState(1);
   const [services, setServices] = useState<Service[]>([]);
+  const [segmentFilter, setSegmentFilter] = useState<"all" | "Bayi" | "Anak" | "Ibu">("all");
   const [therapists, setTherapists] = useState<Therapist[]>([]);
   const [isLoadingServices, setIsLoadingServices] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
+
+  const getServiceClassification = (s: Service): "Bayi" | "Anak" | "Ibu" => {
+    if (s.category === "mom_treatment" || (s.age_min_months !== null && s.age_min_months >= 216)) {
+      return "Ibu";
+    }
+    if (
+      (s.age_min_months !== null && s.age_min_months >= 13) ||
+      /kids|anak|1-3th|3-4th/i.test(s.name)
+    ) {
+      return "Anak";
+    }
+    return "Bayi";
+  };
+
+  const filteredBookingServices = services.filter((s) =>
+    segmentFilter === "all" ? true : getServiceClassification(s) === segmentFilter
+  );
 
   const [formData, setFormData] = useState({
     serviceId: 0,
@@ -335,8 +353,58 @@ export default function Booking() {
                   </p>
                 </div>
 
+                {/* Filter Klasifikasi Layanan (Bayi / Anak / Ibu) */}
+                <div className="flex flex-wrap items-center gap-2">
+                  {[
+                    { id: "all", label: `Semua (${services.length})`, dot: "" },
+                    {
+                      id: "Bayi",
+                      label: `Bayi (${services.filter((s) => getServiceClassification(s) === "Bayi").length})`,
+                      dot: "bg-sky-500",
+                    },
+                    {
+                      id: "Anak",
+                      label: `Anak (${services.filter((s) => getServiceClassification(s) === "Anak").length})`,
+                      dot: "bg-amber-500",
+                    },
+                    {
+                      id: "Ibu",
+                      label: `Ibu (${services.filter((s) => getServiceClassification(s) === "Ibu").length})`,
+                      dot: "bg-pink-500",
+                    },
+                  ].map((tab) => (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setSegmentFilter(tab.id as "all" | "Bayi" | "Anak" | "Ibu")}
+                      className={`px-4 py-1.5 rounded-full text-xs font-bold border transition-all cursor-pointer inline-flex items-center gap-1.5 ${
+                        segmentFilter === tab.id
+                          ? "bg-pink-500 text-white border-pink-500 shadow-sm shadow-pink-100"
+                          : "bg-white text-slate-600 border-slate-200 hover:border-pink-200 hover:bg-pink-50/40"
+                      }`}
+                    >
+                      {tab.dot && (
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${
+                            segmentFilter === tab.id ? "bg-white" : tab.dot
+                          }`}
+                        />
+                      )}
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+
                 <div className="grid gap-4">
-                  {services.map((s) => (
+                  {filteredBookingServices.map((s) => {
+                    const cls = getServiceClassification(s);
+                    const clsBadge =
+                      cls === "Bayi"
+                        ? "bg-sky-50 text-sky-700 border-sky-200"
+                        : cls === "Anak"
+                          ? "bg-amber-50 text-amber-700 border-amber-200"
+                          : "bg-pink-50 text-pink-700 border-pink-200";
+                    return (
                     <label
                       key={s.id}
                       className={`flex items-center justify-between p-4 border rounded-2xl cursor-pointer transition-all ${
@@ -355,7 +423,12 @@ export default function Booking() {
                           className="w-5 h-5 text-pink-500 focus:ring-pink-500 cursor-pointer"
                         />
                         <div>
-                          <h4 className="font-bold text-slate-800 text-base">{s.name}</h4>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h4 className="font-bold text-slate-800 text-base">{s.name}</h4>
+                            <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${clsBadge}`}>
+                              {cls}
+                            </span>
+                          </div>
                           <p className="text-slate-500 text-xs mt-1 max-w-md line-clamp-2">{s.description}</p>
                           <p className="text-xs font-semibold text-pink-600 flex items-center gap-1 mt-2">
                             <Clock size={13} /> {s.duration_minutes} Menit
@@ -366,7 +439,8 @@ export default function Booking() {
                         Rp {s.price.toLocaleString("id-ID")}
                       </span>
                     </label>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}
