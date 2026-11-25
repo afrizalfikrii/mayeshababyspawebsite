@@ -353,34 +353,30 @@ export default function Booking() {
                   </p>
                 </div>
 
-                {/* Filter Klasifikasi Layanan (Bayi / Anak / Ibu) */}
-                <div className="flex flex-wrap items-center gap-2">
+                {/* Filter Klasifikasi Layanan (Segmented Control) */}
+                <div className="grid grid-cols-2 sm:inline-flex items-center gap-1 p-1.5 rounded-2xl bg-slate-100/90 border border-slate-200/70 w-full sm:w-fit">
                   {[
-                    { id: "all", label: "Semua Layanan", dot: "" },
-                    { id: "Bayi", label: "Bayi", dot: "bg-sky-500" },
-                    { id: "Anak", label: "Anak", dot: "bg-amber-500" },
-                    { id: "Ibu", label: "Ibu", dot: "bg-pink-500" },
-                  ].map((tab) => (
-                    <button
-                      key={tab.id}
-                      type="button"
-                      onClick={() => setSegmentFilter(tab.id as "all" | "Bayi" | "Anak" | "Ibu")}
-                      className={`px-4 py-1.5 rounded-full text-xs font-bold border transition-all cursor-pointer inline-flex items-center gap-1.5 ${
-                        segmentFilter === tab.id
-                          ? "bg-pink-500 text-white border-pink-500 shadow-sm shadow-pink-100"
-                          : "bg-white text-slate-600 border-slate-200 hover:border-pink-200 hover:bg-pink-50/40"
-                      }`}
-                    >
-                      {tab.dot && (
-                        <span
-                          className={`w-1.5 h-1.5 rounded-full ${
-                            segmentFilter === tab.id ? "bg-white" : tab.dot
-                          }`}
-                        />
-                      )}
-                      {tab.label}
-                    </button>
-                  ))}
+                    { id: "all", label: "Semua Layanan" },
+                    { id: "Bayi", label: "Bayi" },
+                    { id: "Anak", label: "Anak" },
+                    { id: "Ibu", label: "Ibu" },
+                  ].map((tab) => {
+                    const isActive = segmentFilter === tab.id;
+                    return (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        onClick={() => setSegmentFilter(tab.id as "all" | "Bayi" | "Anak" | "Ibu")}
+                        className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer text-center whitespace-nowrap ${
+                          isActive
+                            ? "bg-white text-pink-600 shadow-sm ring-1 ring-slate-200/60"
+                            : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
+                        }`}
+                      >
+                        {tab.label}
+                      </button>
+                    );
+                  })}
                 </div>
 
                 <div className="grid gap-4">
@@ -395,24 +391,24 @@ export default function Booking() {
                     return (
                     <label
                       key={s.id}
-                      className={`flex items-center justify-between p-4 border rounded-2xl cursor-pointer transition-all ${
+                      className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 border rounded-2xl cursor-pointer transition-all ${
                         formData.serviceId === s.id
                           ? "border-pink-500 bg-pink-50/50 ring-1 ring-pink-500 shadow-md shadow-pink-50"
                           : "border-slate-200 hover:border-pink-300 bg-white/50"
                       }`}
                     >
-                      <div className="flex items-center gap-4">
+                      <div className="flex items-start sm:items-center gap-3 sm:gap-4">
                         <input
                           type="radio"
                           name="serviceId"
                           value={s.id}
                           checked={formData.serviceId === s.id}
                           onChange={() => setFormData({ ...formData, serviceId: s.id })}
-                          className="w-5 h-5 text-pink-500 focus:ring-pink-500 cursor-pointer"
+                          className="w-5 h-5 mt-0.5 sm:mt-0 shrink-0 text-pink-500 focus:ring-pink-500 cursor-pointer"
                         />
-                        <div>
+                        <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
-                            <h4 className="font-bold text-slate-800 text-base">{s.name}</h4>
+                            <h4 className="font-bold text-slate-800 text-sm sm:text-base">{s.name}</h4>
                             <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${clsBadge}`}>
                               {cls}
                             </span>
@@ -423,7 +419,7 @@ export default function Booking() {
                           </p>
                         </div>
                       </div>
-                      <span className="font-extrabold text-pink-500 text-lg whitespace-nowrap pl-4">
+                      <span className="font-extrabold text-pink-500 text-base sm:text-lg whitespace-nowrap pl-8 sm:pl-4">
                         Rp {s.price.toLocaleString("id-ID")}
                       </span>
                     </label>
