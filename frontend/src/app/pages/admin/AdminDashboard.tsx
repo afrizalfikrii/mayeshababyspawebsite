@@ -206,16 +206,9 @@ export default function AdminDashboard() {
   };
 
   const getClassificationBadge = (cls: "Bayi" | "Anak" | "Ibu") => {
-    const styles: Record<"Bayi" | "Anak" | "Ibu", { bg: string; dot: string; label: string }> = {
-      Bayi: { bg: "bg-sky-50 text-sky-700 border-sky-200", dot: "bg-sky-500", label: "Bayi" },
-      Anak: { bg: "bg-amber-50 text-amber-700 border-amber-200", dot: "bg-amber-500", label: "Anak" },
-      Ibu: { bg: "bg-pink-50 text-pink-700 border-pink-200", dot: "bg-pink-500", label: "Ibu" },
-    };
-    const st = styles[cls];
     return (
-      <span className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border font-bold whitespace-nowrap ${st.bg}`}>
-        <span className={`w-1.5 h-1.5 rounded-full ${st.dot}`} />
-        <span>{st.label}</span>
+      <span className="inline-flex items-center text-xs px-2.5 py-0.5 rounded-md border border-slate-200/80 bg-slate-100 text-slate-700 font-semibold whitespace-nowrap">
+        {cls}
       </span>
     );
   };

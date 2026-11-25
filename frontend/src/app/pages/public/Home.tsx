@@ -370,12 +370,6 @@ export default function Home() {
             {filteredServices.map((service, idx) => {
               const card = getServiceCardDetails(service, idx);
               const cls = getServiceClassification(service);
-              const clsStyle =
-                cls === "Bayi"
-                  ? "bg-sky-50 text-sky-700 border-sky-200"
-                  : cls === "Anak"
-                    ? "bg-amber-50 text-amber-700 border-amber-200"
-                    : "bg-pink-50 text-pink-700 border-pink-200";
               return (
                 <motion.div
                   key={service.id}
@@ -406,7 +400,7 @@ export default function Home() {
                   </div>
 
                   <div className="mb-2">
-                    <span className={`inline-block text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${clsStyle}`}>
+                    <span className="inline-block text-[11px] font-semibold px-2.5 py-0.5 rounded-md border border-slate-200/80 bg-slate-100 text-slate-700">
                       {cls}
                     </span>
                   </div>
