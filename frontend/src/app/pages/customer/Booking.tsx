@@ -382,12 +382,6 @@ export default function Booking() {
                 <div className="grid gap-4">
                   {filteredBookingServices.map((s) => {
                     const cls = getServiceClassification(s);
-                    const clsBadge =
-                      cls === "Bayi"
-                        ? "bg-sky-50 text-sky-700 border-sky-200"
-                        : cls === "Anak"
-                          ? "bg-amber-50 text-amber-700 border-amber-200"
-                          : "bg-pink-50 text-pink-700 border-pink-200";
                     return (
                     <label
                       key={s.id}
@@ -409,7 +403,7 @@ export default function Booking() {
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
                             <h4 className="font-bold text-slate-800 text-sm sm:text-base">{s.name}</h4>
-                            <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${clsBadge}`}>
+                            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md border border-slate-200/80 bg-slate-100 text-slate-700">
                               {cls}
                             </span>
                           </div>
