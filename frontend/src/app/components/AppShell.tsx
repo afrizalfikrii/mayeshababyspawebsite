@@ -70,50 +70,50 @@ export default function AppShell() {
     <div className="flex flex-col min-h-screen">
       {!isAuthPage && (
         <header className="fixed top-0 left-0 right-0 z-50 px-4 py-3 print:hidden">
-          <div className="max-w-6xl mx-auto glass-panel px-6 py-3 flex items-center justify-between rounded-full">
-            <Link to="/" onClick={handleBerandaClick} className="flex items-center gap-2 group">
+          <div className="max-w-6xl mx-auto glass-panel px-4 sm:px-6 py-3 flex items-center justify-between gap-4 rounded-full">
+            <Link to="/" onClick={handleBerandaClick} className="flex items-center gap-2 group shrink-0">
               <img
                 src="/logo.png"
                 alt="Mayesha Baby Spa Logo"
-                className="w-10 h-10 object-cover rounded-full group-hover:scale-110 transition-transform"
+                className="w-9 h-9 sm:w-10 sm:h-10 object-cover rounded-full group-hover:scale-110 transition-transform shrink-0"
               />
-              <span className="font-bold text-xl text-slate-800 tracking-tight">
+              <span className="font-bold text-lg sm:text-xl text-slate-800 tracking-tight whitespace-nowrap">
                 Mayesha<span className="text-pink-500"> Baby Spa</span>
               </span>
             </Link>
 
             {/* Desktop Nav */}
-            <nav className="hidden md:flex items-center gap-8">
+            <nav className="hidden lg:flex items-center gap-6 xl:gap-8">
               <Link
                 to="/"
                 onClick={handleBerandaClick}
-                className="text-slate-600 hover:text-pink-500 font-medium transition-colors cursor-pointer"
+                className="text-slate-600 hover:text-pink-500 font-medium transition-colors cursor-pointer whitespace-nowrap"
               >
                 Beranda
               </Link>
               <Link
                 to="/#galeri"
                 onClick={handleGaleriClick}
-                className="text-slate-600 hover:text-pink-500 font-medium transition-colors cursor-pointer"
+                className="text-slate-600 hover:text-pink-500 font-medium transition-colors cursor-pointer whitespace-nowrap"
               >
                 Galeri
               </Link>
               <Link
                 to="/#layanan"
                 onClick={handleMenuLayananClick}
-                className="text-slate-600 hover:text-pink-500 font-medium transition-colors cursor-pointer"
+                className="text-slate-600 hover:text-pink-500 font-medium transition-colors cursor-pointer whitespace-nowrap"
               >
                 Menu Layanan
               </Link>
               {!isAdmin && (
-                <Link to="/reservasi" className="text-slate-600 hover:text-pink-500 font-medium transition-colors">
+                <Link to="/reservasi" className="text-slate-600 hover:text-pink-500 font-medium transition-colors whitespace-nowrap">
                   Booking
                 </Link>
               )}
               {isAuthenticated && (
                 <Link
                   to={isAdmin ? "/admin" : "/dashboard"}
-                  className="text-pink-600 hover:text-pink-700 font-semibold flex items-center gap-1.5 transition-colors"
+                  className="text-pink-600 hover:text-pink-700 font-semibold flex items-center gap-1.5 transition-colors whitespace-nowrap"
                 >
                   <LayoutDashboard size={16} />
                   {isAdmin ? "Admin Area" : "Ruang Bunda"}
@@ -121,38 +121,39 @@ export default function AppShell() {
               )}
             </nav>
 
-            <div className="hidden md:flex items-center gap-4">
+            <div className="hidden lg:flex items-center gap-4 shrink-0">
               {isAuthenticated ? (
                 <button
                   onClick={handleLogout}
-                  className="text-slate-600 hover:text-red-500 font-medium flex items-center gap-2 cursor-pointer transition-colors"
+                  className="text-slate-600 hover:text-red-500 font-medium flex items-center gap-2 cursor-pointer transition-colors whitespace-nowrap"
                 >
                   <LogOut size={18} /> Keluar
                 </button>
               ) : (
                 <>
-                  <Link to="/auth" className="text-slate-600 hover:text-pink-500 font-medium flex items-center gap-2">
+                  <Link to="/auth" className="text-slate-600 hover:text-pink-500 font-medium flex items-center gap-2 whitespace-nowrap">
                     <LogIn size={18} /> Masuk
                   </Link>
-                  <Link to="/reservasi" className="btn-primary text-sm py-2.5 px-5">
+                  <Link to="/reservasi" className="btn-primary text-sm py-2.5 px-5 whitespace-nowrap">
                     Yuk, Booking!
                   </Link>
                 </>
               )}
             </div>
 
-            {/* Mobile Toggle */}
+            {/* Mobile & Tablet Toggle */}
             <button
-              className="md:hidden text-slate-600"
+              className="lg:hidden p-1.5 text-slate-600 hover:text-pink-500 transition-colors cursor-pointer"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
+              aria-label="Toggle Menu"
             >
-              {isMenuOpen ? <X /> : <Menu />}
+              {isMenuOpen ? <X size={22} /> : <Menu size={22} />}
             </button>
           </div>
 
-          {/* Mobile Nav */}
+          {/* Mobile & Tablet Nav */}
           {isMenuOpen && (
-            <div className="md:hidden absolute top-20 left-4 right-4 glass-panel p-4 flex flex-col gap-4 animate-in fade-in slide-in-from-top-4">
+            <div className="lg:hidden absolute top-20 left-4 right-4 max-w-6xl mx-auto glass-panel p-4 flex flex-col gap-2 shadow-xl animate-in fade-in slide-in-from-top-4">
               <Link
                 to="/"
                 onClick={(e) => {

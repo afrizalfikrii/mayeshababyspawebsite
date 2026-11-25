@@ -321,35 +321,33 @@ export default function Home() {
             Tiap layanan dirancang khusus biar tumbuh kembang si Kecil makin optimal sambil seru-seruan bareng kita.
           </p>
 
-          {/* Klasifikasi Filter Pills (Bayi / Anak / Ibu) */}
+          {/* Klasifikasi Filter Segmented Control (Bayi / Anak / Ibu) */}
           {!isLoading && services.length > 0 && (
-            <div className="flex flex-wrap items-center justify-center gap-2.5 mt-8">
-              {[
-                { id: "all", label: "Semua Layanan", dot: "" },
-                { id: "Bayi", label: "Layanan Bayi", dot: "bg-sky-500" },
-                { id: "Anak", label: "Layanan Anak", dot: "bg-amber-500" },
-                { id: "Ibu", label: "Layanan Ibu", dot: "bg-pink-500" },
-              ].map((tab) => (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => setSegmentFilter(tab.id as "all" | "Bayi" | "Anak" | "Ibu")}
-                  className={`px-5 py-2.5 rounded-full text-xs font-bold border transition-all cursor-pointer inline-flex items-center gap-2 ${
-                    segmentFilter === tab.id
-                      ? "bg-pink-500 text-white border-pink-500 shadow-lg shadow-pink-100"
-                      : "bg-white text-slate-600 border-slate-200 hover:border-pink-200 hover:bg-pink-50/40"
-                  }`}
-                >
-                  {tab.dot && (
-                    <span
-                      className={`w-2 h-2 rounded-full ${
-                        segmentFilter === tab.id ? "bg-white" : tab.dot
+            <div className="flex justify-center mt-8">
+              <div className="grid grid-cols-2 sm:inline-flex items-center gap-1 p-1.5 rounded-2xl bg-slate-100/90 border border-slate-200/70 w-full max-w-md sm:w-fit sm:max-w-none">
+                {[
+                  { id: "all", label: "Semua Layanan" },
+                  { id: "Bayi", label: "Layanan Bayi" },
+                  { id: "Anak", label: "Layanan Anak" },
+                  { id: "Ibu", label: "Layanan Ibu" },
+                ].map((tab) => {
+                  const isActive = segmentFilter === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setSegmentFilter(tab.id as "all" | "Bayi" | "Anak" | "Ibu")}
+                      className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer text-center whitespace-nowrap ${
+                        isActive
+                          ? "bg-white text-pink-600 shadow-sm ring-1 ring-slate-200/60"
+                          : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
                       }`}
-                    />
-                  )}
-                  {tab.label}
-                </button>
-              ))}
+                    >
+                      {tab.label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>
@@ -368,7 +366,7 @@ export default function Home() {
             </p>
           </div>
         ) : (
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
             {filteredServices.map((service, idx) => {
               const card = getServiceCardDetails(service, idx);
               const cls = getServiceClassification(service);
