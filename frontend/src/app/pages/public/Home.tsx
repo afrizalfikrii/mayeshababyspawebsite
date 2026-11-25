@@ -325,22 +325,10 @@ export default function Home() {
           {!isLoading && services.length > 0 && (
             <div className="flex flex-wrap items-center justify-center gap-2.5 mt-8">
               {[
-                { id: "all", label: `Semua Layanan (${services.length})`, dot: "" },
-                {
-                  id: "Bayi",
-                  label: `Layanan Bayi (${services.filter((s) => getServiceClassification(s) === "Bayi").length})`,
-                  dot: "bg-sky-500",
-                },
-                {
-                  id: "Anak",
-                  label: `Layanan Anak (${services.filter((s) => getServiceClassification(s) === "Anak").length})`,
-                  dot: "bg-amber-500",
-                },
-                {
-                  id: "Ibu",
-                  label: `Layanan Ibu (${services.filter((s) => getServiceClassification(s) === "Ibu").length})`,
-                  dot: "bg-pink-500",
-                },
+                { id: "all", label: "Semua Layanan", dot: "" },
+                { id: "Bayi", label: "Layanan Bayi", dot: "bg-sky-500" },
+                { id: "Anak", label: "Layanan Anak", dot: "bg-amber-500" },
+                { id: "Ibu", label: "Layanan Ibu", dot: "bg-pink-500" },
               ].map((tab) => (
                 <button
                   key={tab.id}
@@ -421,36 +409,36 @@ export default function Home() {
 
                   <div className="mb-2">
                     <span className={`inline-block text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${clsStyle}`}>
-                      Klasifikasi: {cls}
+                      {cls}
                     </span>
                   </div>
                   <h3 className="text-xl font-bold text-slate-800 mb-3">{service.name}</h3>
                   <p className="text-slate-500 mb-6 flex-1 text-sm leading-relaxed line-clamp-3">
                     {service.description}
                   </p>
-                <div className="pt-6 border-t border-slate-100/60 flex items-center justify-between mt-auto">
-                  <div>
-                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mb-0.5">
-                      {service.duration_minutes} Menit
-                    </span>
-                    <span className="text-lg font-extrabold text-pink-500">
-                      Rp {service.price.toLocaleString("id-ID")}
-                    </span>
+                  <div className="pt-6 border-t border-slate-100/60 flex items-center justify-between mt-auto">
+                    <div>
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mb-0.5">
+                        {service.duration_minutes} Menit
+                      </span>
+                      <span className="text-lg font-extrabold text-pink-500">
+                        Rp {service.price.toLocaleString("id-ID")}
+                      </span>
+                    </div>
+                    <Link
+                      to={`/reservasi?service_id=${service.id}`}
+                      className="text-sm font-bold text-slate-700 hover:text-pink-500 transition-colors flex items-center gap-1 group"
+                    >
+                      Booking{" "}
+                      <ArrowRight
+                        size={14}
+                        className="group-hover:translate-x-1 transition-transform"
+                      />
+                    </Link>
                   </div>
-                  <Link
-                    to={`/reservasi?service_id=${service.id}`}
-                    className="text-sm font-bold text-slate-700 hover:text-pink-500 transition-colors flex items-center gap-1 group"
-                  >
-                    Booking{" "}
-                    <ArrowRight
-                      size={14}
-                      className="group-hover:translate-x-1 transition-transform"
-                    />
-                  </Link>
-                </div>
-              </motion.div>
-            );
-          })}
+                </motion.div>
+              );
+            })}
           </div>
         )}
       </section>
