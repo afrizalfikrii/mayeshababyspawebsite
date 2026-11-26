@@ -126,7 +126,27 @@ class ReservationController extends Controller
     public function store(StoreReservationRequest $request): JsonResponse
     {
         try {
+            // Bersihkan reservasi pending yang sudah lewat batas 15 menit terlebih dahulu
+            Reservation::expired()->update(['status' => Reservation::STATUS_CANCELLED]);
+
             return DB::transaction(function () use ($request): JsonResponse {
+                // 0. Anti-Spam / Anti Slot-Hoarding: maksimal 2 reservasi menggantung (pending / waiting_verification) per akun
+                $unverifiedCount = Reservation::where('user_id', $request->user()->id)
+                    ->whereIn('status', [
+                        Reservation::STATUS_PENDING,
+                        Reservation::STATUS_WAITING_VERIFICATION,
+                    ])
+                    ->lockForUpdate()
+                    ->count();
+
+                if ($unverifiedCount >= 2) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Anda masih memiliki 2 reservasi yang menunggu pembayaran atau verifikasi admin. Mohon tunggu verifikasi pesanan sebelumnya terlebih dahulu.',
+                        'data'    => null,
+                    ], 422);
+                }
+
                 // 1. Load the requested service
                 $service = Service::where('id', $request->service_id)
                     ->where('is_active', true)

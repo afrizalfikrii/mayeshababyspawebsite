@@ -218,7 +218,13 @@ export default function Booking() {
     if (step === 1 && !formData.serviceId) return toast.error("Pilih layanan terlebih dahulu ya, Bun");
     if (step === 2 && !formData.date) return toast.error("Pilih tanggalnya dulu ya");
     if (step === 2 && !formData.time) return toast.error("Pilih jam sesinya dulu ya");
-    if (step === 3 && babyProfileMode === "manual" && (!formData.babyName || !formData.babyAge)) return toast.error("Lengkapi data si Kecil ya");
+    if (step === 3 && babyProfileMode === "manual") {
+      const cleanManualName = formData.babyName.trim();
+      if (!cleanManualName || !formData.babyAge) return toast.error("Lengkapi data si Kecil ya");
+      if (!/^[a-zA-Z\s'.-]+$/.test(cleanManualName) || !/[a-zA-Z]/.test(cleanManualName)) {
+        return toast.error("Nama anak hanya boleh berisi huruf (tidak boleh angka).");
+      }
+    }
     if (step === 3 && babyProfileMode === "select" && !formData.babyId) return toast.error("Pilih profil anak Bunda terlebih dahulu");
 
     if (step < 4) {
@@ -256,14 +262,19 @@ export default function Booking() {
 
   const handleCreateBabyProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newBabyData.name || !newBabyData.birthDate) {
+    const cleanName = newBabyData.name.trim();
+    if (!cleanName || !newBabyData.birthDate) {
       toast.error("Nama dan tanggal lahir wajib diisi.");
+      return;
+    }
+    if (!/^[a-zA-Z\s'.-]+$/.test(cleanName) || !/[a-zA-Z]/.test(cleanName)) {
+      toast.error("Nama anak hanya boleh berisi huruf (tidak boleh angka).");
       return;
     }
     setIsCreatingBaby(true);
     try {
       const newBaby = await createBaby({
-        name: newBabyData.name,
+        name: cleanName,
         birth_date: newBabyData.birthDate,
         notes: newBabyData.notes || null,
       });
@@ -683,7 +694,9 @@ export default function Booking() {
                           placeholder="Contoh: Kenzie"
                           className="input-glass pl-11"
                           value={formData.babyName}
-                          onChange={(e) => setFormData({ ...formData, babyName: e.target.value })}
+                          onChange={(e) =>
+                            setFormData({ ...formData, babyName: e.target.value.replace(/[^a-zA-Z\s'.-]/g, "") })
+                          }
                         />
                       </div>
                     </div>
@@ -722,7 +735,9 @@ export default function Booking() {
                         placeholder="Contoh: Kenzie"
                         className="input-glass bg-white"
                         value={newBabyData.name}
-                        onChange={(e) => setNewBabyData({ ...newBabyData, name: e.target.value })}
+                        onChange={(e) =>
+                          setNewBabyData({ ...newBabyData, name: e.target.value.replace(/[^a-zA-Z\s'.-]/g, "") })
+                        }
                         required
                       />
                     </div>

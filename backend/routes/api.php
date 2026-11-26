@@ -35,8 +35,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // Route khusus Customer
     Route::middleware('role:customer')->group(function () {
         Route::get('/reservations',                             [ReservationController::class, 'index']);
-        Route::post('/reservations',                            [ReservationController::class, 'store']);
-        Route::post('/reservations/{reservation}/upload-proof', [ReservationController::class, 'uploadProof']);
+        Route::post('/reservations',                            [ReservationController::class, 'store'])->middleware('throttle:6,1');
+        Route::post('/reservations/{reservation}/upload-proof', [ReservationController::class, 'uploadProof'])->middleware('throttle:6,1');
         Route::post('/reservations/{reservation}/reschedule',   [ReservationController::class, 'reschedule']);
         Route::post('/reservations/{reservation}/reviews',      [ReviewController::class, 'store']);
         

@@ -18,7 +18,7 @@ class StoreReservationRequest extends FormRequest
             'reservation_date' => ['required', 'date', 'after_or_equal:today'],
             'start_time'       => ['required', 'date_format:H:i'],
             'baby_id'          => ['nullable', 'integer', 'exists:babies,id'],
-            'baby_name'        => ['nullable', 'string', 'max:255'],
+            'baby_name'        => ['nullable', 'string', 'max:255', 'regex:/^[a-zA-Z\s\'\.\-]+$/'],
             'baby_age'         => ['nullable', 'integer', 'min:1'],
             'notes'            => ['nullable', 'string', 'max:1000'],
             'therapist_id'     => ['nullable', 'integer', 'exists:therapists,id'],
@@ -36,6 +36,7 @@ class StoreReservationRequest extends FormRequest
             'start_time.required'             => 'Jam sesi reservasi wajib dipilih.',
             'start_time.date_format'          => 'Format jam harus dalam format JJ:MM (contoh: 09:00).',
             'baby_id.exists'                  => 'Profil anak yang dipilih tidak valid.',
+            'baby_name.regex'                 => 'Nama anak hanya boleh berisi huruf dan spasi (tidak boleh angka).',
             'baby_age.min'                    => 'Usia anak minimal 1 bulan.',
         ];
     }
