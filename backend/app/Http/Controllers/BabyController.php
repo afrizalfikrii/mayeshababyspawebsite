@@ -24,12 +24,13 @@ class BabyController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'name'       => ['required', 'string', 'max:255'],
+            'name'       => ['required', 'string', 'max:255', 'regex:/^[a-zA-Z\s\'\.\-]+$/'],
             'birth_date' => ['required', 'date', 'before_or_equal:today'],
             'notes'      => ['nullable', 'string', 'max:1000'],
         ], [
             'name.required'              => 'Nama si Kecil wajib diisi.',
             'name.max'                   => 'Nama si Kecil maksimal 255 karakter.',
+            'name.regex'                 => 'Nama si Kecil hanya boleh berisi huruf dan spasi (tidak boleh angka).',
             'birth_date.required'        => 'Tanggal lahir si Kecil wajib diisi.',
             'birth_date.before_or_equal' => 'Tanggal lahir tidak boleh di masa depan.',
         ]);
@@ -55,12 +56,13 @@ class BabyController extends Controller
         }
 
         $validated = $request->validate([
-            'name'       => ['sometimes', 'required', 'string', 'max:255'],
+            'name'       => ['sometimes', 'required', 'string', 'max:255', 'regex:/^[a-zA-Z\s\'\.\-]+$/'],
             'birth_date' => ['sometimes', 'required', 'date', 'before_or_equal:today'],
             'notes'      => ['nullable', 'string', 'max:1000'],
         ], [
             'name.required'              => 'Nama si Kecil wajib diisi.',
             'name.max'                   => 'Nama si Kecil maksimal 255 karakter.',
+            'name.regex'                 => 'Nama si Kecil hanya boleh berisi huruf dan spasi (tidak boleh angka).',
             'birth_date.required'        => 'Tanggal lahir si Kecil wajib diisi.',
             'birth_date.before_or_equal' => 'Tanggal lahir tidak boleh di masa depan.',
         ]);

@@ -64,15 +64,20 @@ export default function CustomerDashboard() {
 
   const handleCreateBaby = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!babyForm.name || !babyForm.birthDate) {
+    const cleanName = babyForm.name.trim();
+    if (!cleanName || !babyForm.birthDate) {
       toast.error("Nama dan tanggal lahir anak wajib diisi.");
+      return;
+    }
+    if (!/^[a-zA-Z\s'.-]+$/.test(cleanName) || !/[a-zA-Z]/.test(cleanName)) {
+      toast.error("Nama anak hanya boleh berisi huruf (tidak boleh angka).");
       return;
     }
 
     setIsCreatingBaby(true);
     try {
       await createBaby({
-        name: babyForm.name,
+        name: cleanName,
         birth_date: babyForm.birthDate,
         notes: babyForm.notes || null,
       });
@@ -386,7 +391,9 @@ export default function CustomerDashboard() {
                     placeholder="Contoh: Kenzie"
                     className="input-glass w-full"
                     value={babyForm.name}
-                    onChange={(e) => setBabyForm({ ...babyForm, name: e.target.value })}
+                    onChange={(e) =>
+                      setBabyForm({ ...babyForm, name: e.target.value.replace(/[^a-zA-Z\s'.-]/g, "") })
+                    }
                     required
                   />
                 </div>
