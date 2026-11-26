@@ -1,20 +1,21 @@
 import { useState } from "react";
-import { useNavigate } from "react-router";
-import { Baby, Mail, Lock, User as UserIcon, Phone, Loader2, Eye, EyeOff } from "lucide-react";
-import { motion } from "motion/react";
+import { Link, useNavigate } from "react-router";
+import { Loader2, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import type { LoginPayload, RegisterPayload } from "@/types/api.types";
+import BrandLogo from "@/app/components/BrandLogo";
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showPasswordConfirmation, setShowPasswordConfirmation] = useState(false);
-  const { login, register, user } = useAuth();
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [formError, setFormError] = useState<string | null>(null);
+  const { login, register } = useAuth();
   const navigate = useNavigate();
 
-  // Form state
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -24,28 +25,43 @@ export default function Auth() {
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+    if (fieldErrors[name]) {
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next[name];
+        return next;
+      });
+    }
+    if (formError) setFormError(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isLoading) return;
+    setFieldErrors({});
+    setFormError(null);
     setIsLoading(true);
 
     try {
       if (isLogin) {
         const payload: LoginPayload = { email: form.email, password: form.password };
         const loggedUser = await login(payload);
-        toast.success("Selamat datang kembali! 👋");
+        toast.success("Selamat datang kembali.");
         const destination = loggedUser?.role === "admin" ? "/admin" : "/dashboard";
         navigate(destination, { replace: true });
       } else {
         if (!form.phone_number.trim()) {
-          toast.error("Nomor WhatsApp / telepon wajib diisi.");
+          const msg = "Nomor WhatsApp / telepon wajib diisi.";
+          setFieldErrors({ phone_number: msg });
+          toast.error(msg);
           return;
         }
         if (form.password !== form.password_confirmation) {
-          toast.error("Konfirmasi kata sandi tidak cocok.");
+          const msg = "Konfirmasi kata sandi tidak cocok.";
+          setFieldErrors({ password_confirmation: msg });
+          toast.error(msg);
           return;
         }
         const payload: RegisterPayload = {
@@ -56,7 +72,7 @@ export default function Auth() {
           password_confirmation: form.password_confirmation,
         };
         const newUser = await register(payload);
-        toast.success("Pendaftaran berhasil! Selamat datang 🎉");
+        toast.success("Pendaftaran akun berhasil.");
         const destination = newUser?.role === "admin" ? "/admin" : "/dashboard";
         navigate(destination, { replace: true });
       }
@@ -88,9 +104,17 @@ export default function Auth() {
       };
 
       if (validationErrors && typeof validationErrors === "object") {
-        Object.values(validationErrors).flat().forEach((e) => toast.error(translateErrorMessage(e)));
+        const nextFieldErrors: Record<string, string> = {};
+        Object.entries(validationErrors).forEach(([field, messages]) => {
+          const translated = translateErrorMessage(messages[0] ?? msg);
+          nextFieldErrors[field] = translated;
+          messages.forEach((m) => toast.error(translateErrorMessage(m)));
+        });
+        setFieldErrors(nextFieldErrors);
       } else {
-        toast.error(translateErrorMessage(msg));
+        const translated = translateErrorMessage(msg);
+        setFormError(translated);
+        toast.error(translated);
       }
     } finally {
       setIsLoading(false);
@@ -101,157 +125,220 @@ export default function Auth() {
     setIsLogin((v) => !v);
     setShowPassword(false);
     setShowPasswordConfirmation(false);
+    setFieldErrors({});
+    setFormError(null);
     setForm({ name: "", email: "", phone_number: "", password: "", password_confirmation: "" });
   };
 
+  const inputClass = (hasError?: boolean) =>
+    `w-full h-[44px] px-3.5 rounded-[8px] bg-white text-[15px] text-[#4A2A1A] placeholder:text-[#6B5A52]/70 border transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-[#C94A83] focus:ring-offset-2 ${
+      hasError ? "border-[#B3261E]" : "border-black/20 focus:border-[#C94A83]"
+    }`;
+
   return (
-    <div className="min-h-screen flex items-center justify-center p-6 bg-[url('https://images.unsplash.com/photo-1583417657209-d3dd44dc9c09?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjBzcGElMjBpbnRlcmlvcnxlbnwxfHx8fDE3ODAzNzI0Nzh8MA&ixlib=rb-4.1.0&q=80&w=1080')] bg-cover bg-center relative">
-      <div className="absolute inset-0 bg-white/60 backdrop-blur-md" />
+    <div className="min-h-screen flex flex-col items-center justify-center bg-[#FAF6F2] px-4 py-8 sm:p-6 font-['DM_Sans',sans-serif]">
+      <div className="w-full max-w-[420px] mb-6 flex items-center justify-between gap-4">
+        <BrandLogo size="sm" />
+        <Link
+          to="/"
+          className="text-[14px] font-medium text-[#4A2A1A] underline decoration-[#D4568F] decoration-[1.5px] underline-offset-4 hover:text-[#C94A83] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2 rounded-sm shrink-0"
+        >
+          Ke beranda
+        </Link>
+      </div>
 
-      <motion.div
-        key={isLogin ? "login" : "register"}
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-        className="glass-panel w-full max-w-md p-8 relative z-10"
-      >
-        {/* Logo */}
-        <div className="flex items-center justify-center gap-2 mb-8">
-          <img
-            src="/logo.png"
-            alt="Mayesha Baby Spa Logo"
-            className="w-16 h-16 object-cover rounded-full shadow-md"
-          />
-        </div>
-
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h2 className="text-2xl font-bold text-slate-800">
-            {isLogin ? "Selamat Datang Kembali!" : "Yuk, Bikin Akun"}
-          </h2>
-          <p className="text-slate-500 text-sm mt-1">
+      <main className="w-full max-w-[420px] bg-white rounded-[12px] p-5 sm:p-8 sm:border sm:border-black/10">
+        <div className="mb-6">
+          <h1 className="font-['Playfair_Display',Georgia,serif] font-medium text-[32px] leading-[1.2] text-[#4A2A1A]">
+            {isLogin ? "Masuk" : "Daftar akun"}
+          </h1>
+          <p className="text-[15px] leading-[1.6] text-[#6B5A52] mt-2">
             {isLogin
-              ? "Masuk dulu buat atur jadwal si Kecil ya, Bun."
-              : "Daftar sebentar buat dapetin akses ke layanan seru Mayesha."}
+              ? "Masuk untuk melihat dan mengatur reservasi Bunda."
+              : "Lengkapi data berikut untuk membuat akun dan memesan layanan."}
           </p>
         </div>
 
-        {/* Form */}
+        {formError && (
+          <div
+            role="alert"
+            className="mb-4 p-3 rounded-[8px] bg-[#FFF5F5] border border-[#B3261E]/30 text-[13px] leading-[19px] text-[#B3261E]"
+          >
+            Periksa kembali: {formError}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {!isLogin && (
-            <div className="relative">
-              <UserIcon className="absolute left-4 top-3.5 text-slate-400" size={18} />
+            <div>
+              <label htmlFor="auth-name" className="block text-[14px] font-medium text-[#4A2A1A] mb-1.5">
+                Nama lengkap
+              </label>
               <input
+                id="auth-name"
                 name="name"
                 type="text"
-                placeholder="Nama Bunda / Ayah"
-                className="input-glass pl-11"
+                autoComplete="name"
+                placeholder="Nama lengkap Bunda atau Ayah"
+                className={inputClass(Boolean(fieldErrors.name))}
                 value={form.name}
                 onChange={handleChange}
+                aria-invalid={Boolean(fieldErrors.name)}
+                aria-describedby={fieldErrors.name ? "auth-name-error" : undefined}
                 required
               />
+              {fieldErrors.name && (
+                <p id="auth-name-error" role="alert" className="mt-1.5 text-[13px] leading-[18px] text-[#B3261E]">
+                  Kesalahan: {fieldErrors.name}
+                </p>
+              )}
             </div>
           )}
 
-          <div className="relative">
-            <Mail className="absolute left-4 top-3.5 text-slate-400" size={18} />
+          <div>
+            <label htmlFor="auth-email" className="block text-[14px] font-medium text-[#4A2A1A] mb-1.5">
+              Alamat email
+            </label>
             <input
+              id="auth-email"
               name="email"
               type="email"
-              placeholder="Alamat Email"
-              className="input-glass pl-11"
+              autoComplete="email"
+              placeholder="nama@email.com"
+              className={inputClass(Boolean(fieldErrors.email))}
               value={form.email}
               onChange={handleChange}
+              aria-invalid={Boolean(fieldErrors.email)}
+              aria-describedby={fieldErrors.email ? "auth-email-error" : undefined}
               required
             />
+            {fieldErrors.email && (
+              <p id="auth-email-error" role="alert" className="mt-1.5 text-[13px] leading-[18px] text-[#B3261E]">
+                Kesalahan: {fieldErrors.email}
+              </p>
+            )}
           </div>
 
           {!isLogin && (
-            <div className="relative">
-              <Phone className="absolute left-4 top-3.5 text-slate-400" size={18} />
+            <div>
+              <label htmlFor="auth-phone" className="block text-[14px] font-medium text-[#4A2A1A] mb-1.5">
+                Nomor WhatsApp
+              </label>
               <input
+                id="auth-phone"
                 name="phone_number"
                 type="tel"
-                placeholder="Nomor WhatsApp / HP (Wajib)"
-                className="input-glass pl-11"
+                autoComplete="tel"
+                placeholder="08xxxxxxxxxx"
+                className={`${inputClass(Boolean(fieldErrors.phone_number))} tabular-nums`}
                 value={form.phone_number}
                 onChange={handleChange}
+                aria-invalid={Boolean(fieldErrors.phone_number)}
+                aria-describedby={fieldErrors.phone_number ? "auth-phone-error" : undefined}
                 required
               />
+              {fieldErrors.phone_number && (
+                <p id="auth-phone-error" role="alert" className="mt-1.5 text-[13px] leading-[18px] text-[#B3261E]">
+                  Kesalahan: {fieldErrors.phone_number}
+                </p>
+              )}
             </div>
           )}
 
-          <div className="relative">
-            <Lock className="absolute left-4 top-3.5 text-slate-400" size={18} />
-            <input
-              name="password"
-              type={showPassword ? "text" : "password"}
-              placeholder="Kata Sandi"
-              className="input-glass pl-11 pr-11"
-              value={form.password}
-              onChange={handleChange}
-              required
-              minLength={8}
-            />
-            <button
-              type="button"
-              tabIndex={-1}
-              onClick={() => setShowPassword((prev) => !prev)}
-              className="absolute right-3.5 top-3 text-slate-400 hover:text-pink-500 transition-colors cursor-pointer p-0.5"
-              title={showPassword ? "Sembunyikan kata sandi" : "Tampilkan kata sandi"}
-              aria-label={showPassword ? "Sembunyikan kata sandi" : "Tampilkan kata sandi"}
-            >
-              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-            </button>
-          </div>
-
-          {!isLogin && (
+          <div>
+            <label htmlFor="auth-password" className="block text-[14px] font-medium text-[#4A2A1A] mb-1.5">
+              Kata sandi
+            </label>
             <div className="relative">
-              <Lock className="absolute left-4 top-3.5 text-slate-400" size={18} />
               <input
-                name="password_confirmation"
-                type={showPasswordConfirmation ? "text" : "password"}
-                placeholder="Konfirmasi Kata Sandi"
-                className="input-glass pl-11 pr-11"
-                value={form.password_confirmation}
+                id="auth-password"
+                name="password"
+                type={showPassword ? "text" : "password"}
+                autoComplete={isLogin ? "current-password" : "new-password"}
+                placeholder="Minimal 8 karakter"
+                className={`${inputClass(Boolean(fieldErrors.password))} pr-11`}
+                value={form.password}
                 onChange={handleChange}
+                aria-invalid={Boolean(fieldErrors.password)}
+                aria-describedby={fieldErrors.password ? "auth-password-error" : undefined}
                 required
+                minLength={8}
               />
               <button
                 type="button"
-                tabIndex={-1}
-                onClick={() => setShowPasswordConfirmation((prev) => !prev)}
-                className="absolute right-3.5 top-3 text-slate-400 hover:text-pink-500 transition-colors cursor-pointer p-0.5"
-                title={showPasswordConfirmation ? "Sembunyikan konfirmasi kata sandi" : "Tampilkan konfirmasi kata sandi"}
-                aria-label={showPasswordConfirmation ? "Sembunyikan konfirmasi kata sandi" : "Tampilkan konfirmasi kata sandi"}
+                onClick={() => setShowPassword((prev) => !prev)}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#6B5A52] hover:text-[#4A2A1A] transition-colors duration-150 cursor-pointer p-1.5 rounded-[6px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83]"
+                title={showPassword ? "Sembunyikan kata sandi" : "Tampilkan kata sandi"}
+                aria-label={showPassword ? "Sembunyikan kata sandi" : "Tampilkan kata sandi"}
               >
-                {showPasswordConfirmation ? <EyeOff size={18} /> : <Eye size={18} />}
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
+            </div>
+            {fieldErrors.password && (
+              <p id="auth-password-error" role="alert" className="mt-1.5 text-[13px] leading-[18px] text-[#B3261E]">
+                Kesalahan: {fieldErrors.password}
+              </p>
+            )}
+          </div>
+
+          {!isLogin && (
+            <div>
+              <label htmlFor="auth-password-confirmation" className="block text-[14px] font-medium text-[#4A2A1A] mb-1.5">
+                Konfirmasi kata sandi
+              </label>
+              <div className="relative">
+                <input
+                  id="auth-password-confirmation"
+                  name="password_confirmation"
+                  type={showPasswordConfirmation ? "text" : "password"}
+                  autoComplete="new-password"
+                  placeholder="Ulangi kata sandi"
+                  className={`${inputClass(Boolean(fieldErrors.password_confirmation))} pr-11`}
+                  value={form.password_confirmation}
+                  onChange={handleChange}
+                  aria-invalid={Boolean(fieldErrors.password_confirmation)}
+                  aria-describedby={fieldErrors.password_confirmation ? "auth-password-confirmation-error" : undefined}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPasswordConfirmation((prev) => !prev)}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#6B5A52] hover:text-[#4A2A1A] transition-colors duration-150 cursor-pointer p-1.5 rounded-[6px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83]"
+                  title={showPasswordConfirmation ? "Sembunyikan konfirmasi kata sandi" : "Tampilkan konfirmasi kata sandi"}
+                  aria-label={showPasswordConfirmation ? "Sembunyikan konfirmasi kata sandi" : "Tampilkan konfirmasi kata sandi"}
+                >
+                  {showPasswordConfirmation ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+              {fieldErrors.password_confirmation && (
+                <p id="auth-password-confirmation-error" role="alert" className="mt-1.5 text-[13px] leading-[18px] text-[#B3261E]">
+                  Kesalahan: {fieldErrors.password_confirmation}
+                </p>
+              )}
             </div>
           )}
 
           <button
             type="submit"
             disabled={isLoading}
-            className="btn-primary w-full mt-2 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+            className="w-full h-[44px] mt-2 inline-flex items-center justify-center gap-2 rounded-[8px] bg-[#C94A83] hover:bg-[#B73F73] text-white text-[15px] font-medium transition-colors duration-150 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2"
           >
-            {isLoading && <Loader2 size={18} className="animate-spin" />}
-            {isLogin ? "Masuk Sekarang" : "Daftar Akun"}
+            {isLoading && <Loader2 size={16} className="animate-spin" aria-hidden="true" />}
+            {isLoading ? "Memproses..." : isLogin ? "Masuk" : "Daftar akun"}
           </button>
         </form>
 
-        {/* Switch mode */}
-        <div className="mt-6 text-center text-sm text-slate-500">
-          {isLogin ? "Belum punya akun? " : "Udah punya akun? "}
+        <div className="mt-6 pt-5 border-t border-black/10 text-center text-[14px] text-[#6B5A52]">
+          {isLogin ? "Belum punya akun? " : "Sudah punya akun? "}
           <button
             type="button"
             onClick={switchMode}
-            className="text-pink-500 font-semibold hover:underline"
+            className="text-[14px] font-medium text-[#4A2A1A] underline decoration-[#D4568F] decoration-[1.5px] underline-offset-4 hover:text-[#C94A83] transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2 rounded-sm"
           >
-            {isLogin ? "Daftar di sini" : "Masuk"}
+            {isLogin ? "Daftar" : "Masuk"}
           </button>
         </div>
-      </motion.div>
+      </main>
     </div>
   );
 }

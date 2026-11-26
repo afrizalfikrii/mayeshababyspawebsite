@@ -15,22 +15,25 @@ import {
 
 function RootErrorBoundary() {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center bg-slate-50">
-      <div className="w-16 h-16 bg-pink-100 text-pink-500 rounded-full flex items-center justify-center mb-4 text-2xl font-bold shadow-sm">
-        🌸
+    <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center bg-[var(--bg)]">
+      <div className="card-surface max-w-md w-full p-8">
+        <span className="overline-label block mb-2">MAYESHA BABY SPA</span>
+        <h2 className="text-[26px] leading-[34px] font-editorial text-[var(--text)] mb-2">
+          Memperbarui Halaman
+        </h2>
+        <p className="text-[var(--text-muted)] text-[14px] leading-[22px] mb-6">
+          Sistem sedang memperbarui sesi Anda. Apabila halaman belum terbuka secara otomatis, silakan gunakan tombol di bawah ini.
+        </p>
+        <button
+          type="button"
+          onClick={() => {
+            window.location.href = "/dashboard";
+          }}
+          className="btn-primary w-full"
+        >
+          Buka Akun Saya
+        </button>
       </div>
-      <h2 className="text-xl font-bold text-slate-800 mb-2">Sedang Memuat Halaman</h2>
-      <p className="text-slate-500 text-sm max-w-md mb-6 leading-relaxed">
-        Sistem sedang memperbarui sesi Anda. Jika halaman belum terbuka otomatis, silakan klik tombol di bawah.
-      </p>
-      <button
-        onClick={() => {
-          window.location.href = "/dashboard";
-        }}
-        className="px-6 py-2.5 bg-pink-500 hover:bg-pink-600 text-white font-semibold rounded-full shadow-md transition-all cursor-pointer"
-      >
-        Lanjut ke Dashboard
-      </button>
     </div>
   );
 }

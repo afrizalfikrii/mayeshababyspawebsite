@@ -1,79 +1,40 @@
 import { Link } from "react-router";
-import { CheckCircle2, Calendar, ArrowRight } from "lucide-react";
-import { motion } from "motion/react";
-import confetti from "canvas-confetti";
-import { useEffect } from "react";
 
 export default function PaymentSuccess() {
-  useEffect(() => {
-    confetti({
-      particleCount: 100,
-      spread: 70,
-      origin: { y: 0.6 },
-      colors: ['#F472B6', '#FBCFE8', '#38BDF8', '#60A5FA']
-    });
-  }, []);
-
   return (
-    <div className="min-h-[80vh] flex flex-col items-center justify-center p-6 text-center">
-      <motion.div 
-        initial={{ scale: 0.8, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ type: "spring", bounce: 0.5 }}
-        className="w-24 h-24 bg-green-100 text-green-500 rounded-full flex items-center justify-center mb-6"
-      >
-        <CheckCircle2 size={48} />
-      </motion.div>
-      
-      <motion.h1 
-        initial={{ y: 20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.2 }}
-        className="text-3xl font-bold text-slate-800 mb-2"
-      >
-        Hore! Pembayaran Berhasil!
-      </motion.h1>
-      
-      <motion.p 
-        initial={{ y: 20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.3 }}
-        className="text-slate-500 max-w-md mx-auto mb-8"
-      >
-        Makasih Bunda! Booking sesi untuk si Kecil udah terkonfirmasi. Terapis kami nggak sabar buat main bareng!
-      </motion.p>
+    <div className="min-h-[75vh] flex flex-col items-center justify-center p-6">
+      <div className="card-surface max-w-md w-full p-8">
+        <span className="text-[13px] font-semibold text-[var(--accent)] block mb-3">
+          Dikonfirmasi
+        </span>
 
-      <motion.div 
-        initial={{ y: 20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.4 }}
-        className="glass-panel p-6 max-w-md w-full mb-8 text-left"
-      >
-        <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-3">
-          <span className="text-slate-500">ID Sesi</span>
-          <span className="font-bold text-slate-800">R-10293</span>
-        </div>
-        <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-3">
-          <span className="text-slate-500">Total Harga</span>
-          <span className="font-bold text-pink-500">Rp 120.000</span>
-        </div>
-        <div className="flex items-center justify-between">
-          <span className="text-slate-500">Jadwal</span>
-          <span className="font-medium text-slate-800 flex items-center gap-1">
-            <Calendar size={14} className="text-pink-500" /> 15 Jun 2026
-          </span>
-        </div>
-      </motion.div>
+        <h1 className="text-[30px] leading-[38px] font-editorial text-[var(--text)] mb-2">
+          Pembayaran Diterima
+        </h1>
 
-      <motion.div
-        initial={{ y: 20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.5 }}
-      >
-        <Link to="/dashboard" className="btn-primary flex items-center gap-2 inline-flex">
-          Kembali ke Ruang Bunda <ArrowRight size={18} />
+        <p className="text-[15px] leading-[24px] text-[var(--text-muted)] mb-6">
+          Reservasi sesi perawatan telah tercatat. Silakan datang ke studio atau menunggu kedatangan terapis sesuai jadwal yang dipilih.
+        </p>
+
+        <div className="border-t border-b border-[var(--border)] divide-y divide-[var(--border)] mb-6 text-[14px]">
+          <div className="py-3 flex items-center justify-between">
+            <span className="text-[var(--text-muted)]">Kode Reservasi</span>
+            <span className="booking-code font-medium text-[var(--text)]">R-10293</span>
+          </div>
+          <div className="py-3 flex items-center justify-between">
+            <span className="text-[var(--text-muted)]">Total Pembayaran</span>
+            <span className="font-semibold text-[var(--accent)] tabular-nums">Rp 120.000</span>
+          </div>
+          <div className="py-3 flex items-center justify-between">
+            <span className="text-[var(--text-muted)]">Jadwal Sesi</span>
+            <span className="font-medium text-[var(--text)] tabular-nums">15 Jun 2026</span>
+          </div>
+        </div>
+
+        <Link to="/dashboard" className="btn-primary w-full">
+          Buka Akun Saya
         </Link>
-      </motion.div>
+      </div>
     </div>
   );
 }

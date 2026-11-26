@@ -1,165 +1,103 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
-import { Heart, TrendingUp, Clock, ChevronRight, Loader2, Star, Zap } from "lucide-react";
-import { motion, AnimatePresence } from "motion/react";
+import { Loader2 } from "lucide-react";
 import { getRecommendations } from "@/services/service.service";
 import type { Service } from "@/types/api.types";
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-const CATEGORY_LABEL: Record<string, string> = {
-  baby_and_kids: "Baby & Kids",
-  baby_kids_treatment: "Treatment Bayi",
-  mom_treatment: "Mom Treatment",
-};
-
-const CATEGORY_COLOR: Record<string, { bg: string; text: string; dot: string }> = {
-  baby_and_kids: {
-    bg: "bg-pink-50 border-pink-100",
-    text: "text-pink-600",
-    dot: "bg-pink-400",
-  },
-  baby_kids_treatment: {
-    bg: "bg-purple-50 border-purple-100",
-    text: "text-purple-600",
-    dot: "bg-purple-400",
-  },
-  mom_treatment: {
-    bg: "bg-rose-50 border-rose-100",
-    text: "text-rose-600",
-    dot: "bg-rose-400",
-  },
-};
-
-function formatAge(minMonths: number | null, maxMonths: number | null): string {
-  if (minMonths === null) return "Semua usia";
-  if (maxMonths === null) return "Dewasa";
-
-  const toYearsLabel = (months: number) => {
-    if (months < 12) return `${months} bln`;
-    const years = Math.floor(months / 12);
-    const rem = months % 12;
-    return rem === 0 ? `${years} thn` : `${years} thn ${rem} bln`;
-  };
-
-  return `${toYearsLabel(minMonths)} – ${toYearsLabel(maxMonths)}`;
+function getServiceSegment(service: Service): "Bayi" | "Anak" | "Ibu" {
+  if (service.category === "mom_treatment" || (service.age_min_months !== null && service.age_min_months >= 216)) {
+    return "Ibu";
+  }
+  if (
+    (service.age_min_months !== null && service.age_min_months >= 13) ||
+    /kids|anak|1-3th|3-4th/i.test(service.name)
+  ) {
+    return "Anak";
+  }
+  return "Bayi";
 }
 
-// ─── Sub-component: single recommendation card ────────────────────────────────
+function formatAge(minMonths: number | null, maxMonths: number | null): string {
+  if (minMonths === null) return "0–5 tahun";
+  if (maxMonths === null) return "Ibu / dewasa";
+
+  const toYearsLabel = (months: number) => {
+    if (months === 0) return "0 bulan";
+    if (months < 12) return `${months} bulan`;
+    const years = Math.floor(months / 12);
+    const rem = months % 12;
+    return rem === 0 ? `${years} tahun` : `${years} thn ${rem} bln`;
+  };
+
+  return `${toYearsLabel(minMonths)}–${toYearsLabel(maxMonths)}`;
+}
 
 function RecommendationCard({
   service,
-  index,
   isColdStart,
 }: {
   service: Service;
-  index: number;
   isColdStart: boolean;
 }) {
-  const catStyle =
-    CATEGORY_COLOR[service.category ?? "baby_and_kids"] ?? CATEGORY_COLOR.baby_and_kids;
-
+  const segment = getServiceSegment(service);
+  const ageRange = formatAge(service.age_min_months, service.age_max_months);
   const similarityPct =
-    service.similarity_score !== null
+    service.similarity_score !== null && service.similarity_score !== undefined
       ? Math.round(service.similarity_score * 100)
       : null;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.06, duration: 0.35, ease: "easeOut" }}
-      className="glass-card p-4 flex flex-col justify-between group hover:shadow-lg hover:border-pink-200 transition-all duration-300"
-    >
+    <article className="relative bg-white border border-black/10 rounded-[12px] p-5 md:p-6 flex flex-col justify-between h-full hover:border-[#D4568F] focus-within:ring-2 focus-within:ring-[#C94A83] focus-within:ring-offset-2 transition-colors duration-150">
       <div>
-        {/* Header: kategori badge + match score */}
-        <div className="flex items-center justify-between gap-1.5 mb-2.5">
-          <span
-            className={`inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border whitespace-nowrap overflow-hidden text-ellipsis max-w-[60%] ${catStyle.bg} ${catStyle.text}`}
-          >
-            <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${catStyle.dot}`} />
-            <span className="truncate">
-              {CATEGORY_LABEL[service.category ?? "baby_and_kids"] ?? service.category}
-            </span>
-          </span>
-
-          {/* Match score badge */}
+        <div className="flex items-center justify-between gap-2 text-[13px] leading-[18px] text-[#6B5A52] tabular-nums mb-2.5">
+          <span className="font-medium text-[#6B5A52]">{segment}</span>
           {!isColdStart && similarityPct !== null ? (
-            <span className="inline-flex items-center gap-1 text-[10px] font-extrabold text-pink-600 bg-pink-100/70 border border-pink-200/80 px-2.5 py-1 rounded-full whitespace-nowrap shadow-xs">
-              <Zap size={10} className="fill-pink-500 text-pink-500" />
-              {similarityPct}% cocok
+            <span className="font-medium text-[#2F6B45] whitespace-nowrap">
+              {similarityPct}% sesuai riwayat
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-600 bg-amber-50 border border-amber-200/60 px-2.5 py-1 rounded-full whitespace-nowrap">
-              <TrendingUp size={10} />
-              Populer
-            </span>
+            <span>Usia {ageRange}</span>
           )}
         </div>
 
-        {/* Nama & Deskripsi */}
-        <h4
+        <h3
           title={service.name}
-          className="font-bold text-slate-800 text-sm leading-tight group-hover:text-pink-600 transition-colors line-clamp-1"
+          className="text-[18px] leading-[25px] font-semibold text-[#4A2A1A]"
         >
           {service.name}
-        </h4>
-        <p className="text-xs text-slate-500 mt-1 line-clamp-2 leading-relaxed min-h-[2.25rem]">
+        </h3>
+
+        <p className="text-[14px] leading-[22px] text-[#6B5A52] mt-2 line-clamp-2">
           {service.description}
         </p>
 
-        {/* Match progress bar */}
         {!isColdStart && similarityPct !== null && (
-          <div className="mt-2.5 mb-1">
-            <div className="flex items-center justify-between text-[10px] text-slate-400 font-medium mb-1">
-              <span>Tingkat kecocokan</span>
-              <span className="font-semibold text-pink-600">{similarityPct}%</span>
-            </div>
-            <div className="w-full h-1.5 bg-pink-50 rounded-full overflow-hidden border border-pink-100/50">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${similarityPct}%` }}
-                transition={{ delay: index * 0.06 + 0.2, duration: 0.5, ease: "easeOut" }}
-                className="h-full rounded-full bg-gradient-to-r from-pink-400 to-rose-400"
-              />
-            </div>
-          </div>
+          <p className="text-[13px] leading-[18px] text-[#6B5A52] mt-2 tabular-nums">
+            Usia {ageRange}
+          </p>
         )}
       </div>
 
-      {/* Footer info: durasi, usia & harga */}
-      <div className="mt-3 pt-3 border-t border-slate-100/80 flex flex-col gap-2">
-        <div className="flex items-center justify-between text-[11px] text-slate-500 font-medium">
-          <span className="flex items-center gap-1 text-slate-400">
-            <Clock size={11} className="text-pink-400" />
-            {service.duration_minutes} menit
-          </span>
-          <span className="bg-slate-50 border border-slate-100 px-2 py-0.5 rounded-md text-[10px] text-slate-600">
-            {formatAge(service.age_min_months, service.age_max_months)}
-          </span>
-        </div>
+      <div className="pt-4 mt-6 border-t border-black/10 flex items-center justify-between gap-3">
+        <span className="text-[13px] md:text-[14px] leading-[20px] text-[#6B5A52] tabular-nums">
+          {service.duration_minutes} menit
+        </span>
 
-        <div className="flex items-baseline justify-between pt-0.5">
-          <span className="text-[11px] font-medium text-slate-400">Harga</span>
-          <span className="text-sm font-extrabold text-slate-900 group-hover:text-pink-600 transition-colors">
+        <div className="flex items-center gap-3.5">
+          <span className="text-[18px] leading-[24px] font-medium text-[#4A2A1A] tabular-nums">
             Rp {Number(service.price ?? 0).toLocaleString("id-ID")}
           </span>
+          <Link
+            to={`/reservasi?service_id=${service.id}`}
+            className="relative z-10 inline-flex items-center justify-center border border-[#C94A83] text-[#C94A83] text-[13px] md:text-[14px] font-medium rounded-[8px] px-[14px] py-[6px] hover:bg-[#C94A83] hover:text-white transition-colors duration-150 after:absolute after:inset-0 after:rounded-[12px] focus:outline-none"
+          >
+            Reservasi
+          </Link>
         </div>
-
-        {/* CTA Button */}
-        <Link
-          to={`/reservasi?service_id=${service.id}`}
-          className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl bg-pink-50 hover:bg-pink-500 border border-pink-100 hover:border-pink-500 text-pink-600 hover:text-white text-xs font-bold transition-all duration-200 group/btn shadow-xs mt-1"
-        >
-          Pesan Sekarang
-          <ChevronRight size={14} className="group-hover/btn:translate-x-0.5 transition-transform" />
-        </Link>
       </div>
-    </motion.div>
+    </article>
   );
 }
-
-// ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function RecommendationSection() {
   const [recommendations, setRecommendations] = useState<Service[]>([]);
@@ -178,7 +116,7 @@ export default function RecommendationSection() {
         setColdStartType(res.cold_start_type ?? null);
       })
       .catch(() => {
-        // Soft fail — section just won't render
+        // Soft fail
       })
       .finally(() => {
         if (!cancelled) setIsLoading(false);
@@ -189,80 +127,50 @@ export default function RecommendationSection() {
     };
   }, []);
 
-  // Jangan tampilkan section jika gagal atau tidak ada data
   if (!isLoading && recommendations.length === 0) return null;
 
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: "easeOut" }}
-      className="glass-panel p-6 mb-6"
-    >
-      {/* Section header */}
-      <div className="flex items-start justify-between mb-5 gap-3">
-        <div>
-          <div className="flex items-center gap-2.5 mb-1">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-pink-500 to-rose-400 flex items-center justify-center shadow-md shadow-pink-200">
-              <Heart size={16} className="text-white fill-white" />
-            </div>
-            <h2 className="text-lg font-bold text-slate-800 tracking-tight">
-              {isColdStart ? "Layanan Terpopuler" : "Rekomendasi untuk Bunda"}
-            </h2>
-          </div>
-          <p className="text-xs text-slate-500 pl-10 leading-relaxed max-w-md">
-            {!isColdStart
-              ? "Dipilihkan khusus berdasarkan riwayat perawatan & favorit si kecil."
-              : coldStartType === "age_based"
-                ? "Layanan terpopuler yang sesuai untuk usia si Kecil."
-                : "Temukan layanan favorit yang paling banyak dipesan oleh Bunda lainnya."}
-          </p>
-        </div>
+  const sectionTitle = !isColdStart
+    ? "Rekomendasi sesuai riwayat"
+    : coldStartType === "age_based"
+      ? "Rekomendasi sesuai usia"
+      : "Layanan terpopuler";
 
-        {/* Top badge */}
-        <div className="hidden sm:flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider text-pink-600 bg-pink-50/80 border border-pink-100 px-3 py-1.5 rounded-full whitespace-nowrap self-start shadow-xs">
-          <Star size={11} className="fill-pink-400 text-pink-400" />
-          {!isColdStart
-            ? "Spesial Untuk Bunda"
-            : coldStartType === "age_based"
-              ? "Sesuai Usia Si Kecil"
-              : "Favorit Bunda"}
-        </div>
+  const sectionDesc = !isColdStart
+    ? "Dihitung berdasarkan kemiripan kategori, rentang usia, dan riwayat perawatan sebelumnya."
+    : coldStartType === "age_based"
+      ? "Disaring berdasarkan rentang usia profil anak yang terdaftar."
+      : "Daftar layanan yang sering dipilih oleh pelanggan Mayesha Baby Spa.";
+
+  return (
+    <section aria-labelledby="rekomendasi-heading">
+      <div className="mb-6">
+        <h2
+          id="rekomendasi-heading"
+          className="font-['DM_Sans',sans-serif] text-[22px] leading-[30px] font-medium text-[#4A2A1A]"
+        >
+          {sectionTitle}
+        </h2>
+        <p className="text-[15px] leading-[24px] text-[#6B5A52] mt-1">
+          {sectionDesc}
+        </p>
       </div>
 
-      {/* Content */}
-      <AnimatePresence mode="wait">
-        {isLoading ? (
-          <motion.div
-            key="loading"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="flex flex-col items-center justify-center py-14 gap-3"
-          >
-            <Loader2 size={28} className="animate-spin text-pink-400" />
-            <p className="text-sm text-slate-400 font-medium">
-              Menyiapkan rekomendasi perawatan terbaik untuk Bunda...
-            </p>
-          </motion.div>
-        ) : (
-          <motion.div
-            key="cards"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="grid grid-cols-1 md:grid-cols-3 gap-5"
-          >
-            {recommendations.map((service, i) => (
-              <RecommendationCard
-                key={service.id}
-                service={service}
-                index={i}
-                isColdStart={isColdStart}
-              />
-            ))}
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.div>
+      {isLoading ? (
+        <div className="bg-white border border-black/10 rounded-[12px] flex flex-col items-center justify-center py-12 gap-2.5">
+          <Loader2 size={22} className="animate-spin text-[#6B5A52]" aria-hidden="true" />
+          <p className="text-[14px] text-[#6B5A52]">Memuat rekomendasi layanan...</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6">
+          {recommendations.map((service) => (
+            <RecommendationCard
+              key={service.id}
+              service={service}
+              isColdStart={isColdStart}
+            />
+          ))}
+        </div>
+      )}
+    </section>
   );
 }
