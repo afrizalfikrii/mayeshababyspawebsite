@@ -1,13 +1,44 @@
 import { Outlet, Link, useLocation, useNavigate } from "react-router";
-import { Menu, X, MapPin, Phone, Instagram, MessageCircle, ChevronDown, User, LogOut } from "lucide-react";
+import {
+  Menu,
+  X,
+  MapPin,
+  Phone,
+  Instagram,
+  MessageCircle,
+  ChevronDown,
+  User,
+  LogOut,
+  ArrowLeft,
+  Home as HomeIcon,
+  LayoutGrid,
+  Calendar,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import BrandLogo from "./BrandLogo";
 
+const isTextEntryElement = (el: Element | null): boolean => {
+  if (!el || !(el instanceof HTMLElement)) return false;
+  if (el.isContentEditable) return true;
+  if (el.tagName === "TEXTAREA" || el.tagName === "SELECT") return true;
+  if (el.tagName === "INPUT") {
+    const type = (el as HTMLInputElement).type?.toLowerCase() ?? "text";
+    return !["checkbox", "radio", "button", "submit", "reset", "file", "hidden"].includes(type);
+  }
+  return false;
+};
+
 export default function AppShell() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isMobileViewport, setIsMobileViewport] = useState<boolean>(() =>
+    typeof window !== "undefined" ? window.matchMedia("(max-width: 767px)").matches : false
+  );
+  const [isInputFocused, setIsInputFocused] = useState(false);
+  const [isVisualKeyboardOpen, setIsVisualKeyboardOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const closeDrawerButtonRef = useRef<HTMLButtonElement>(null);
@@ -19,6 +50,28 @@ export default function AppShell() {
   const isAuthPage = location.pathname === "/auth";
   const isAdmin = user?.role === "admin";
   const isAdminRoute = location.pathname.startsWith("/admin");
+  const isBookingRoute = location.pathname === "/reservasi";
+  const isPaymentSuccessRoute = location.pathname === "/pembayaran-sukses";
+  const isBookingDetailRoute = location.pathname.startsWith("/dashboard/reservasi/");
+  const isSubFlowPage = !isAdminRoute && (isBookingRoute || isBookingDetailRoute || isPaymentSuccessRoute);
+
+  const subFlowTitle = isBookingRoute
+    ? "Reservasi sesi"
+    : isBookingDetailRoute
+      ? "Detail reservasi"
+      : isPaymentSuccessRoute
+        ? "Konfirmasi pembayaran"
+        : "";
+
+  const hasBottomNavOnRoute =
+    !isAdminRoute && !isAuthPage && !isBookingRoute && !isPaymentSuccessRoute;
+
+  const shouldRenderBottomNav =
+    isMobileViewport &&
+    hasBottomNavOnRoute &&
+    !isInputFocused &&
+    !isVisualKeyboardOpen &&
+    !isModalOpen;
 
   const displayName = (user?.name ?? "Akun").trim();
   const firstName = displayName.split(" ")[0] || "Akun";
@@ -26,7 +79,81 @@ export default function AppShell() {
   const portalPath = isAdmin ? "/admin" : "/dashboard";
   const portalLabel = isAdmin ? "Area admin" : "Ruang Bunda";
 
-  // Kunci scroll body, pindah fokus ke panel drawer, tutup dengan Esc, dan kembalikan fokus saat ditutup
+  // Pantau lebar viewport (< 768px) agar bottom nav tidak dirender sama sekali di >= 768px
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    const handleChange = () => setIsMobileViewport(mq.matches);
+    handleChange();
+    mq.addEventListener("change", handleChange);
+    return () => mq.removeEventListener("change", handleChange);
+  }, []);
+
+  // Sembunyikan bottom nav saat input/textarea/select fokus atau keyboard layar terbuka
+  useEffect(() => {
+    if (!isMobileViewport || !hasBottomNavOnRoute) {
+      setIsInputFocused(false);
+      setIsVisualKeyboardOpen(false);
+      return;
+    }
+
+    let blurTimer: number | null = null;
+
+    const handleFocusIn = (e: FocusEvent) => {
+      if (blurTimer !== null) {
+        window.clearTimeout(blurTimer);
+        blurTimer = null;
+      }
+      if (isTextEntryElement(e.target as Element | null)) {
+        setIsInputFocused(true);
+      }
+    };
+
+    const handleFocusOut = () => {
+      blurTimer = window.setTimeout(() => {
+        setIsInputFocused(isTextEntryElement(document.activeElement));
+      }, 60);
+    };
+
+    const vv = window.visualViewport;
+    const handleViewportResize = () => {
+      if (!vv) return;
+      setIsVisualKeyboardOpen(window.innerHeight - vv.height > 150);
+    };
+
+    document.addEventListener("focusin", handleFocusIn);
+    document.addEventListener("focusout", handleFocusOut);
+    vv?.addEventListener("resize", handleViewportResize);
+
+    return () => {
+      if (blurTimer !== null) window.clearTimeout(blurTimer);
+      document.removeEventListener("focusin", handleFocusIn);
+      document.removeEventListener("focusout", handleFocusOut);
+      vv?.removeEventListener("resize", handleViewportResize);
+    };
+  }, [isMobileViewport, hasBottomNavOnRoute]);
+
+  // Sembunyikan bottom nav saat ada modal/dialog terbuka
+  useEffect(() => {
+    if (!isMobileViewport || !hasBottomNavOnRoute) {
+      setIsModalOpen(false);
+      return;
+    }
+
+    const checkModals = () => {
+      const openDialog = document.querySelector(
+        '[role="dialog"], [role="alertdialog"], [aria-modal="true"]'
+      );
+      setIsModalOpen(Boolean(openDialog));
+    };
+
+    checkModals();
+    const observer = new MutationObserver(checkModals);
+    observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["role", "aria-modal"] });
+
+    return () => observer.disconnect();
+  }, [isMobileViewport, hasBottomNavOnRoute]);
+
+  // Kunci scroll body, pindah fokus ke panel drawer (area Admin mobile), tutup dengan Esc, kembalikan fokus
   useEffect(() => {
     if (isMenuOpen) {
       wasMenuOpenRef.current = true;
@@ -80,7 +207,7 @@ export default function AppShell() {
   const [activeSection, setActiveSection] = useState<"beranda" | "galeri" | "layanan" | "booking" | "other">("beranda");
   const isProgrammaticScrollRef = useRef(false);
 
-  // Scroll spy untuk memindahkan garis bawah menu sesuai posisi halaman
+  // Scroll spy untuk memindahkan indikator menu sesuai posisi halaman
   useEffect(() => {
     if (location.pathname !== "/") {
       if (location.pathname === "/reservasi") {
@@ -92,7 +219,6 @@ export default function AppShell() {
     }
 
     const handleScroll = () => {
-      // Jangan timpa jika sedang dalam proses smooth scroll akibat klik menu
       if (isProgrammaticScrollRef.current) return;
 
       const scrollY = window.scrollY;
@@ -116,21 +242,36 @@ export default function AppShell() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, [location.pathname]);
 
-  // Scroll otomatis hanya saat halaman pertama kali dimuat dengan hash URL
+  // Scroll otomatis saat halaman beranda dibuka dengan hash URL (#layanan / #galeri)
   useEffect(() => {
     if (location.pathname === "/" && location.hash) {
       const id = location.hash.replace("#", "");
+      if (id === "layanan") setActiveSection("layanan");
+      if (id === "galeri") setActiveSection("galeri");
       const el = document.getElementById(id);
       if (el) {
+        const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
         setTimeout(() => {
-          const headerOffset = 84;
+          const headerOffset = 80;
           const elementPosition = el.getBoundingClientRect().top;
           const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-          window.scrollTo({ top: offsetPosition, behavior: "smooth" });
-        }, 150);
+          window.scrollTo({ top: offsetPosition, behavior: prefersReduced ? "auto" : "smooth" });
+        }, 120);
       }
     }
-  }, []);
+  }, [location.pathname, location.hash]);
+
+  const handleSubFlowBack = () => {
+    if (isBookingDetailRoute || isPaymentSuccessRoute) {
+      navigate("/dashboard");
+      return;
+    }
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate("/");
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -208,24 +349,87 @@ export default function AppShell() {
         : "text-[#6B5A52] border-transparent hover:text-[#4A2A1A]"
     }`;
 
-  const isHomeActive = activeSection === "beranda";
-  const isGaleriActive = activeSection === "galeri";
-  const isLayananActive = activeSection === "layanan";
+  const isHomeActive = location.pathname === "/" && activeSection === "beranda";
+  const isGaleriActive = location.pathname === "/" && activeSection === "galeri";
+  const isLayananActive = location.pathname === "/" && activeSection === "layanan";
+  const isAccountActive =
+    isAuthenticated
+      ? location.pathname === portalPath || location.pathname.startsWith(`${portalPath}/`)
+      : location.pathname === "/auth";
 
   return (
-    <div className={`flex flex-col min-h-[100dvh] bg-[#FAF6F2] text-[#4A2A1A] ${isAdminRoute ? "admin-theme" : ""}`}>
+    <div
+      className={`flex flex-col min-h-[100dvh] bg-[#FAF6F2] text-[#4A2A1A] ${
+        isAdminRoute ? "admin-theme" : ""
+      } ${hasBottomNavOnRoute ? "pb-[calc(72px+env(safe-area-inset-bottom))] md:pb-0" : ""}`}
+    >
       {!isAuthPage && (
         <header className="sticky top-0 z-40 w-full border-b border-black/10 bg-[#FFFBF8] pt-[env(safe-area-inset-top)] print:hidden">
-          <div className="max-w-7xl mx-auto px-4 md:px-6 flex items-center justify-between gap-2 md:gap-6 h-16 md:h-[72px]">
-            {/* Brand */}
-            <div className="flex items-center gap-2 md:gap-3 min-w-0 shrink-0">
-              <BrandLogo hideTaglineOnMobile onClick={handleBerandaClick} />
-              {isAdminRoute && (
+          <div
+            className={`max-w-7xl mx-auto px-4 md:px-6 flex items-center justify-between gap-2 md:gap-6 ${
+              isAdminRoute ? "h-16 md:h-[72px]" : "h-[56px] md:h-[72px]"
+            }`}
+          >
+            {/* Brand / Mobile Customer Top Bar */}
+            {isAdminRoute ? (
+              <div className="flex items-center gap-2 md:gap-3 min-w-0 shrink-0">
+                <BrandLogo hideTaglineOnMobile onClick={handleBerandaClick} />
                 <span className="text-[13px] leading-[18px] font-normal text-[#6B5A52] pl-2.5 md:pl-3 border-l border-black/10 self-center whitespace-nowrap">
                   Admin
                 </span>
-              )}
-            </div>
+              </div>
+            ) : (
+              <>
+                {/* Bilah atas HP (< 768px): tombol kembali + judul pada sub-alur, atau hanya logo 32px + Mayesha */}
+                {isSubFlowPage ? (
+                  <div className="flex md:hidden items-center gap-2 min-w-0 flex-1">
+                    <button
+                      type="button"
+                      onClick={handleSubFlowBack}
+                      aria-label="Kembali"
+                      className="w-11 h-11 min-w-[44px] min-h-[44px] -ml-2 inline-flex items-center justify-center rounded-[8px] text-[#4A2A1A] hover:bg-[#FAF6F2] transition-colors duration-150 cursor-pointer shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83]"
+                    >
+                      <ArrowLeft size={20} aria-hidden="true" />
+                    </button>
+                    <span className="text-[16px] leading-[22px] font-medium text-[#4A2A1A] truncate">
+                      {subFlowTitle}
+                    </span>
+                  </div>
+                ) : (
+                  <Link
+                    to="/"
+                    onClick={handleBerandaClick}
+                    aria-label="Mayesha - ke beranda"
+                    className="md:hidden inline-flex items-center gap-2 min-h-[44px] rounded-[8px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2 select-none"
+                  >
+                    <img
+                      src="/logo-mayesha.png"
+                      alt="Mayesha Logo"
+                      width={32}
+                      height={32}
+                      className="w-8 h-8 shrink-0 object-contain"
+                      onError={(e) => {
+                        const target = e.currentTarget;
+                        if (!target.src.endsWith("/logo.png")) {
+                          target.src = "/logo.png";
+                        }
+                      }}
+                    />
+                    <span
+                      className="font-['Playfair_Display',Georgia,serif] font-medium italic text-[22px] leading-none text-[#D4568F]"
+                      style={{ letterSpacing: "-0.01em" }}
+                    >
+                      Mayesha
+                    </span>
+                  </Link>
+                )}
+
+                {/* Brand desktop (>= 768px) */}
+                <div className="hidden md:flex items-center gap-3 min-w-0 shrink-0">
+                  <BrandLogo onClick={handleBerandaClick} />
+                </div>
+              </>
+            )}
 
             {/* Center Links (>= 768px) */}
             {isAdminRoute ? (
@@ -342,44 +546,37 @@ export default function AppShell() {
               )}
             </div>
 
-            {/* Mobile Right Controls (< 768px): Tombol Reservasi (pelanggan) / avatar (admin) + Hamburger 44x44px */}
-            <div className="flex md:hidden items-center gap-2 shrink-0">
-              {!isAdminRoute && !isAdmin && (
-                <Link
-                  to="/reservasi"
-                  className="inline-flex items-center justify-center min-h-[44px] px-3.5 rounded-[8px] bg-[#C94A83] hover:bg-[#B73F73] text-white text-[14px] font-medium transition-colors duration-150 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2"
-                >
-                  Reservasi
-                </Link>
-              )}
+            {/* Mobile Right Controls (< 768px): KHUSUS AREA ADMIN (halaman pelanggan memakai Bottom Nav) */}
+            {isAdminRoute && (
+              <div className="flex md:hidden items-center gap-2 shrink-0">
+                {isAuthenticated && (
+                  <span
+                    aria-hidden="true"
+                    className="w-9 h-9 rounded-full bg-white border border-black/15 flex items-center justify-center text-[13px] font-semibold text-[#4A2A1A]"
+                  >
+                    {initial}
+                  </span>
+                )}
 
-              {isAdminRoute && isAuthenticated && (
-                <span
-                  aria-hidden="true"
-                  className="w-9 h-9 rounded-full bg-white border border-black/15 flex items-center justify-center text-[13px] font-semibold text-[#4A2A1A]"
+                <button
+                  ref={menuButtonRef}
+                  type="button"
+                  className="w-11 h-11 min-w-[44px] min-h-[44px] inline-flex items-center justify-center text-[#4A2A1A] hover:bg-[#FAF6F2] rounded-[8px] transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2"
+                  onClick={() => setIsMenuOpen((v) => !v)}
+                  aria-label={isMenuOpen ? "Tutup menu navigasi" : "Buka menu navigasi"}
+                  aria-expanded={isMenuOpen}
+                  aria-controls="mobile-nav-drawer"
                 >
-                  {initial}
-                </span>
-              )}
-
-              <button
-                ref={menuButtonRef}
-                type="button"
-                className="w-11 h-11 min-w-[44px] min-h-[44px] inline-flex items-center justify-center text-[#4A2A1A] hover:bg-[#FAF6F2] rounded-[8px] transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2"
-                onClick={() => setIsMenuOpen((v) => !v)}
-                aria-label={isMenuOpen ? "Tutup menu navigasi" : "Buka menu navigasi"}
-                aria-expanded={isMenuOpen}
-                aria-controls="mobile-nav-drawer"
-              >
-                {isMenuOpen ? <X size={22} aria-hidden="true" /> : <Menu size={22} aria-hidden="true" />}
-              </button>
-            </div>
+                  {isMenuOpen ? <X size={22} aria-hidden="true" /> : <Menu size={22} aria-hidden="true" />}
+                </button>
+              </div>
+            )}
           </div>
         </header>
       )}
 
-      {/* Mobile Full-Height Navigation Drawer (< 768px) */}
-      {!isAuthPage && isMenuOpen && (
+      {/* Mobile Full-Height Navigation Drawer (< 768px) — KHUSUS AREA ADMIN */}
+      {!isAuthPage && isAdminRoute && isMenuOpen && (
         <div
           id="mobile-nav-drawer"
           role="dialog"
@@ -677,6 +874,114 @@ export default function AppShell() {
             </div>
           </div>
         </footer>
+      )}
+
+      {/* Mobile Customer Bottom Navigation (< 768px, tidak dirender di >= 768px atau area Admin) */}
+      {shouldRenderBottomNav && (
+        <nav
+          aria-label="Menu utama"
+          className="md:hidden fixed bottom-0 left-0 right-0 z-30 w-full bg-[#FFFBF8] border-t border-[rgba(0,0,0,0.12)] pb-[env(safe-area-inset-bottom)] print:hidden"
+        >
+          <div className="grid grid-cols-4 h-[62px] w-full">
+            <Link
+              to="/"
+              onClick={handleBerandaClick}
+              aria-current={isHomeActive ? "page" : undefined}
+              className={`relative -mt-px flex flex-col items-center justify-center gap-1 min-h-[44px] w-full px-0.5 border-t-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-inset ${
+                isHomeActive
+                  ? "border-[#C94A83] text-[#4A2A1A]"
+                  : "border-transparent text-[#6B5A52]"
+              }`}
+            >
+              <HomeIcon
+                size={22}
+                strokeWidth={1.75}
+                aria-hidden="true"
+                className={isHomeActive ? "text-[#C94A83]" : "text-[#6B5A52]"}
+              />
+              <span
+                className={`text-[12px] leading-[15px] whitespace-nowrap ${
+                  isHomeActive ? "text-[#4A2A1A] font-medium" : "text-[#6B5A52] font-normal"
+                }`}
+              >
+                Beranda
+              </span>
+            </Link>
+
+            <Link
+              to="/#layanan"
+              onClick={handleMenuLayananClick}
+              aria-current={isLayananActive ? "page" : undefined}
+              className={`relative -mt-px flex flex-col items-center justify-center gap-1 min-h-[44px] w-full px-0.5 border-t-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-inset ${
+                isLayananActive
+                  ? "border-[#C94A83] text-[#4A2A1A]"
+                  : "border-transparent text-[#6B5A52]"
+              }`}
+            >
+              <LayoutGrid
+                size={22}
+                strokeWidth={1.75}
+                aria-hidden="true"
+                className={isLayananActive ? "text-[#C94A83]" : "text-[#6B5A52]"}
+              />
+              <span
+                className={`text-[12px] leading-[15px] whitespace-nowrap ${
+                  isLayananActive ? "text-[#4A2A1A] font-medium" : "text-[#6B5A52] font-normal"
+                }`}
+              >
+                Layanan
+              </span>
+            </Link>
+
+            <Link
+              to="/reservasi"
+              aria-current={isBookingRoute ? "page" : undefined}
+              className={`relative -mt-px flex flex-col items-center justify-center gap-1 min-h-[44px] w-full px-0.5 border-t-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-inset ${
+                isBookingRoute
+                  ? "border-[#C94A83] text-[#4A2A1A]"
+                  : "border-transparent text-[#6B5A52]"
+              }`}
+            >
+              <Calendar
+                size={22}
+                strokeWidth={1.75}
+                aria-hidden="true"
+                className={isBookingRoute ? "text-[#C94A83]" : "text-[#6B5A52]"}
+              />
+              <span
+                className={`text-[12px] leading-[15px] whitespace-nowrap ${
+                  isBookingRoute ? "text-[#4A2A1A] font-medium" : "text-[#6B5A52] font-normal"
+                }`}
+              >
+                Reservasi
+              </span>
+            </Link>
+
+            <Link
+              to={isAuthenticated ? portalPath : "/auth"}
+              aria-current={isAccountActive ? "page" : undefined}
+              className={`relative -mt-px flex flex-col items-center justify-center gap-1 min-h-[44px] w-full px-0.5 border-t-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-inset ${
+                isAccountActive
+                  ? "border-[#C94A83] text-[#4A2A1A]"
+                  : "border-transparent text-[#6B5A52]"
+              }`}
+            >
+              <User
+                size={22}
+                strokeWidth={1.75}
+                aria-hidden="true"
+                className={isAccountActive ? "text-[#C94A83]" : "text-[#6B5A52]"}
+              />
+              <span
+                className={`text-[12px] leading-[15px] whitespace-nowrap ${
+                  isAccountActive ? "text-[#4A2A1A] font-medium" : "text-[#6B5A52] font-normal"
+                }`}
+              >
+                {isAuthenticated ? portalLabel : "Masuk"}
+              </span>
+            </Link>
+          </div>
+        </nav>
       )}
     </div>
   );
