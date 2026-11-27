@@ -11,6 +11,7 @@ import {
   LogOut,
   KeyRound,
   ArrowLeft,
+  ArrowUpRight,
   Home as HomeIcon,
   LayoutGrid,
   Calendar,
@@ -378,7 +379,7 @@ export default function AppShell() {
               <div className="flex items-center gap-2 md:gap-3 min-w-0 shrink-0">
                 <BrandLogo hideTaglineOnMobile onClick={handleBerandaClick} />
                 <span className="text-[13px] leading-[18px] font-normal text-[#6B5A52] pl-2.5 md:pl-3 border-l border-black/10 self-center whitespace-nowrap">
-                  Admin
+                  Panel admin
                 </span>
               </div>
             ) : (
@@ -434,17 +435,8 @@ export default function AppShell() {
               </>
             )}
 
-            {/* Center Links (>= 768px) */}
-            {isAdminRoute ? (
-              <nav className="hidden md:flex items-center">
-                <Link
-                  to="/"
-                  className="inline-flex items-center min-h-[44px] text-[14px] font-medium text-[#4A2A1A] hover:text-[#C94A83] hover:underline decoration-[#D4568F] decoration-[1.5px] underline-offset-4 transition-colors duration-150 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2 rounded-sm"
-                >
-                  Lihat situs
-                </Link>
-              </nav>
-            ) : (
+            {/* Center Links (>= 768px) — hanya halaman pelanggan; di admin "Lihat situs" ada di kanan dekat menu pengguna */}
+            {!isAdminRoute && (
               <nav className="hidden md:flex items-center gap-6 lg:gap-7">
                 <Link to="/" onClick={handleBerandaClick} className={navLinkClass(isHomeActive)}>
                   Beranda
@@ -462,6 +454,15 @@ export default function AppShell() {
             <div className="hidden md:flex items-center gap-3 lg:gap-4 shrink-0">
               {isAuthenticated ? (
                 <>
+                  {isAdminRoute && (
+                    <Link
+                      to="/"
+                      className="inline-flex items-center gap-[6px] min-h-[44px] px-1 text-[14px] font-medium text-[#4A2A1A] hover:text-[#C94A83] hover:underline decoration-[#D4568F] decoration-[1.5px] underline-offset-4 transition-colors duration-150 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2 rounded-sm"
+                    >
+                      <span>Lihat situs</span>
+                      <ArrowUpRight size={14} aria-hidden="true" className="shrink-0" />
+                    </Link>
+                  )}
                   {!isAdmin && !isAdminRoute && (
                     <Link
                       to="/reservasi"
@@ -625,9 +626,10 @@ export default function AppShell() {
                 <Link
                   to="/"
                   onClick={() => setIsMenuOpen(false)}
-                  className="flex items-center min-h-[48px] px-3 rounded-[8px] text-[16px] text-[#4A2A1A] font-medium hover:bg-[#FAF6F2] transition-colors duration-150"
+                  className="flex items-center gap-[6px] min-h-[48px] px-3 rounded-[8px] text-[16px] text-[#4A2A1A] font-medium hover:bg-[#FAF6F2] transition-colors duration-150"
                 >
-                  Lihat situs
+                  <span>Lihat situs</span>
+                  <ArrowUpRight size={15} aria-hidden="true" className="shrink-0" />
                 </Link>
               ) : (
                 <>

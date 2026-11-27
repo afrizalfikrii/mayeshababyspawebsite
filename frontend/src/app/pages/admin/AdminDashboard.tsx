@@ -948,7 +948,7 @@ export default function AdminDashboard() {
             </p>
           </div>
 
-          <div className="flex items-center gap-2 w-full md:w-auto">
+          <div className="flex items-center gap-2 w-full md:w-auto shrink-0">
             <button
               type="button"
               onClick={() => {
@@ -969,11 +969,11 @@ export default function AdminDashboard() {
             </button>
 
             {activeMenu === "reservations" && (
-              <div className="relative flex-1 md:w-72 min-w-0">
+              <div className="relative flex-1 md:flex-none md:min-w-[280px] md:w-[280px] lg:w-[300px] min-w-0">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6B5A52]" size={16} aria-hidden="true" />
                 <input
                   type="text"
-                  placeholder="Cari kode, nama orang tua, anak..."
+                  placeholder="Cari reservasi"
                   className="w-full h-11 rounded-[8px] bg-white border border-black/20 pl-9 pr-11 text-[16px] text-[#4A2A1A] placeholder:text-[#6B5A52]/75 focus:outline-none focus:ring-2 focus:ring-[#C94A83] focus:ring-offset-2 focus:border-[#C94A83]"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -997,7 +997,7 @@ export default function AdminDashboard() {
         {/* 4 Equal White KPI Cards: 1 col <480px, 2 col >=480px, 4 col >=1024px */}
         {(activeMenu === "reservations" || activeMenu === "reports") && (
           <div className="grid grid-cols-1 min-[480px]:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4 mb-6 md:mb-8 items-stretch">
-          <div className="bg-white border border-black/10 rounded-[12px] p-4 sm:p-5 flex flex-col min-w-0">
+          <div className="bg-white border border-black/10 rounded-[12px] p-5 flex flex-col min-w-0">
             <span className="text-[13px] leading-[18px] font-normal text-[#6B5A52]">
               Pendapatan bulan ini
             </span>
@@ -1014,7 +1014,7 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          <div className="bg-white border border-black/10 rounded-[12px] p-4 sm:p-5 flex flex-col min-w-0">
+          <div className="bg-white border border-black/10 rounded-[12px] p-5 flex flex-col min-w-0">
             <span className="text-[13px] leading-[18px] font-normal text-[#6B5A52] tabular-nums">
               Pendapatan tahun {currentYearNum}
             </span>
@@ -1027,7 +1027,7 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          <div className="bg-white border border-black/10 rounded-[12px] p-4 sm:p-5 flex flex-col min-w-0">
+          <div className="bg-white border border-black/10 rounded-[12px] p-5 flex flex-col min-w-0">
             <span className="text-[13px] leading-[18px] font-normal text-[#6B5A52]">
               Transaksi per segmen
             </span>
@@ -1056,7 +1056,7 @@ export default function AdminDashboard() {
             </p>
           </div>
 
-          <div className="bg-white border border-black/10 rounded-[12px] p-4 sm:p-5 flex flex-col min-w-0">
+          <div className="bg-white border border-black/10 rounded-[12px] p-5 flex flex-col min-w-0">
             <span className="text-[13px] leading-[18px] font-normal text-[#6B5A52]">
               Operasional dan pelanggan
             </span>
@@ -1114,9 +1114,9 @@ export default function AdminDashboard() {
         {activeMenu === "reservations" && (
           <div className="flex flex-col gap-4 min-w-0">
             <div
-              role="tablist"
+              role="group"
               aria-label="Filter status reservasi"
-              className="flex items-center gap-5 overflow-x-auto overflow-y-hidden no-scrollbar border-b border-black/10"
+              className="flex items-center gap-1.5 overflow-x-auto md:overflow-visible md:flex-wrap overflow-y-hidden no-scrollbar py-0.5"
             >
               {[
                 { id: "all", label: "Semua", count: reservations.length },
@@ -1156,16 +1156,15 @@ export default function AdminDashboard() {
                   <button
                     key={f.id}
                     type="button"
-                    role="tab"
-                    aria-selected={isActive}
+                    aria-pressed={isActive}
                     onClick={(e) => {
                       setResFilter(f.id);
                       scrollTabIntoView(e.currentTarget);
                     }}
-                    className={`min-h-[44px] text-[14px] transition-colors duration-150 border-b-2 whitespace-nowrap inline-flex items-center gap-1.5 cursor-pointer shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-inset rounded-t-[4px] ${
+                    className={`min-h-[44px] md:min-h-0 px-3 py-1.5 rounded-[8px] text-[14px] leading-[20px] transition-colors duration-150 whitespace-nowrap inline-flex items-center gap-1.5 cursor-pointer shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-1 ${
                       isActive
-                        ? "border-[#D4568F] text-[#4A2A1A] font-medium"
-                        : "border-transparent text-[#6B5A52] hover:text-[#4A2A1A] font-normal"
+                        ? "bg-[#FBE9F1] text-[#4A2A1A] font-medium"
+                        : "bg-transparent text-[#6B5A52] font-normal hover:bg-black/[0.04] hover:text-[#4A2A1A]"
                     }`}
                   >
                     <span>{f.label}</span>
@@ -1595,11 +1594,11 @@ export default function AdminDashboard() {
         {/* ── TAB 2: KELOLA LAYANAN ─────────────────────────────────────────── */}
         {activeMenu === "services" && (
           <div className="flex flex-col gap-4 min-w-0">
-            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div
-                role="tablist"
+                role="group"
                 aria-label="Filter segmen layanan"
-                className="flex items-center gap-5 overflow-x-auto overflow-y-hidden no-scrollbar border-b border-black/10"
+                className="flex items-center gap-1.5 overflow-x-auto md:overflow-visible md:flex-wrap overflow-y-hidden no-scrollbar py-0.5"
               >
                 {[
                   { id: "all", label: "Semua", count: services.length },
@@ -1624,22 +1623,23 @@ export default function AdminDashboard() {
                     <button
                       key={f.id}
                       type="button"
-                      role="tab"
-                      aria-selected={isActive}
+                      aria-pressed={isActive}
                       onClick={(e) => {
                         setServiceSegmentFilter(f.id as "all" | "Bayi" | "Anak" | "Ibu");
                         scrollTabIntoView(e.currentTarget);
                       }}
-                      className={`min-h-[44px] min-w-[44px] text-[14px] transition-colors duration-150 border-b-2 whitespace-nowrap inline-flex items-center justify-center gap-1.5 cursor-pointer shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-inset rounded-t-[4px] ${
+                      className={`min-h-[44px] md:min-h-0 px-3 py-1.5 rounded-[8px] text-[14px] leading-[20px] transition-colors duration-150 whitespace-nowrap inline-flex items-center justify-center gap-1.5 cursor-pointer shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-1 ${
                         isActive
-                          ? "border-[#D4568F] text-[#4A2A1A] font-medium"
-                          : "border-transparent text-[#6B5A52] hover:text-[#4A2A1A] font-normal"
+                          ? "bg-[#FBE9F1] text-[#4A2A1A] font-medium"
+                          : "bg-transparent text-[#6B5A52] font-normal hover:bg-black/[0.04] hover:text-[#4A2A1A]"
                       }`}
                     >
                       <span>{f.label}</span>
-                      <span className="text-[12px] text-[#6B5A52] font-normal tabular-nums">
-                        {f.count}
-                      </span>
+                      {f.count > 0 && (
+                        <span className="text-[12px] text-[#6B5A52] font-normal tabular-nums">
+                          {f.count}
+                        </span>
+                      )}
                     </button>
                   );
                 })}
