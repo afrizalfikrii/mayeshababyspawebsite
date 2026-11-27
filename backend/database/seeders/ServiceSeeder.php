@@ -23,7 +23,7 @@ class ServiceSeeder extends Seeder
             // ── Kategori: Baby and Kids ──────────────────────────────────────
             [
                 'name'             => 'Baby 0-1th',
-                'description'      => 'Paket spa bayi usia 0–1 tahun meliputi pijat lembut dan stimulasi sensorik untuk mendukung tumbuh kembang optimal.',
+                'description'      => 'Pijat lembut dan stimulasi sensorik untuk mendukung tumbuh kembang.',
                 'duration_minutes' => 45,
                 'price'            => 32500.00,  // rata-rata 30K non-member / 35K member
                 'is_active'        => true,
@@ -33,7 +33,7 @@ class ServiceSeeder extends Seeder
             ],
             [
                 'name'             => 'Baby 1-3th',
-                'description'      => 'Paket spa bayi usia 1–3 tahun dengan pijat seluruh tubuh dan relaksasi untuk mendukung perkembangan motorik.',
+                'description'      => 'Pijat seluruh tubuh dan relaksasi untuk mendukung perkembangan motorik.',
                 'duration_minutes' => 45,
                 'price'            => 37500.00,
                 'is_active'        => true,
@@ -63,7 +63,7 @@ class ServiceSeeder extends Seeder
             ],
             [
                 'name'             => 'Baby Spa (Massage, Gym, Swim)',
-                'description'      => 'Paket spa lengkap meliputi pijat bayi, senam bayi (baby gym), dan sesi renang. Cocok untuk bayi usia 0–5 tahun.',
+                'description'      => 'Paket spa lengkap meliputi pijat bayi, baby gym, dan sesi renang.',
                 'duration_minutes' => 90,
                 'price'            => 80000.00,
                 'is_active'        => true,
@@ -73,7 +73,7 @@ class ServiceSeeder extends Seeder
             ],
             [
                 'name'             => 'Baby Swim',
-                'description'      => 'Sesi renang bayi dengan kolam bersih bersuhu ideal, dipandu terapis berpengalaman. Bayi usia 0–5 tahun.',
+                'description'      => 'Sesi renang air hangat di kolam steril dengan pendampingan terapis.',
                 'duration_minutes' => 30,
                 'price'            => 50000.00,
                 'is_active'        => true,
@@ -83,7 +83,7 @@ class ServiceSeeder extends Seeder
             ],
             [
                 'name'             => 'Kids Spa (Massage, Mandi Busa + Bola)',
-                'description'      => 'Paket spa anak usia 3–5 tahun meliputi pijat anak, mandi busa, dan bermain bola kolam yang menyenangkan.',
+                'description'      => 'Paket spa meliputi pijat anak, mandi busa, dan bermain bola kolam.',
                 'duration_minutes' => 75,
                 'price'            => 90000.00,
                 'is_active'        => true,
@@ -93,7 +93,7 @@ class ServiceSeeder extends Seeder
             ],
             [
                 'name'             => 'Bubble Bath (Mandi Busa + Bola)',
-                'description'      => 'Sesi mandi busa dan bermain bola kolam yang menyenangkan untuk bayi dan anak usia 0–5 tahun.',
+                'description'      => 'Sesi mandi busa hangat dan bermain bola kolam yang menyenangkan.',
                 'duration_minutes' => 30,
                 'price'            => 55000.00,
                 'is_active'        => true,
@@ -103,7 +103,7 @@ class ServiceSeeder extends Seeder
             ],
             [
                 'name'             => 'Cukur Gundul',
-                'description'      => 'Layanan cukur gundul tradisional untuk bayi usia 0–5 tahun, dipercaya membantu pertumbuhan rambut lebih lebat.',
+                'description'      => 'Layanan cukur rambut bayi tradisional yang aman, lembut, dan higienis.',
                 'duration_minutes' => 20,
                 'price'            => 30000.00,
                 'is_active'        => true,
@@ -113,7 +113,7 @@ class ServiceSeeder extends Seeder
             ],
             [
                 'name'             => 'Memandikan Bayi Baru Lahir Home Care',
-                'description'      => 'Layanan memandikan bayi baru lahir di rumah meliputi mandi, perawatan tali pusar, dan pemantauan ikterik (kuning). Khusus bayi 0–1 bulan.',
+                'description'      => 'Mandi bayi baru lahir di rumah, perawatan tali pusar, dan pantau kuning.',
                 'duration_minutes' => 60,
                 'price'            => 45000.00,
                 'is_active'        => true,
@@ -123,7 +123,7 @@ class ServiceSeeder extends Seeder
             ],
             [
                 'name'             => 'Mandi Bayi',
-                'description'      => 'Layanan memandikan bayi usia 0–1 tahun dengan teknik yang aman dan nyaman oleh terapis berpengalaman.',
+                'description'      => 'Layanan memandikan bayi secara aman dan nyaman oleh bidan terlatih.',
                 'duration_minutes' => 20,
                 'price'            => 15000.00,
                 'is_active'        => true,
@@ -133,7 +133,7 @@ class ServiceSeeder extends Seeder
             ],
             [
                 'name'             => 'Masker Anak',
-                'description'      => 'Perawatan masker wajah alami khusus anak usia 1–5 tahun untuk menjaga kelembaban dan kebersihan kulit.',
+                'description'      => 'Masker wajah alami untuk menjaga kelembapan dan kebersihan kulit anak.',
                 'duration_minutes' => 15,
                 'price'            => 10000.00,
                 'is_active'        => true,
@@ -143,7 +143,7 @@ class ServiceSeeder extends Seeder
             ],
             [
                 'name'             => 'Membersihkan Selo Karang',
-                'description'      => 'Layanan membersihkan kotoran di lipatan kulit (selo karang) bayi usia 0–1 tahun secara lembut dan aman.',
+                'description'      => 'Pembersihan kotoran di lipatan kulit (selo karang) secara lembut.',
                 'duration_minutes' => 15,
                 'price'            => 15000.00,
                 'is_active'        => true,
@@ -155,7 +155,7 @@ class ServiceSeeder extends Seeder
             // ── Kategori: Baby & Kids Treatment ─────────────────────────────
             [
                 'name'             => 'Pijat Batuk Pilek',
-                'description'      => 'Pijat terapeutik untuk meredakan batuk dan pilek pada bayi dan anak usia 0–5 tahun menggunakan teknik refleksiologi.',
+                'description'      => 'Pijat terapeutik dengan teknik refleksiologi untuk meredakan batuk pilek.',
                 'duration_minutes' => 40,
                 'price'            => 50000.00,
                 'is_active'        => true,
@@ -205,7 +205,7 @@ class ServiceSeeder extends Seeder
             ],
             [
                 'name'             => 'Pijat Bayi Prematur',
-                'description'      => 'Pijat khusus bayi prematur usia 0–1 tahun dengan teknik lembut untuk mendukung pertumbuhan dan perkembangan.',
+                'description'      => 'Pijat lembut khusus bayi prematur untuk mendukung pertumbuhan optimal.',
                 'duration_minutes' => 30,
                 'price'            => 30000.00,
                 'is_active'        => true,
@@ -215,7 +215,7 @@ class ServiceSeeder extends Seeder
             ],
             [
                 'name'             => 'Uap / Nebulizer',
-                'description'      => 'Terapi uap (nebulizer) untuk meredakan gangguan pernapasan pada bayi dan anak usia 0–5 tahun.',
+                'description'      => 'Terapi uap nebulizer untuk membantu melegakan saluran pernapasan.',
                 'duration_minutes' => 20,
                 'price'            => 30000.00,
                 'is_active'        => true,
@@ -225,7 +225,7 @@ class ServiceSeeder extends Seeder
             ],
             [
                 'name'             => 'Sinar / Infrared',
-                'description'      => 'Terapi sinar infrared untuk meredakan nyeri otot dan memperlancar sirkulasi darah pada bayi dan anak usia 0–5 tahun.',
+                'description'      => 'Terapi sinar infrared untuk meredakan nyeri otot dan melancarkan darah.',
                 'duration_minutes' => 20,
                 'price'            => 20000.00,
                 'is_active'        => true,
@@ -235,7 +235,7 @@ class ServiceSeeder extends Seeder
             ],
             [
                 'name'             => 'Nebulizer + Infrared',
-                'description'      => 'Paket kombinasi terapi uap (nebulizer) dan sinar infrared untuk penanganan gangguan pernapasan lebih komprehensif.',
+                'description'      => 'Kombinasi terapi uap nebulizer dan sinar infrared untuk pernapasan.',
                 'duration_minutes' => 35,
                 'price'            => 45000.00,
                 'is_active'        => true,
@@ -245,7 +245,7 @@ class ServiceSeeder extends Seeder
             ],
             [
                 'name'             => 'Tindik',
-                'description'      => 'Layanan tindik telinga untuk bayi dan anak usia 0–5 tahun dengan teknik steril dan aman oleh tenaga terlatih.',
+                'description'      => 'Layanan tindik telinga steril dan aman oleh tenaga bidan terlatih.',
                 'duration_minutes' => 15,
                 'price'            => 45000.00,
                 'is_active'        => true,
@@ -255,7 +255,7 @@ class ServiceSeeder extends Seeder
             ],
             [
                 'name'             => 'Tapping',
-                'description'      => 'Teknik tapping (ketukan lembut) untuk merangsang titik-titik akupresur pada bayi dan anak usia 0–5 tahun.',
+                'description'      => 'Ketukan lembut pada titik akupresur untuk membantu relaksasi dan napas.',
                 'duration_minutes' => 25,
                 'price'            => 25000.00,
                 'is_active'        => true,
@@ -287,7 +287,7 @@ class ServiceSeeder extends Seeder
             ],
             [
                 'name'             => 'Pijat Hamil',
-                'description'      => 'Pijat relaksasi khusus ibu hamil untuk meredakan nyeri punggung, bengkak, dan meningkatkan kenyamanan selama kehamilan.',
+                'description'      => 'Pijat lembut ibu hamil untuk meredakan nyeri punggung dan bengkak.',
                 'duration_minutes' => 90,
                 'price'            => 120000.00,
                 'is_active'        => true,
@@ -297,7 +297,7 @@ class ServiceSeeder extends Seeder
             ],
             [
                 'name'             => 'Pijat Nifas',
-                'description'      => 'Pijat pasca melahirkan untuk membantu pemulihan tubuh ibu, mengurangi nyeri, dan memperlancar pengeluaran lochea.',
+                'description'      => 'Pijat pascamelahirkan untuk membantu pemulihan tubuh dan mengurangi nyeri.',
                 'duration_minutes' => 90,
                 'price'            => 120000.00,
                 'is_active'        => true,
@@ -307,7 +307,7 @@ class ServiceSeeder extends Seeder
             ],
             [
                 'name'             => 'Totok Wajah',
-                'description'      => 'Perawatan wajah dengan teknik totok (akupresur) untuk relaksasi, meningkatkan sirkulasi, dan mencerahkan kulit.',
+                'description'      => 'Perawatan totok akupresur wajah untuk relaksasi dan kesegaran kulit.',
                 'duration_minutes' => 30,
                 'price'            => 25000.00,
                 'is_active'        => true,
@@ -317,7 +317,7 @@ class ServiceSeeder extends Seeder
             ],
             [
                 'name'             => 'Hidroterapi (Berendam Rempah)',
-                'description'      => 'Terapi berendam air hangat yang dicampur rempah-rempah pilihan untuk relaksasi dan detoksifikasi tubuh ibu.',
+                'description'      => 'Berendam air hangat dengan rempah pilihan untuk relaksasi tubuh ibu.',
                 'duration_minutes' => 60,
                 'price'            => 75000.00,
                 'is_active'        => true,
@@ -327,7 +327,7 @@ class ServiceSeeder extends Seeder
             ],
             [
                 'name'             => 'Mom Spa (Massage + Berendam Rempah)',
-                'description'      => 'Paket spa ibu lengkap meliputi pijat relaksasi seluruh tubuh dan sesi berendam rempah untuk pemulihan total.',
+                'description'      => 'Paket spa lengkap meliputi pijat seluruh tubuh dan berendam rempah.',
                 'duration_minutes' => 150,
                 'price'            => 175000.00,
                 'is_active'        => true,
@@ -337,7 +337,7 @@ class ServiceSeeder extends Seeder
             ],
             [
                 'name'             => 'Bekam',
-                'description'      => 'Terapi bekam (hijama) untuk detoksifikasi, melancarkan peredaran darah, dan meredakan nyeri otot.',
+                'description'      => 'Terapi bekam untuk melancarkan peredaran darah dan meredakan pegal otot.',
                 'duration_minutes' => 60,
                 'price'            => 75000.00,
                 'is_active'        => true,
