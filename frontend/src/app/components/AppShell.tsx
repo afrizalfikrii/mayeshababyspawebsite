@@ -9,6 +9,9 @@ export default function AppShell() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const closeDrawerButtonRef = useRef<HTMLButtonElement>(null);
+  const wasMenuOpenRef = useRef(false);
   const { user, isAuthenticated, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
@@ -21,7 +24,34 @@ export default function AppShell() {
   const firstName = displayName.split(" ")[0] || "Akun";
   const initial = firstName.charAt(0).toUpperCase();
   const portalPath = isAdmin ? "/admin" : "/dashboard";
-  const portalLabel = isAdmin ? "Admin Area" : "Akun Saya";
+  const portalLabel = isAdmin ? "Area admin" : "Ruang Bunda";
+
+  // Kunci scroll body, pindah fokus ke panel drawer, tutup dengan Esc, dan kembalikan fokus saat ditutup
+  useEffect(() => {
+    if (isMenuOpen) {
+      wasMenuOpenRef.current = true;
+      const prevOverflow = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+
+      const timer = requestAnimationFrame(() => {
+        closeDrawerButtonRef.current?.focus();
+      });
+
+      const handleEscape = (e: KeyboardEvent) => {
+        if (e.key === "Escape") setIsMenuOpen(false);
+      };
+      document.addEventListener("keydown", handleEscape);
+
+      return () => {
+        cancelAnimationFrame(timer);
+        document.body.style.overflow = prevOverflow;
+        document.removeEventListener("keydown", handleEscape);
+      };
+    } else if (wasMenuOpenRef.current) {
+      wasMenuOpenRef.current = false;
+      menuButtonRef.current?.focus();
+    }
+  }, [isMenuOpen]);
 
   // Tutup menu profil saat klik di luar, tekan Escape, atau pindah halaman
   useEffect(() => {
@@ -44,6 +74,7 @@ export default function AppShell() {
 
   useEffect(() => {
     setIsProfileOpen(false);
+    setIsMenuOpen(false);
   }, [location.pathname]);
 
   const [activeSection, setActiveSection] = useState<"beranda" | "galeri" | "layanan" | "booking" | "other">("beranda");
@@ -171,54 +202,64 @@ export default function AppShell() {
   };
 
   const navLinkClass = (active: boolean) =>
-    `py-1 text-[15px] font-medium transition-colors duration-150 whitespace-nowrap cursor-pointer border-b-2 ${
+    `inline-flex items-center min-h-[44px] text-[15px] font-medium transition-colors duration-150 whitespace-nowrap cursor-pointer border-b-2 ${
       active
-        ? "text-[var(--text)] border-[var(--text)]"
-        : "text-[var(--text-muted)] border-transparent hover:text-[var(--text)]"
+        ? "text-[#4A2A1A] border-[#D4568F]"
+        : "text-[#6B5A52] border-transparent hover:text-[#4A2A1A]"
     }`;
 
   const isHomeActive = activeSection === "beranda";
   const isGaleriActive = activeSection === "galeri";
   const isLayananActive = activeSection === "layanan";
-  const isBookingActive = location.pathname === "/reservasi";
 
   return (
-    <div className={`flex flex-col min-h-screen bg-[var(--bg)] text-[var(--text)] ${isAdminRoute ? "admin-theme" : ""}`}>
+    <div className={`flex flex-col min-h-[100dvh] bg-[#FAF6F2] text-[#4A2A1A] ${isAdminRoute ? "admin-theme" : ""}`}>
       {!isAuthPage && (
-        <header className="sticky top-0 z-50 w-full bg-[#FFFFFF] border-b border-[var(--border)] print:hidden">
-          <div
-            className={`max-w-7xl mx-auto px-6 flex items-center justify-between gap-6 ${isAdminRoute ? "h-14" : "h-[72px]"
-              }`}
-          >
+        <header className="sticky top-0 z-40 w-full border-b border-black/10 bg-[#FFFBF8] pt-[env(safe-area-inset-top)] print:hidden">
+          <div className="max-w-7xl mx-auto px-4 md:px-6 flex items-center justify-between gap-2 md:gap-6 h-16 md:h-[72px]">
             {/* Brand */}
-            <div className="flex items-center gap-3 shrink-0">
-              <BrandLogo onClick={handleBerandaClick} />
+            <div className="flex items-center gap-2 md:gap-3 min-w-0 shrink-0">
+              <BrandLogo hideTaglineOnMobile onClick={handleBerandaClick} />
               {isAdminRoute && (
-                <span className="overline-label pl-3 border-l border-[var(--border)] self-center">
-                  ADMIN
+                <span className="text-[13px] leading-[18px] font-normal text-[#6B5A52] pl-2.5 md:pl-3 border-l border-black/10 self-center whitespace-nowrap">
+                  Admin
                 </span>
               )}
             </div>
 
-            {/* Center Links (hanya navigasi situs) */}
-            <nav className="hidden lg:flex items-center gap-7">
-              <Link to="/" onClick={handleBerandaClick} className={navLinkClass(isHomeActive)}>
-                Beranda
-              </Link>
-              <Link to="/#galeri" onClick={handleGaleriClick} className={navLinkClass(isGaleriActive)}>
-                Galeri
-              </Link>
-              <Link to="/#layanan" onClick={handleMenuLayananClick} className={navLinkClass(isLayananActive)}>
-                Menu layanan
-              </Link>
-            </nav>
+            {/* Center Links (>= 768px) */}
+            {isAdminRoute ? (
+              <nav className="hidden md:flex items-center">
+                <Link
+                  to="/"
+                  className="inline-flex items-center min-h-[44px] text-[14px] font-medium text-[#4A2A1A] hover:text-[#C94A83] hover:underline decoration-[#D4568F] decoration-[1.5px] underline-offset-4 transition-colors duration-150 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2 rounded-sm"
+                >
+                  Lihat situs
+                </Link>
+              </nav>
+            ) : (
+              <nav className="hidden md:flex items-center gap-6 lg:gap-7">
+                <Link to="/" onClick={handleBerandaClick} className={navLinkClass(isHomeActive)}>
+                  Beranda
+                </Link>
+                <Link to="/#galeri" onClick={handleGaleriClick} className={navLinkClass(isGaleriActive)}>
+                  Galeri
+                </Link>
+                <Link to="/#layanan" onClick={handleMenuLayananClick} className={navLinkClass(isLayananActive)}>
+                  Menu layanan
+                </Link>
+              </nav>
+            )}
 
-            {/* Right Actions */}
-            <div className="hidden lg:flex items-center gap-4 shrink-0">
+            {/* Right Actions (>= 768px) */}
+            <div className="hidden md:flex items-center gap-3 lg:gap-4 shrink-0">
               {isAuthenticated ? (
                 <>
-                  {!isAdmin && (
-                    <Link to="/reservasi" className="btn-primary whitespace-nowrap">
+                  {!isAdmin && !isAdminRoute && (
+                    <Link
+                      to="/reservasi"
+                      className="inline-flex items-center justify-center min-h-[44px] px-4 rounded-[8px] bg-[#C94A83] hover:bg-[#B73F73] text-white text-[14px] font-medium transition-colors duration-150 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2"
+                    >
                       Reservasi
                     </Link>
                   )}
@@ -228,30 +269,32 @@ export default function AppShell() {
                       onClick={() => setIsProfileOpen((v) => !v)}
                       aria-haspopup="menu"
                       aria-expanded={isProfileOpen}
-                      className="flex items-center gap-2.5 h-10 pl-1.5 pr-3 rounded-[8px] border border-[var(--border)] bg-[#FFFFFF] hover:bg-[var(--fill-subtle)] transition-colors duration-150 cursor-pointer"
+                      className="flex items-center gap-2.5 min-h-[44px] pl-1.5 pr-3 rounded-[8px] border border-black/10 bg-white hover:bg-[#FAF6F2] transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2"
                     >
-                      <span className="w-7 h-7 rounded-full bg-[var(--fill-subtle)] border border-[var(--border)] flex items-center justify-center text-[13px] font-semibold text-[var(--text)]">
+                      <span className="w-7 h-7 rounded-full bg-[#FAF6F2] border border-black/10 flex items-center justify-center text-[13px] font-semibold text-[#4A2A1A]">
                         {initial}
                       </span>
-                      <span className="text-[14px] font-medium text-[var(--text)] max-w-[120px] truncate">
+                      <span className="text-[14px] font-medium text-[#4A2A1A] max-w-[110px] truncate capitalize">
                         {firstName}
                       </span>
                       <ChevronDown
                         size={14}
-                        className={`text-[var(--text-muted)] transition-transform duration-150 ${isProfileOpen ? "rotate-180" : ""
-                          }`}
+                        aria-hidden="true"
+                        className={`text-[#6B5A52] transition-transform duration-150 ${
+                          isProfileOpen ? "rotate-180" : ""
+                        }`}
                       />
                     </button>
 
                     {isProfileOpen && (
                       <div
                         role="menu"
-                        className="absolute right-0 top-[calc(100%+8px)] w-64 bg-[#FFFFFF] border border-[var(--border)] rounded-[12px] p-2 z-50"
+                        className="absolute right-0 top-[calc(100%+8px)] w-64 bg-white border border-black/10 rounded-[12px] p-2 z-50"
                       >
-                        <div className="px-3 py-2.5 border-b border-[var(--border)] mb-2">
-                          <p className="text-[14px] font-semibold text-[var(--text)] truncate">{displayName}</p>
+                        <div className="px-3 py-2.5 border-b border-black/10 mb-2">
+                          <p className="text-[14px] font-semibold text-[#4A2A1A] truncate capitalize">{displayName}</p>
                           {user?.email && (
-                            <p className="text-[12px] text-[var(--text-muted)] truncate">{user.email}</p>
+                            <p className="text-[12px] text-[#6B5A52] truncate">{user.email}</p>
                           )}
                         </div>
 
@@ -259,9 +302,9 @@ export default function AppShell() {
                           to={portalPath}
                           role="menuitem"
                           onClick={() => setIsProfileOpen(false)}
-                          className="flex items-center gap-2.5 px-3 h-10 rounded-[8px] text-[14px] font-medium text-[var(--text)] hover:bg-[var(--fill-subtle)] transition-colors duration-150"
+                          className="flex items-center gap-2.5 px-3 min-h-[44px] rounded-[8px] text-[14px] font-medium text-[#4A2A1A] hover:bg-[#FAF6F2] transition-colors duration-150"
                         >
-                          <User size={16} className="text-[var(--text-muted)]" />
+                          <User size={16} className="text-[#6B5A52]" aria-hidden="true" />
                           {portalLabel}
                         </Link>
 
@@ -272,9 +315,9 @@ export default function AppShell() {
                             setIsProfileOpen(false);
                             handleLogout();
                           }}
-                          className="btn-secondary-sm !h-10 w-full mt-1.5"
+                          className="w-full min-h-[44px] mt-1.5 inline-flex items-center justify-center gap-2 px-3 rounded-[8px] border border-black/15 text-[14px] font-medium text-[#4A2A1A] hover:bg-[#FAF6F2] transition-colors duration-150 cursor-pointer"
                         >
-                          <LogOut size={15} className="text-[var(--text-muted)]" />
+                          <LogOut size={15} className="text-[#6B5A52]" aria-hidden="true" />
                           Keluar
                         </button>
                       </div>
@@ -285,181 +328,263 @@ export default function AppShell() {
                 <div className="flex items-center gap-4">
                   <Link
                     to="/auth"
-                    className="text-[15px] font-medium text-[var(--text)] hover:underline underline-offset-4 transition-colors duration-150 whitespace-nowrap"
+                    className="inline-flex items-center min-h-[44px] px-2 text-[15px] font-medium text-[#4A2A1A] hover:text-[#C94A83] hover:underline decoration-[#D4568F] underline-offset-4 transition-colors duration-150 whitespace-nowrap"
                   >
                     Masuk
                   </Link>
-                  <Link to="/reservasi" className="btn-primary whitespace-nowrap">
+                  <Link
+                    to="/reservasi"
+                    className="inline-flex items-center justify-center min-h-[44px] px-4 rounded-[8px] bg-[#C94A83] hover:bg-[#B73F73] text-white text-[14px] font-medium transition-colors duration-150 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2"
+                  >
                     Reservasi
                   </Link>
                 </div>
               )}
             </div>
 
-            {/* Mobile Menu Button */}
-            <button
-              type="button"
-              className="lg:hidden p-2 text-[var(--text)] hover:bg-[var(--fill-subtle)] rounded-[8px] transition-colors duration-150 cursor-pointer"
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              aria-label="Buka menu navigasi"
-            >
-              {isMenuOpen ? <X size={20} /> : <Menu size={20} />}
-            </button>
-          </div>
-
-          {/* Mobile Nav */}
-          {isMenuOpen && (
-            <div className="lg:hidden bg-[#FFFFFF] border-t border-[var(--border)] px-6 py-4 flex flex-col gap-1">
-              <Link
-                to="/"
-                onClick={(e) => {
-                  setIsMenuOpen(false);
-                  handleBerandaClick(e);
-                }}
-                className={`py-2.5 text-[15px] font-medium border-b border-[var(--border)] transition-colors duration-150 ${
-                  isHomeActive ? "text-[var(--accent)] font-semibold" : "text-[var(--text)]"
-                }`}
-              >
-                Beranda
-              </Link>
-              <Link
-                to="/#galeri"
-                onClick={(e) => {
-                  setIsMenuOpen(false);
-                  handleGaleriClick(e);
-                }}
-                className={`py-2.5 text-[15px] font-medium border-b border-[var(--border)] transition-colors duration-150 ${
-                  isGaleriActive ? "text-[var(--accent)] font-semibold" : "text-[var(--text)]"
-                }`}
-              >
-                Galeri
-              </Link>
-              <Link
-                to="/#layanan"
-                onClick={(e) => {
-                  setIsMenuOpen(false);
-                  handleMenuLayananClick(e);
-                }}
-                className={`py-2.5 text-[15px] font-medium border-b border-[var(--border)] transition-colors duration-150 ${
-                  isLayananActive ? "text-[var(--accent)] font-semibold" : "text-[var(--text)]"
-                }`}
-              >
-                Menu layanan
-              </Link>
-              {isAuthenticated ? (
-                <div className="pt-3 flex flex-col gap-2.5">
-                  <div className="flex items-center gap-2.5 pb-1">
-                    <span className="w-8 h-8 rounded-full bg-[var(--fill-subtle)] border border-[var(--border)] flex items-center justify-center text-[13px] font-semibold text-[var(--text)]">
-                      {initial}
-                    </span>
-                    <span className="text-[14px] font-semibold text-[var(--text)] truncate">{displayName}</span>
-                  </div>
-                  {!isAdmin && (
-                    <Link
-                      to="/reservasi"
-                      className="btn-primary w-full"
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      Reservasi Sesi
-                    </Link>
-                  )}
-                  <Link
-                    to={portalPath}
-                    className="btn-secondary w-full"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    {portalLabel}
-                  </Link>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsMenuOpen(false);
-                      handleLogout();
-                    }}
-                    className="btn-secondary w-full"
-                  >
-                    <LogOut size={16} className="text-[var(--text-muted)]" />
-                    Keluar
-                  </button>
-                </div>
-              ) : (
-                <div className="pt-3 flex flex-col gap-2.5">
-                  <Link
-                    to="/auth"
-                    className="btn-secondary w-full"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    Masuk
-                  </Link>
-                  <Link
-                    to="/reservasi"
-                    className="btn-primary w-full"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    Reservasi Sesi
-                  </Link>
-                </div>
+            {/* Mobile Right Controls (< 768px): Tombol Reservasi (pelanggan) / avatar (admin) + Hamburger 44x44px */}
+            <div className="flex md:hidden items-center gap-2 shrink-0">
+              {!isAdminRoute && !isAdmin && (
+                <Link
+                  to="/reservasi"
+                  className="inline-flex items-center justify-center min-h-[44px] px-3.5 rounded-[8px] bg-[#C94A83] hover:bg-[#B73F73] text-white text-[14px] font-medium transition-colors duration-150 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2"
+                >
+                  Reservasi
+                </Link>
               )}
+
+              {isAdminRoute && isAuthenticated && (
+                <span
+                  aria-hidden="true"
+                  className="w-9 h-9 rounded-full bg-white border border-black/15 flex items-center justify-center text-[13px] font-semibold text-[#4A2A1A]"
+                >
+                  {initial}
+                </span>
+              )}
+
+              <button
+                ref={menuButtonRef}
+                type="button"
+                className="w-11 h-11 min-w-[44px] min-h-[44px] inline-flex items-center justify-center text-[#4A2A1A] hover:bg-[#FAF6F2] rounded-[8px] transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2"
+                onClick={() => setIsMenuOpen((v) => !v)}
+                aria-label={isMenuOpen ? "Tutup menu navigasi" : "Buka menu navigasi"}
+                aria-expanded={isMenuOpen}
+                aria-controls="mobile-nav-drawer"
+              >
+                {isMenuOpen ? <X size={22} aria-hidden="true" /> : <Menu size={22} aria-hidden="true" />}
+              </button>
             </div>
-          )}
+          </div>
         </header>
       )}
 
-      <main className="flex-1">
+      {/* Mobile Full-Height Navigation Drawer (< 768px) */}
+      {!isAuthPage && isMenuOpen && (
+        <div
+          id="mobile-nav-drawer"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Menu navigasi"
+          className="fixed inset-0 z-50 md:hidden flex justify-end"
+        >
+          <div
+            onClick={() => setIsMenuOpen(false)}
+            className="absolute inset-0 bg-black/45"
+            aria-hidden="true"
+          />
+
+          <div className="relative z-10 w-full max-w-[320px] h-[100dvh] bg-[#FFFBF8] border-l border-black/10 flex flex-col pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
+            <div className="h-16 px-4 flex items-center justify-between border-b border-black/10 shrink-0">
+              <BrandLogo size="sm" hideTaglineOnMobile onClick={() => setIsMenuOpen(false)} />
+              <button
+                ref={closeDrawerButtonRef}
+                type="button"
+                onClick={() => setIsMenuOpen(false)}
+                aria-label="Tutup menu navigasi"
+                className="w-11 h-11 min-w-[44px] min-h-[44px] inline-flex items-center justify-center text-[#4A2A1A] hover:bg-[#FAF6F2] rounded-[8px] transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83]"
+              >
+                <X size={22} aria-hidden="true" />
+              </button>
+            </div>
+
+            <nav className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-1">
+              {isAdminRoute ? (
+                <Link
+                  to="/"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="flex items-center min-h-[48px] px-3 rounded-[8px] text-[16px] text-[#4A2A1A] font-medium hover:bg-[#FAF6F2] transition-colors duration-150"
+                >
+                  Lihat situs
+                </Link>
+              ) : (
+                <>
+                  <Link
+                    to="/"
+                    onClick={(e) => {
+                      setIsMenuOpen(false);
+                      handleBerandaClick(e);
+                    }}
+                    className={`flex items-center min-h-[48px] px-3 rounded-[8px] text-[16px] transition-colors duration-150 ${
+                      isHomeActive
+                        ? "text-[#C94A83] font-medium bg-[#FAF6F2]"
+                        : "text-[#4A2A1A] font-normal hover:bg-[#FAF6F2]"
+                    }`}
+                  >
+                    Beranda
+                  </Link>
+                  <Link
+                    to="/#galeri"
+                    onClick={(e) => {
+                      setIsMenuOpen(false);
+                      handleGaleriClick(e);
+                    }}
+                    className={`flex items-center min-h-[48px] px-3 rounded-[8px] text-[16px] transition-colors duration-150 ${
+                      isGaleriActive
+                        ? "text-[#C94A83] font-medium bg-[#FAF6F2]"
+                        : "text-[#4A2A1A] font-normal hover:bg-[#FAF6F2]"
+                    }`}
+                  >
+                    Galeri
+                  </Link>
+                  <Link
+                    to="/#layanan"
+                    onClick={(e) => {
+                      setIsMenuOpen(false);
+                      handleMenuLayananClick(e);
+                    }}
+                    className={`flex items-center min-h-[48px] px-3 rounded-[8px] text-[16px] transition-colors duration-150 ${
+                      isLayananActive
+                        ? "text-[#C94A83] font-medium bg-[#FAF6F2]"
+                        : "text-[#4A2A1A] font-normal hover:bg-[#FAF6F2]"
+                    }`}
+                  >
+                    Menu layanan
+                  </Link>
+                </>
+              )}
+
+              <div className="mt-4 pt-4 border-t border-black/10 flex flex-col gap-2.5">
+                {isAuthenticated ? (
+                  <>
+                    <div className="flex items-center gap-3 px-2 pb-2">
+                      <span className="w-9 h-9 rounded-full bg-white border border-black/15 flex items-center justify-center text-[14px] font-semibold text-[#4A2A1A] shrink-0">
+                        {initial}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-[15px] font-medium text-[#4A2A1A] truncate capitalize">{displayName}</p>
+                        {user?.email && (
+                          <p className="text-[13px] text-[#6B5A52] truncate">{user.email}</p>
+                        )}
+                      </div>
+                    </div>
+                    {!isAdmin && (
+                      <Link
+                        to="/reservasi"
+                        onClick={() => setIsMenuOpen(false)}
+                        className="w-full min-h-[44px] inline-flex items-center justify-center px-4 rounded-[8px] bg-[#C94A83] hover:bg-[#B73F73] text-white text-[15px] font-medium transition-colors duration-150"
+                      >
+                        Buat reservasi
+                      </Link>
+                    )}
+                    <Link
+                      to={portalPath}
+                      onClick={() => setIsMenuOpen(false)}
+                      className="w-full min-h-[44px] inline-flex items-center justify-center gap-2 px-4 rounded-[8px] border border-black/20 bg-white text-[#4A2A1A] hover:bg-[#FAF6F2] text-[15px] font-medium transition-colors duration-150"
+                    >
+                      <User size={16} className="text-[#6B5A52]" aria-hidden="true" />
+                      {portalLabel}
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        handleLogout();
+                      }}
+                      className="w-full min-h-[44px] inline-flex items-center justify-center gap-2 px-4 rounded-[8px] border border-black/20 bg-transparent text-[#4A2A1A] hover:bg-[#FAF6F2] text-[15px] font-medium transition-colors duration-150 cursor-pointer"
+                    >
+                      <LogOut size={16} className="text-[#6B5A52]" aria-hidden="true" />
+                      Keluar
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <Link
+                      to="/auth"
+                      onClick={() => setIsMenuOpen(false)}
+                      className="w-full min-h-[44px] inline-flex items-center justify-center px-4 rounded-[8px] border border-black/20 bg-white text-[#4A2A1A] hover:bg-[#FAF6F2] text-[15px] font-medium transition-colors duration-150"
+                    >
+                      Masuk
+                    </Link>
+                    <Link
+                      to="/reservasi"
+                      onClick={() => setIsMenuOpen(false)}
+                      className="w-full min-h-[44px] inline-flex items-center justify-center px-4 rounded-[8px] bg-[#C94A83] hover:bg-[#B73F73] text-white text-[15px] font-medium transition-colors duration-150"
+                    >
+                      Buat reservasi
+                    </Link>
+                  </>
+                )}
+              </div>
+            </nav>
+          </div>
+        </div>
+      )}
+
+      <main className="flex-1 min-w-0">
         <Outlet />
       </main>
 
       {!isAuthPage && (
-        <footer id="location" className="bg-[#FFFFFF] border-t border-[var(--border)] mt-20 print:hidden">
-          <div className="max-w-7xl mx-auto px-6 pt-14 pb-10">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 pb-12">
+        <footer id="location" className="bg-white border-t border-black/10 mt-12 md:mt-20 print:hidden">
+          <div className="max-w-7xl mx-auto px-4 md:px-6 pt-10 md:pt-14 pb-8 md:pb-10">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-10 pb-8 md:pb-12">
               {/* Column 1: Brand & Social */}
-              <div className="space-y-4">
+              <div className="space-y-4 min-w-0">
                 <BrandLogo />
-                <p className="text-[14px] leading-[22px] text-[var(--text-muted)]">
+                <p className="text-[15px] leading-[24px] text-[#6B5A52]">
                   Layanan pijat dan perawatan ibu, bayi, serta anak yang ditangani oleh bidan tersertifikasi di Karanganyar.
                 </p>
-                <div className="flex items-center gap-4 pt-1">
+                <div className="flex items-center gap-2 pt-1">
                   <a
                     href="https://www.instagram.com/mayeshababyspa"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-[var(--text-muted)] hover:text-[var(--text)] transition-colors duration-150"
+                    className="w-11 h-11 min-w-[44px] min-h-[44px] inline-flex items-center justify-center rounded-[8px] border border-black/10 text-[#6B5A52] hover:text-[#4A2A1A] hover:bg-[#FAF6F2] transition-colors duration-150"
                     title="Instagram @mayeshababyspa"
                     aria-label="Instagram @mayeshababyspa"
                   >
-                    <Instagram size={18} />
+                    <Instagram size={18} aria-hidden="true" />
                   </a>
                   <a
                     href="https://wa.me/6281325641896"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-[var(--text-muted)] hover:text-[var(--text)] transition-colors duration-150"
+                    className="w-11 h-11 min-w-[44px] min-h-[44px] inline-flex items-center justify-center rounded-[8px] border border-black/10 text-[#6B5A52] hover:text-[#4A2A1A] hover:bg-[#FAF6F2] transition-colors duration-150"
                     title="WhatsApp Mayesha Baby Spa"
                     aria-label="WhatsApp Mayesha Baby Spa"
                   >
-                    <MessageCircle size={18} />
+                    <MessageCircle size={18} aria-hidden="true" />
                   </a>
                 </div>
               </div>
 
               {/* Column 2: Kontak & Lokasi */}
-              <div>
-                <h4 className="text-[14px] font-semibold text-[var(--text)] mb-4">Kontak &amp; Lokasi</h4>
-                <div className="space-y-3.5 text-[14px] leading-[22px] text-[var(--text-muted)]">
+              <div className="min-w-0">
+                <h4 className="text-[15px] font-semibold text-[#4A2A1A] mb-3.5">Kontak dan lokasi</h4>
+                <div className="space-y-3 text-[15px] leading-[23px] text-[#6B5A52]">
                   <div className="flex items-start gap-2.5">
-                    <MapPin size={16} className="text-[var(--text-muted)] shrink-0 mt-1" />
-                    <span>
+                    <MapPin size={16} className="text-[#6B5A52] shrink-0 mt-1" aria-hidden="true" />
+                    <span className="break-words">
                       Jl. Musi Tegalwinangun Rt 02 Rw 13 Tegalgede, Kec. Karanganyar, Kab. Karanganyar (Barat Pasar Bejen)
                     </span>
                   </div>
                   <div className="flex items-center gap-2.5">
-                    <Phone size={16} className="text-[var(--text-muted)] shrink-0" />
+                    <Phone size={16} className="text-[#6B5A52] shrink-0" aria-hidden="true" />
                     <a
                       href="https://wa.me/6281325641896"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="tabular-nums text-[var(--text)] hover:underline underline-offset-4 transition-colors duration-150"
+                      className="inline-flex items-center min-h-[44px] tabular-nums text-[#4A2A1A] hover:text-[#C94A83] hover:underline underline-offset-4 transition-colors duration-150"
                     >
                       +62 813-2564-1896
                     </a>
@@ -469,9 +594,9 @@ export default function AppShell() {
                       href="https://maps.app.goo.gl/wFPszoLPwrqvPav46"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="btn-secondary-sm"
+                      className="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-[8px] border border-black/20 text-[14px] font-medium text-[#4A2A1A] hover:bg-[#FAF6F2] transition-colors duration-150"
                     >
-                      <MapPin size={14} className="text-[var(--text-muted)]" />
+                      <MapPin size={15} className="text-[#6B5A52]" aria-hidden="true" />
                       Buka di Maps
                     </a>
                   </div>
@@ -479,36 +604,36 @@ export default function AppShell() {
               </div>
 
               {/* Column 3: Jam Operasional */}
-              <div>
-                <h4 className="text-[14px] font-semibold text-[var(--text)] mb-4">Jam Operasional</h4>
-                <div className="space-y-2 text-[14px] leading-[22px]">
-                  <p className="text-[var(--text)] font-medium tabular-nums">
+              <div className="min-w-0">
+                <h4 className="text-[15px] font-semibold text-[#4A2A1A] mb-3.5">Jam operasional</h4>
+                <div className="space-y-2 text-[15px] leading-[23px]">
+                  <p className="text-[#4A2A1A] font-medium tabular-nums">
                     Setiap hari, 08.30–16.30 WIB
                   </p>
-                  <p className="text-[13px] leading-[20px] text-[var(--text-muted)]">
+                  <p className="text-[14px] leading-[22px] text-[#6B5A52]">
                     Tersedia layanan di studio maupun kunjungan ke rumah (Home Care).
                   </p>
                 </div>
               </div>
 
               {/* Column 4: Akses Cepat */}
-              <div>
-                <h4 className="text-[14px] font-semibold text-[var(--text)] mb-4">Akses Cepat</h4>
-                <ul className="space-y-2.5 text-[14px]">
+              <div className="min-w-0">
+                <h4 className="text-[15px] font-semibold text-[#4A2A1A] mb-2">Akses cepat</h4>
+                <ul className="flex flex-col text-[15px]">
                   <li>
                     <button
                       type="button"
                       onClick={handleGaleriClick}
-                      className="text-[var(--text-muted)] hover:text-[var(--text)] hover:underline underline-offset-4 transition-colors duration-150 text-left cursor-pointer"
+                      className="inline-flex items-center min-h-[44px] text-[#6B5A52] hover:text-[#4A2A1A] hover:underline underline-offset-4 transition-colors duration-150 text-left cursor-pointer"
                     >
-                      Galeri &amp; Fasilitas
+                      Galeri dan fasilitas
                     </button>
                   </li>
                   <li>
                     <button
                       type="button"
                       onClick={handleMenuLayananClick}
-                      className="text-[var(--text-muted)] hover:text-[var(--text)] hover:underline underline-offset-4 transition-colors duration-150 text-left cursor-pointer"
+                      className="inline-flex items-center min-h-[44px] text-[#6B5A52] hover:text-[#4A2A1A] hover:underline underline-offset-4 transition-colors duration-150 text-left cursor-pointer"
                     >
                       Menu layanan
                     </button>
@@ -517,9 +642,9 @@ export default function AppShell() {
                     <li>
                       <Link
                         to="/reservasi"
-                        className="text-[var(--text-muted)] hover:text-[var(--text)] hover:underline underline-offset-4 transition-colors duration-150"
+                        className="inline-flex items-center min-h-[44px] text-[#6B5A52] hover:text-[#4A2A1A] hover:underline underline-offset-4 transition-colors duration-150"
                       >
-                        Booking Layanan
+                        Reservasi layanan
                       </Link>
                     </li>
                   )}
@@ -527,7 +652,7 @@ export default function AppShell() {
                     <li>
                       <Link
                         to={portalPath}
-                        className="text-[var(--text-muted)] hover:text-[var(--text)] hover:underline underline-offset-4 transition-colors duration-150"
+                        className="inline-flex items-center min-h-[44px] text-[#6B5A52] hover:text-[#4A2A1A] hover:underline underline-offset-4 transition-colors duration-150"
                       >
                         {portalLabel}
                       </Link>
@@ -536,9 +661,9 @@ export default function AppShell() {
                     <li>
                       <Link
                         to="/auth"
-                        className="text-[var(--text-muted)] hover:text-[var(--text)] hover:underline underline-offset-4 transition-colors duration-150"
+                        className="inline-flex items-center min-h-[44px] text-[#6B5A52] hover:text-[#4A2A1A] hover:underline underline-offset-4 transition-colors duration-150"
                       >
-                        Masuk / Daftar Akun
+                        Masuk atau daftar
                       </Link>
                     </li>
                   )}
@@ -546,9 +671,9 @@ export default function AppShell() {
               </div>
             </div>
 
-            <div className="pt-6 border-t border-[var(--border)] flex flex-col sm:flex-row justify-between items-center gap-3 text-[13px] text-[var(--text-muted)]">
+            <div className="pt-6 border-t border-black/10 flex flex-col sm:flex-row justify-between items-center gap-2 text-[13px] text-[#6B5A52] text-center sm:text-left">
               <p className="tabular-nums">&copy; {new Date().getFullYear()} Mayesha Mom, Kids &amp; Baby Spa.</p>
-              <p>Bidan Tersertifikasi • Karanganyar</p>
+              <p>Bidan tersertifikasi • Karanganyar</p>
             </div>
           </div>
         </footer>

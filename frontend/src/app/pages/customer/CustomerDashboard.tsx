@@ -63,6 +63,18 @@ export default function CustomerDashboard() {
   }, []);
 
   useEffect(() => {
+    if (!isBabyModalOpen && !babyToDelete) return;
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (isBabyModalOpen) setIsBabyModalOpen(false);
+        if (babyToDelete && !isDeletingBaby) setBabyToDelete(null);
+      }
+    };
+    document.addEventListener("keydown", handleEsc);
+    return () => document.removeEventListener("keydown", handleEsc);
+  }, [isBabyModalOpen, babyToDelete, isDeletingBaby]);
+
+  useEffect(() => {
     const hasPendingCountdown = reservations.some(
       (r) => r.status === "pending" && Boolean(r.expires_at)
     );
@@ -192,14 +204,14 @@ export default function CustomerDashboard() {
 
   return (
     <div className="bg-[#FAF6F2] w-full font-['DM_Sans',sans-serif]">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-10 md:py-12">
+      <div className="max-w-7xl mx-auto px-4 md:px-6 py-10 md:py-12">
         {/* Header Halaman */}
         <div className="flex flex-col sm:flex-row sm:items-end justify-between pb-6 sm:pb-8 mb-8 border-b border-black/10 gap-4">
-          <div>
-            <h1 className="font-['Playfair_Display',Georgia,serif] font-medium text-[32px] leading-[1.15] md:text-[40px] text-[#4A2A1A]">
+          <div className="min-w-0">
+            <h1 className="font-['Playfair_Display',Georgia,serif] font-medium text-[clamp(28px,7vw,40px)] leading-[1.15] text-[#4A2A1A]">
               Ruang Bunda
             </h1>
-            <p className="text-[15px] leading-[24px] text-[#6B5A52] mt-1.5">
+            <p className="text-[16px] leading-[25px] text-[#6B5A52] mt-1.5 break-words">
               {user?.name ? (
                 <>
                   Halo, <span className="capitalize">{user.name}</span>. Pantau jadwal perawatan dan profil si kecil di sini.
@@ -211,7 +223,7 @@ export default function CustomerDashboard() {
           </div>
           <Link
             to="/reservasi"
-            className="inline-flex items-center justify-center h-[44px] px-5 rounded-[8px] border border-[#C94A83] bg-transparent text-[#C94A83] hover:bg-[#C94A83] hover:text-white text-[15px] font-medium transition-colors duration-150 self-start sm:self-auto shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2"
+            className="w-full sm:w-auto inline-flex items-center justify-center min-h-[44px] px-5 rounded-[8px] border border-[#C94A83] bg-transparent text-[#C94A83] hover:bg-[#C94A83] hover:text-white text-[15px] font-medium transition-colors duration-150 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2"
           >
             Buat reservasi
           </Link>
@@ -225,27 +237,27 @@ export default function CustomerDashboard() {
               <h2 className="font-['DM_Sans',sans-serif] text-[18px] leading-[24px] font-medium text-[#4A2A1A] break-words capitalize">
                 {user?.name ?? "Bunda"}
               </h2>
-              <p className="text-[14px] leading-[20px] text-[#6B5A52] break-all mt-1">
+              <p className="text-[15px] leading-[22px] text-[#6B5A52] break-all mt-1">
                 {user?.email ?? "-"}
               </p>
               {user?.phone_number && (
-                <p className="text-[14px] leading-[20px] text-[#6B5A52] tabular-nums mt-0.5">
+                <p className="text-[15px] leading-[22px] text-[#6B5A52] tabular-nums mt-0.5">
                   {user.phone_number}
                 </p>
               )}
             </div>
 
             {/* Bagian Alamat Rumah */}
-            <div className="pt-5 mt-5 border-t border-black/10">
-              <div className="flex items-center justify-between gap-2 mb-2">
-                <h3 className="text-[14px] leading-[20px] font-medium text-[#4A2A1A]">
+            <div className="pt-4 mt-4 border-t border-black/10">
+              <div className="flex items-center justify-between gap-2 mb-1">
+                <h3 className="text-[15px] leading-[22px] font-medium text-[#4A2A1A]">
                   Alamat rumah
                 </h3>
                 {!isEditingAddress && (
                   <button
                     type="button"
                     onClick={handleStartEditAddress}
-                    className="text-[14px] font-medium text-[#C94A83] hover:underline underline-offset-4 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2 rounded-sm"
+                    className="min-h-[44px] min-w-[44px] px-2 -mr-2 inline-flex items-center justify-end text-[14px] font-medium text-[#C94A83] hover:underline underline-offset-4 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2 rounded-sm"
                   >
                     Ubah
                   </button>
@@ -253,10 +265,10 @@ export default function CustomerDashboard() {
               </div>
 
               {isEditingAddress ? (
-                <div className="flex flex-col gap-2.5">
+                <div className="flex flex-col gap-2.5 mt-2">
                   <textarea
                     rows={3}
-                    className="w-full px-3 py-2 rounded-[8px] bg-white border border-black/20 text-[14px] leading-[20px] text-[#4A2A1A] placeholder:text-[#6B5A52]/70 resize-none focus:outline-none focus:ring-2 focus:ring-[#C94A83] focus:ring-offset-2 focus:border-[#C94A83]"
+                    className="w-full px-3 py-2.5 rounded-[8px] bg-white border border-black/20 text-[16px] leading-[22px] text-[#4A2A1A] placeholder:text-[#6B5A52]/70 resize-none focus:outline-none focus:ring-2 focus:ring-[#C94A83] focus:ring-offset-2 focus:border-[#C94A83]"
                     placeholder="Contoh: Jl. Musi No. 10, RT 02/RW 13, Karanganyar"
                     value={addressInput}
                     onChange={(e) => setAddressInput(e.target.value)}
@@ -266,7 +278,7 @@ export default function CustomerDashboard() {
                     <button
                       type="button"
                       onClick={() => setIsEditingAddress(false)}
-                      className="h-[36px] px-3.5 rounded-[8px] border border-black/20 text-[13px] font-medium text-[#4A2A1A] hover:bg-[#FAF6F2] transition-colors duration-150 cursor-pointer"
+                      className="min-h-[44px] px-4 rounded-[8px] border border-black/20 text-[14px] font-medium text-[#4A2A1A] hover:bg-[#FAF6F2] transition-colors duration-150 cursor-pointer"
                     >
                       Batal
                     </button>
@@ -274,7 +286,7 @@ export default function CustomerDashboard() {
                       type="button"
                       onClick={handleSaveAddress}
                       disabled={isSavingAddress}
-                      className="inline-flex items-center justify-center gap-1.5 h-[36px] px-4 rounded-[8px] bg-[#C94A83] hover:bg-[#B73F73] text-white text-[13px] font-medium transition-colors duration-150 cursor-pointer disabled:opacity-60"
+                      className="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-[8px] bg-[#C94A83] hover:bg-[#B73F73] text-white text-[14px] font-medium transition-colors duration-150 cursor-pointer disabled:opacity-60"
                     >
                       {isSavingAddress && <Loader2 size={14} className="animate-spin" aria-hidden="true" />}
                       {isSavingAddress ? "Menyimpan..." : "Simpan"}
@@ -282,38 +294,38 @@ export default function CustomerDashboard() {
                   </div>
                 </div>
               ) : (
-                <p className="text-[14px] leading-[22px] text-[#6B5A52] break-words">
+                <p className="text-[15px] leading-[23px] text-[#6B5A52] break-words">
                   {user?.address || "Belum diisi. Diperlukan apabila Bunda memilih layanan kunjungan rumah."}
                 </p>
               )}
             </div>
 
             {/* Bagian Profil Si Kecil */}
-            <div className="pt-5 mt-5 border-t border-black/10">
-              <div className="flex items-center justify-between gap-2 mb-3">
-                <h3 className="text-[14px] leading-[20px] font-medium text-[#4A2A1A]">
+            <div className="pt-4 mt-4 border-t border-black/10">
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <h3 className="text-[15px] leading-[22px] font-medium text-[#4A2A1A]">
                   Profil si kecil
                 </h3>
                 <button
                   type="button"
                   onClick={() => setIsBabyModalOpen(true)}
-                  className="text-[14px] font-medium text-[#C94A83] hover:underline underline-offset-4 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2 rounded-sm"
+                  className="min-h-[44px] px-2 -mr-2 inline-flex items-center justify-end text-[14px] font-medium text-[#C94A83] hover:underline underline-offset-4 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2 rounded-sm"
                 >
                   Tambah anak
                 </button>
               </div>
 
               {babies.length === 0 ? (
-                <p className="text-[14px] leading-[22px] text-[#6B5A52]">
+                <p className="text-[15px] leading-[23px] text-[#6B5A52]">
                   Belum diisi. Tambahkan data anak agar pemesanan lebih cepat dan rekomendasi sesuai usia.
                 </p>
               ) : (
                 <ul className="divide-y divide-black/10">
                   {babies.map((b) => (
-                    <li key={b.id} className="py-2.5 first:pt-0 last:pb-0 flex items-center justify-between gap-2">
+                    <li key={b.id} className="py-2 first:pt-0 last:pb-0 flex items-center justify-between gap-2">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-baseline justify-between gap-2">
-                          <span className="text-[14px] leading-[20px] font-medium text-[#4A2A1A] truncate">
+                          <span className="text-[15px] leading-[22px] font-medium text-[#4A2A1A] truncate">
                             {b.name ?? "-"}
                           </span>
                           <span className="text-[13px] leading-[20px] text-[#6B5A52] tabular-nums shrink-0">
@@ -321,7 +333,7 @@ export default function CustomerDashboard() {
                           </span>
                         </div>
                         {b.notes && (
-                          <p className="text-[12px] leading-[18px] text-[#6B5A52] truncate mt-0.5">
+                          <p className="text-[13px] leading-[18px] text-[#6B5A52] truncate mt-0.5">
                             {b.notes}
                           </p>
                         )}
@@ -329,7 +341,7 @@ export default function CustomerDashboard() {
                       <button
                         type="button"
                         onClick={() => setBabyToDelete(b)}
-                        className="w-10 h-10 min-w-[40px] min-h-[40px] inline-flex items-center justify-center text-[#6B5A52] hover:text-[#9B3B3B] rounded-[8px] hover:bg-[#FAF6F2] transition-colors duration-150 cursor-pointer shrink-0 -mr-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83]"
+                        className="w-11 h-11 min-w-[44px] min-h-[44px] inline-flex items-center justify-center text-[#6B5A52] hover:text-[#9B3B3B] rounded-[8px] hover:bg-[#FAF6F2] transition-colors duration-150 cursor-pointer shrink-0 -mr-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83]"
                         title={`Hapus profil ${b.name}`}
                         aria-label={`Hapus profil ${b.name}`}
                       >
@@ -361,15 +373,15 @@ export default function CustomerDashboard() {
             {isLoading ? (
               <div className="bg-white border border-black/10 rounded-[12px] flex flex-col items-center justify-center py-16 gap-3">
                 <Loader2 size={24} className="animate-spin text-[#6B5A52]" aria-hidden="true" />
-                <p className="text-[#6B5A52] text-[14px]">Memuat daftar reservasi...</p>
+                <p className="text-[#6B5A52] text-[15px]">Memuat daftar reservasi...</p>
               </div>
             ) : reservations.length === 0 ? (
               <div className="bg-white border border-black/10 rounded-[12px] p-8 text-center">
-                <p className="text-[15px] leading-[24px] text-[#6B5A52]">
+                <p className="text-[16px] leading-[24px] text-[#6B5A52]">
                   Belum ada reservasi.{" "}
                   <Link
                     to="/reservasi"
-                    className="font-medium text-[#4A2A1A] underline decoration-[#D4568F] decoration-[1.5px] underline-offset-4 hover:text-[#C94A83] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2 rounded-sm"
+                    className="inline-flex items-center min-h-[44px] font-medium text-[#4A2A1A] underline decoration-[#D4568F] decoration-[1.5px] underline-offset-4 hover:text-[#C94A83] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2 rounded-sm"
                   >
                     Buat reservasi
                   </Link>
@@ -400,8 +412,9 @@ export default function CustomerDashboard() {
                   return (
                     <article
                       key={booking.id}
-                      className={`border border-black/10 rounded-[12px] p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${isCancelled ? "bg-white/75" : "bg-white"
-                        }`}
+                      className={`border border-black/10 rounded-[12px] p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 min-w-0 ${
+                        isCancelled ? "bg-white/75" : "bg-white"
+                      }`}
                     >
                       <div className="min-w-0 flex-1 flex flex-col gap-1">
                         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -414,13 +427,14 @@ export default function CustomerDashboard() {
                         </div>
 
                         <h3
-                          className={`text-[16px] leading-[24px] font-medium break-words ${isCancelled ? "text-[#6B5A52]" : "text-[#4A2A1A]"
-                            }`}
+                          className={`text-[17px] leading-[24px] font-medium break-words ${
+                            isCancelled ? "text-[#6B5A52]" : "text-[#4A2A1A]"
+                          }`}
                         >
                           {booking.service?.name ?? "Layanan"}
                         </h3>
 
-                        <p className="text-[14px] leading-[21px] text-[#6B5A52] tabular-nums">
+                        <p className="text-[14px] leading-[21px] text-[#6B5A52] tabular-nums break-words">
                           {formattedDate} • {formattedTime} • {locationText}
                           {booking.baby_name ? ` • ${booking.baby_name}` : ""}
                         </p>
@@ -430,20 +444,22 @@ export default function CustomerDashboard() {
                         </p>
                       </div>
 
-                      <div className="flex sm:flex-col items-center sm:items-end justify-between gap-3 pt-3 sm:pt-0 border-t sm:border-t-0 border-black/10 shrink-0">
+                      <div className="flex flex-wrap sm:flex-col items-center sm:items-end justify-between gap-3 pt-3 sm:pt-0 border-t sm:border-t-0 border-black/10 shrink-0">
                         <span
-                          className={`text-[16px] sm:text-[17px] leading-[24px] font-medium tabular-nums ${isCancelled ? "text-[#6B5A52] line-through" : "text-[#4A2A1A]"
-                            }`}
+                          className={`text-[17px] leading-[24px] font-medium tabular-nums ${
+                            isCancelled ? "text-[#6B5A52] line-through" : "text-[#4A2A1A]"
+                          }`}
                         >
                           Rp {Number(booking.total_price ?? 0).toLocaleString("id-ID")}
                         </span>
 
                         <Link
                           to={`/dashboard/reservasi/${booking.id}`}
-                          className={`inline-flex items-center justify-center rounded-[8px] px-[14px] py-[6px] text-[14px] font-medium border transition-colors duration-150 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2 ${isCancelled
-                            ? "border-black/20 text-[#6B5A52] hover:border-[#4A2A1A] hover:text-[#4A2A1A]"
-                            : "border-[#C94A83] text-[#C94A83] hover:bg-[#C94A83] hover:text-white"
-                            }`}
+                          className={`w-full min-[360px]:w-auto min-h-[44px] inline-flex items-center justify-center rounded-[8px] px-4 text-[14px] font-medium border transition-colors duration-150 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2 ${
+                            isCancelled
+                              ? "border-black/20 text-[#6B5A52] hover:border-[#4A2A1A] hover:text-[#4A2A1A]"
+                              : "border-[#C94A83] text-[#C94A83] hover:bg-[#C94A83] hover:text-white"
+                          }`}
                         >
                           {booking.status === "pending" ? "Detail dan bayar" : "Lihat detail"}
                         </Link>
@@ -457,7 +473,7 @@ export default function CustomerDashboard() {
         </div>
 
         {/* Bagian Rekomendasi / Layanan Terpopuler */}
-        <div className="mt-12 pt-10 border-t border-black/10">
+        <div className="mt-10 md:mt-12 pt-8 md:pt-10 border-t border-black/10">
           <RecommendationSection />
         </div>
       </div>
@@ -474,80 +490,82 @@ export default function CustomerDashboard() {
             onClick={() => setIsBabyModalOpen(false)}
             className="absolute inset-0 bg-black/50"
           />
-          <div className="bg-white border border-black/10 rounded-[12px] w-full max-w-md p-6 relative z-10 flex flex-col gap-5">
-            <div className="flex items-center justify-between pb-3 border-b border-black/10">
+          <div className="bg-white border border-black/10 rounded-[12px] w-full max-w-[calc(100vw-32px)] sm:max-w-md max-h-[90dvh] relative z-10 flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-black/10 shrink-0">
               <h3 id="modal-add-baby-title" className="text-[18px] font-medium text-[#4A2A1A]">
                 Tambah profil anak
               </h3>
               <button
                 type="button"
                 onClick={() => setIsBabyModalOpen(false)}
-                className="p-1.5 text-[#6B5A52] hover:text-[#4A2A1A] rounded-[8px] hover:bg-[#FAF6F2] transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83]"
+                className="w-11 h-11 min-w-[44px] min-h-[44px] inline-flex items-center justify-center text-[#6B5A52] hover:text-[#4A2A1A] rounded-[8px] hover:bg-[#FAF6F2] transition-colors duration-150 cursor-pointer -mr-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83]"
                 aria-label="Tutup modal"
               >
-                <X size={18} />
+                <X size={20} aria-hidden="true" />
               </button>
             </div>
 
-            <form onSubmit={handleCreateBaby} className="flex flex-col gap-4 text-left">
-              <div>
-                <label htmlFor="baby-name" className="block text-[14px] font-medium text-[#4A2A1A] mb-1.5">
-                  Nama lengkap anak
-                </label>
-                <input
-                  id="baby-name"
-                  type="text"
-                  placeholder="Contoh: Kenzie"
-                  className="w-full h-[44px] px-3.5 rounded-[8px] bg-white border border-black/20 text-[15px] text-[#4A2A1A] placeholder:text-[#6B5A52]/70 focus:outline-none focus:ring-2 focus:ring-[#C94A83] focus:ring-offset-2 focus:border-[#C94A83]"
-                  value={babyForm.name}
-                  onChange={(e) =>
-                    setBabyForm({ ...babyForm, name: e.target.value.replace(/[^a-zA-Z\s'.-]/g, "") })
-                  }
-                  required
-                />
+            <form onSubmit={handleCreateBaby} className="flex flex-col flex-1 min-h-0">
+              <div className="overflow-y-auto px-5 sm:px-6 py-5 flex flex-col gap-4 text-left">
+                <div>
+                  <label htmlFor="baby-name" className="block text-[14px] font-medium text-[#4A2A1A] mb-1.5">
+                    Nama lengkap anak
+                  </label>
+                  <input
+                    id="baby-name"
+                    type="text"
+                    placeholder="Contoh: Kenzie"
+                    className="w-full h-[44px] px-3.5 rounded-[8px] bg-white border border-black/20 text-[16px] text-[#4A2A1A] placeholder:text-[#6B5A52]/70 focus:outline-none focus:ring-2 focus:ring-[#C94A83] focus:ring-offset-2 focus:border-[#C94A83]"
+                    value={babyForm.name}
+                    onChange={(e) =>
+                      setBabyForm({ ...babyForm, name: e.target.value.replace(/[^a-zA-Z\s'.-]/g, "") })
+                    }
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="baby-birthdate" className="block text-[14px] font-medium text-[#4A2A1A] mb-1.5">
+                    Tanggal lahir
+                  </label>
+                  <input
+                    id="baby-birthdate"
+                    type="date"
+                    className="w-full h-[44px] px-3.5 rounded-[8px] bg-white border border-black/20 text-[16px] text-[#4A2A1A] tabular-nums focus:outline-none focus:ring-2 focus:ring-[#C94A83] focus:ring-offset-2 focus:border-[#C94A83]"
+                    value={babyForm.birthDate}
+                    onChange={(e) => setBabyForm({ ...babyForm, birthDate: e.target.value })}
+                    max={new Date().toISOString().split("T")[0]}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="baby-notes" className="block text-[14px] font-medium text-[#4A2A1A] mb-1.5">
+                    Catatan kesehatan (opsional)
+                  </label>
+                  <textarea
+                    id="baby-notes"
+                    rows={2}
+                    placeholder="Contoh: Alergi minyak lavender, kulit sensitif"
+                    className="w-full px-3.5 py-2.5 rounded-[8px] bg-white border border-black/20 text-[16px] text-[#4A2A1A] placeholder:text-[#6B5A52]/70 resize-none focus:outline-none focus:ring-2 focus:ring-[#C94A83] focus:ring-offset-2 focus:border-[#C94A83]"
+                    value={babyForm.notes}
+                    onChange={(e) => setBabyForm({ ...babyForm, notes: e.target.value })}
+                  />
+                </div>
               </div>
 
-              <div>
-                <label htmlFor="baby-birthdate" className="block text-[14px] font-medium text-[#4A2A1A] mb-1.5">
-                  Tanggal lahir
-                </label>
-                <input
-                  id="baby-birthdate"
-                  type="date"
-                  className="w-full h-[44px] px-3.5 rounded-[8px] bg-white border border-black/20 text-[15px] text-[#4A2A1A] tabular-nums focus:outline-none focus:ring-2 focus:ring-[#C94A83] focus:ring-offset-2 focus:border-[#C94A83]"
-                  value={babyForm.birthDate}
-                  onChange={(e) => setBabyForm({ ...babyForm, birthDate: e.target.value })}
-                  max={new Date().toISOString().split("T")[0]}
-                  required
-                />
-              </div>
-
-              <div>
-                <label htmlFor="baby-notes" className="block text-[14px] font-medium text-[#4A2A1A] mb-1.5">
-                  Catatan kesehatan (opsional)
-                </label>
-                <textarea
-                  id="baby-notes"
-                  rows={2}
-                  placeholder="Contoh: Alergi minyak lavender, kulit sensitif"
-                  className="w-full px-3.5 py-2.5 rounded-[8px] bg-white border border-black/20 text-[14px] text-[#4A2A1A] placeholder:text-[#6B5A52]/70 resize-none focus:outline-none focus:ring-2 focus:ring-[#C94A83] focus:ring-offset-2 focus:border-[#C94A83]"
-                  value={babyForm.notes}
-                  onChange={(e) => setBabyForm({ ...babyForm, notes: e.target.value })}
-                />
-              </div>
-
-              <div className="flex gap-3 justify-end pt-2">
+              <div className="flex flex-wrap gap-3 justify-end px-5 sm:px-6 py-4 border-t border-black/10 shrink-0 bg-white">
                 <button
                   type="button"
                   onClick={() => setIsBabyModalOpen(false)}
-                  className="h-[44px] px-4 rounded-[8px] border border-black/20 text-[15px] font-medium text-[#4A2A1A] hover:bg-[#FAF6F2] transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2"
+                  className="flex-1 sm:flex-none min-h-[44px] px-4 rounded-[8px] border border-black/20 text-[15px] font-medium text-[#4A2A1A] hover:bg-[#FAF6F2] transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={isCreatingBaby}
-                  className="inline-flex items-center justify-center gap-2 h-[44px] px-5 rounded-[8px] bg-[#C94A83] hover:bg-[#B73F73] text-white text-[15px] font-medium transition-colors duration-150 cursor-pointer disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2"
+                  className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 min-h-[44px] px-5 rounded-[8px] bg-[#C94A83] hover:bg-[#B73F73] text-white text-[15px] font-medium transition-colors duration-150 cursor-pointer disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2"
                 >
                   {isCreatingBaby && <Loader2 size={15} className="animate-spin" aria-hidden="true" />}
                   {isCreatingBaby ? "Menyimpan..." : "Simpan profil"}
@@ -570,11 +588,11 @@ export default function CustomerDashboard() {
             onClick={() => !isDeletingBaby && setBabyToDelete(null)}
             className="absolute inset-0 bg-black/50"
           />
-          <div className="bg-white border border-black/10 rounded-[12px] w-full max-w-sm p-6 relative z-10 flex flex-col gap-4">
+          <div className="bg-white border border-black/10 rounded-[12px] w-full max-w-[calc(100vw-32px)] sm:max-w-sm max-h-[90dvh] p-6 relative z-10 flex flex-col gap-4 overflow-y-auto">
             <h3 id="modal-delete-baby-title" className="text-[18px] leading-[24px] font-medium text-[#4A2A1A]">
               Hapus profil anak?
             </h3>
-            <p id="modal-delete-baby-desc" className="text-[14px] leading-[22px] text-[#6B5A52]">
+            <p id="modal-delete-baby-desc" className="text-[15px] leading-[22px] text-[#6B5A52]">
               Profil <span className="font-medium text-[#4A2A1A]">{babyToDelete.name}</span> akan dihapus dari daftar anak Bunda.
             </p>
             <div className="flex items-center justify-end gap-3 pt-2">
@@ -582,7 +600,7 @@ export default function CustomerDashboard() {
                 type="button"
                 disabled={isDeletingBaby}
                 onClick={() => setBabyToDelete(null)}
-                className="h-[40px] px-4 rounded-[8px] border border-black/20 text-[14px] font-medium text-[#4A2A1A] hover:bg-[#FAF6F2] transition-colors duration-150 cursor-pointer disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2"
+                className="flex-1 sm:flex-none min-h-[44px] px-4 rounded-[8px] border border-black/20 text-[15px] font-medium text-[#4A2A1A] hover:bg-[#FAF6F2] transition-colors duration-150 cursor-pointer disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2"
               >
                 Batal
               </button>
@@ -590,7 +608,7 @@ export default function CustomerDashboard() {
                 type="button"
                 disabled={isDeletingBaby}
                 onClick={handleConfirmDeleteBaby}
-                className="inline-flex items-center justify-center gap-2 h-[40px] px-4 rounded-[8px] bg-[#9B3B3B] hover:bg-[#822F2F] text-white text-[14px] font-medium transition-colors duration-150 cursor-pointer disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9B3B3B] focus-visible:ring-offset-2"
+                className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-[8px] bg-[#9B3B3B] hover:bg-[#822F2F] text-white text-[15px] font-medium transition-colors duration-150 cursor-pointer disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9B3B3B] focus-visible:ring-offset-2"
               >
                 {isDeletingBaby && <Loader2 size={14} className="animate-spin" aria-hidden="true" />}
                 {isDeletingBaby ? "Menghapus..." : "Hapus"}

@@ -131,28 +131,28 @@ export default function Auth() {
   };
 
   const inputClass = (hasError?: boolean) =>
-    `w-full h-[44px] px-3.5 rounded-[8px] bg-white text-[15px] text-[#4A2A1A] placeholder:text-[#6B5A52]/70 border transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-[#C94A83] focus:ring-offset-2 ${
+    `w-full h-[44px] px-3.5 rounded-[8px] bg-white text-[16px] text-[#4A2A1A] placeholder:text-[#6B5A52]/70 border transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-[#C94A83] focus:ring-offset-2 ${
       hasError ? "border-[#B3261E]" : "border-black/20 focus:border-[#C94A83]"
     }`;
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-[#FAF6F2] px-4 py-8 sm:p-6 font-['DM_Sans',sans-serif]">
-      <div className="w-full max-w-[420px] mb-6 flex items-center justify-between gap-4">
-        <BrandLogo size="sm" />
+    <div className="min-h-[100dvh] flex flex-col items-center justify-center bg-[#FAF6F2] px-4 py-8 sm:p-6 font-['DM_Sans',sans-serif]">
+      <div className="w-full max-w-[420px] mb-5 flex items-center justify-between gap-4">
+        <BrandLogo size="sm" hideTaglineOnMobile />
         <Link
           to="/"
-          className="text-[14px] font-medium text-[#4A2A1A] underline decoration-[#D4568F] decoration-[1.5px] underline-offset-4 hover:text-[#C94A83] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2 rounded-sm shrink-0"
+          className="min-h-[44px] inline-flex items-center px-1 text-[15px] font-medium text-[#4A2A1A] underline decoration-[#D4568F] decoration-[1.5px] underline-offset-4 hover:text-[#C94A83] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2 rounded-sm shrink-0"
         >
           Ke beranda
         </Link>
       </div>
 
-      <main className="w-full max-w-[420px] bg-white rounded-[12px] p-5 sm:p-8 sm:border sm:border-black/10">
+      <main className="w-full max-w-[420px] bg-white border border-black/10 rounded-[12px] p-5 sm:p-8">
         <div className="mb-6">
-          <h1 className="font-['Playfair_Display',Georgia,serif] font-medium text-[32px] leading-[1.2] text-[#4A2A1A]">
+          <h1 className="font-['Playfair_Display',Georgia,serif] font-medium text-[clamp(28px,7vw,34px)] leading-[1.2] text-[#4A2A1A]">
             {isLogin ? "Masuk" : "Daftar akun"}
           </h1>
-          <p className="text-[15px] leading-[1.6] text-[#6B5A52] mt-2">
+          <p className="text-[16px] leading-[1.6] text-[#6B5A52] mt-2">
             {isLogin
               ? "Masuk untuk melihat dan mengatur reservasi Bunda."
               : "Lengkapi data berikut untuk membuat akun dan memesan layanan."}
@@ -256,7 +256,7 @@ export default function Auth() {
                 type={showPassword ? "text" : "password"}
                 autoComplete={isLogin ? "current-password" : "new-password"}
                 placeholder="Minimal 8 karakter"
-                className={`${inputClass(Boolean(fieldErrors.password))} pr-11`}
+                className={`${inputClass(Boolean(fieldErrors.password))} pr-12`}
                 value={form.password}
                 onChange={handleChange}
                 aria-invalid={Boolean(fieldErrors.password)}
@@ -267,11 +267,11 @@ export default function Auth() {
               <button
                 type="button"
                 onClick={() => setShowPassword((prev) => !prev)}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#6B5A52] hover:text-[#4A2A1A] transition-colors duration-150 cursor-pointer p-1.5 rounded-[6px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83]"
+                className="absolute right-0 top-1/2 -translate-y-1/2 w-11 h-11 min-w-[44px] min-h-[44px] inline-flex items-center justify-center text-[#6B5A52] hover:text-[#4A2A1A] transition-colors duration-150 cursor-pointer rounded-[8px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83]"
                 title={showPassword ? "Sembunyikan kata sandi" : "Tampilkan kata sandi"}
                 aria-label={showPassword ? "Sembunyikan kata sandi" : "Tampilkan kata sandi"}
               >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                {showPassword ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
               </button>
             </div>
             {fieldErrors.password && (
@@ -293,7 +293,7 @@ export default function Auth() {
                   type={showPasswordConfirmation ? "text" : "password"}
                   autoComplete="new-password"
                   placeholder="Ulangi kata sandi"
-                  className={`${inputClass(Boolean(fieldErrors.password_confirmation))} pr-11`}
+                  className={`${inputClass(Boolean(fieldErrors.password_confirmation))} pr-12`}
                   value={form.password_confirmation}
                   onChange={handleChange}
                   aria-invalid={Boolean(fieldErrors.password_confirmation)}
@@ -303,11 +303,11 @@ export default function Auth() {
                 <button
                   type="button"
                   onClick={() => setShowPasswordConfirmation((prev) => !prev)}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#6B5A52] hover:text-[#4A2A1A] transition-colors duration-150 cursor-pointer p-1.5 rounded-[6px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83]"
+                  className="absolute right-0 top-1/2 -translate-y-1/2 w-11 h-11 min-w-[44px] min-h-[44px] inline-flex items-center justify-center text-[#6B5A52] hover:text-[#4A2A1A] transition-colors duration-150 cursor-pointer rounded-[8px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83]"
                   title={showPasswordConfirmation ? "Sembunyikan konfirmasi kata sandi" : "Tampilkan konfirmasi kata sandi"}
                   aria-label={showPasswordConfirmation ? "Sembunyikan konfirmasi kata sandi" : "Tampilkan konfirmasi kata sandi"}
                 >
-                  {showPasswordConfirmation ? <EyeOff size={18} /> : <Eye size={18} />}
+                  {showPasswordConfirmation ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
                 </button>
               </div>
               {fieldErrors.password_confirmation && (
@@ -321,19 +321,19 @@ export default function Auth() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full h-[44px] mt-2 inline-flex items-center justify-center gap-2 rounded-[8px] bg-[#C94A83] hover:bg-[#B73F73] text-white text-[15px] font-medium transition-colors duration-150 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2"
+            className="w-full min-h-[44px] mt-2 inline-flex items-center justify-center gap-2 rounded-[8px] bg-[#C94A83] hover:bg-[#B73F73] text-white text-[15px] font-medium transition-colors duration-150 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2"
           >
             {isLoading && <Loader2 size={16} className="animate-spin" aria-hidden="true" />}
             {isLoading ? "Memproses..." : isLogin ? "Masuk" : "Daftar akun"}
           </button>
         </form>
 
-        <div className="mt-6 pt-5 border-t border-black/10 text-center text-[14px] text-[#6B5A52]">
-          {isLogin ? "Belum punya akun? " : "Sudah punya akun? "}
+        <div className="mt-6 pt-4 border-t border-black/10 flex flex-wrap items-center justify-center gap-1 text-[15px] text-[#6B5A52]">
+          <span>{isLogin ? "Belum punya akun?" : "Sudah punya akun?"}</span>
           <button
             type="button"
             onClick={switchMode}
-            className="text-[14px] font-medium text-[#4A2A1A] underline decoration-[#D4568F] decoration-[1.5px] underline-offset-4 hover:text-[#C94A83] transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2 rounded-sm"
+            className="min-h-[44px] px-1.5 inline-flex items-center text-[15px] font-medium text-[#4A2A1A] underline decoration-[#D4568F] decoration-[1.5px] underline-offset-4 hover:text-[#C94A83] transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2 rounded-sm"
           >
             {isLogin ? "Daftar" : "Masuk"}
           </button>

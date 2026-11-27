@@ -2,8 +2,8 @@ import { Link } from "react-router";
 
 export default function PaymentSuccess() {
   return (
-    <div className="min-h-[75vh] flex flex-col items-center justify-center p-6">
-      <div className="card-surface max-w-md w-full p-8">
+    <div className="min-h-[75dvh] flex flex-col items-center justify-center px-4 py-8">
+      <div className="bg-white border border-black/10 rounded-[12px] max-w-md w-full p-6 sm:p-8">
         <span className="text-[13px] font-semibold text-[var(--accent)] block mb-3">
           Dikonfirmasi
         </span>

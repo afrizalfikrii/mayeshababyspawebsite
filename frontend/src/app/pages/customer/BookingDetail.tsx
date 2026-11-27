@@ -128,6 +128,15 @@ export default function BookingDetail() {
   }, [id]);
 
   useEffect(() => {
+    if (!rescheduleModal) return;
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setRescheduleModal(false);
+    };
+    document.addEventListener("keydown", handleEsc);
+    return () => document.removeEventListener("keydown", handleEsc);
+  }, [rescheduleModal]);
+
+  useEffect(() => {
     if (!booking || booking.status !== "pending" || !booking.expires_at) {
       setTimeLeft("");
       return;
@@ -215,9 +224,9 @@ export default function BookingDetail() {
 
   if (isLoading) {
     return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-3">
-        <Loader2 size={26} className="animate-spin text-[var(--text-muted)]" />
-        <p className="text-[var(--text-muted)] text-[14px]">Memuat rincian reservasi...</p>
+      <div className="min-h-[60dvh] flex flex-col items-center justify-center gap-3">
+        <Loader2 size={26} className="animate-spin text-[#6B5A52]" />
+        <p className="text-[#6B5A52] text-[15px]">Memuat rincian reservasi...</p>
       </div>
     );
   }
@@ -228,13 +237,13 @@ export default function BookingDetail() {
   const isCancelled = booking.status === "cancelled";
 
   return (
-    <div className="max-w-5xl mx-auto px-6 py-10">
-      <div className="mb-6 print:hidden">
+    <div className="max-w-5xl mx-auto px-4 md:px-6 py-8 md:py-10">
+      <div className="mb-4 print:hidden">
         <Link
           to="/dashboard"
-          className="text-[14px] font-medium text-[var(--text-muted)] hover:text-[var(--text)] hover:underline underline-offset-4 transition-colors duration-150"
+          className="min-h-[44px] inline-flex items-center text-[15px] font-medium text-[#6B5A52] hover:text-[#4A2A1A] hover:underline underline-offset-4 transition-colors duration-150"
         >
-          Kembali ke Akun Saya
+          Kembali ke Ruang Bunda
         </Link>
       </div>
 
@@ -603,114 +612,127 @@ export default function BookingDetail() {
       </div>
 
       {rescheduleModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Ubah jadwal sesi"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+        >
           <div
             onClick={() => setRescheduleModal(false)}
             className="absolute inset-0 bg-black/50"
           />
-          <div className="card-surface w-full max-w-md p-6 relative z-10 flex flex-col gap-5">
-            <div className="flex items-start justify-between pb-3 border-b border-[var(--border)]">
-              <div>
-                <h3 className="text-[18px] font-semibold text-[var(--text)]">Ubah Jadwal Sesi</h3>
-                <p className="text-[13px] text-[var(--text-muted)] mt-0.5">
+          <div className="bg-white border border-black/10 rounded-[12px] w-full max-w-[calc(100vw-32px)] sm:max-w-md max-h-[90dvh] relative z-10 flex flex-col overflow-hidden">
+            <div className="flex items-start justify-between px-5 sm:px-6 py-4 border-b border-black/10 shrink-0">
+              <div className="min-w-0">
+                <h3 className="text-[18px] font-semibold text-[#4A2A1A]">Ubah jadwal sesi</h3>
+                <p className="text-[13px] text-[#6B5A52] mt-0.5">
                   Pilih tanggal dan jam kedatangan yang baru.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setRescheduleModal(false)}
-                className="p-1.5 text-[var(--text-muted)] hover:text-[var(--text)] rounded-[8px] hover:bg-[var(--fill-subtle)] transition-colors duration-150 cursor-pointer"
+                className="w-11 h-11 min-w-[44px] min-h-[44px] inline-flex items-center justify-center text-[#6B5A52] hover:text-[#4A2A1A] rounded-[8px] hover:bg-[#FAF6F2] transition-colors duration-150 cursor-pointer shrink-0 -mr-2 -mt-1"
                 aria-label="Tutup modal"
               >
-                <X size={18} />
+                <X size={20} aria-hidden="true" />
               </button>
             </div>
 
-            <form onSubmit={handleCustomerReschedule} className="flex flex-col gap-4">
-              <div>
-                <label className="overline-label block mb-1.5">Tanggal Baru</label>
-                <input
-                  type="date"
-                  min={new Date().toISOString().split("T")[0]}
-                  className="input-field tabular-nums"
-                  value={rescheduleDate}
-                  onChange={(e) => setRescheduleDate(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="overline-label block">Jam Baru</label>
-                  {isLoadingSlots && (
-                    <span className="flex items-center gap-1 text-[12px] text-[var(--text-muted)]">
-                      <Loader2 size={12} className="animate-spin" /> Memeriksa slot...
-                    </span>
-                  )}
+            <form onSubmit={handleCustomerReschedule} className="flex flex-col flex-1 min-h-0">
+              <div className="overflow-y-auto px-5 sm:px-6 py-4 flex flex-col gap-4">
+                <div>
+                  <label htmlFor="reschedule-date" className="block text-[14px] font-medium text-[#4A2A1A] mb-1.5">
+                    Tanggal baru
+                  </label>
+                  <input
+                    id="reschedule-date"
+                    type="date"
+                    min={new Date().toISOString().split("T")[0]}
+                    className="input-field tabular-nums text-[16px]"
+                    value={rescheduleDate}
+                    onChange={(e) => setRescheduleDate(e.target.value)}
+                    required
+                  />
                 </div>
 
-                <div className="grid grid-cols-2 gap-2">
-                  {["08:30", "09:30", "10:30", "11:30", "13:00", "14:00", "15:00", "16:00"].map((t) => {
-                    const slotInfo = slotAvailability?.slots[t];
-                    const isPast = slotInfo?.is_past ?? false;
-                    const isFull = (slotInfo?.is_full ?? false) || isPast;
-                    const isLimited = slotInfo?.available === 1;
-                    const isSelected = rescheduleTime === t;
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-[14px] font-medium text-[#4A2A1A]">Jam baru</label>
+                    {isLoadingSlots && (
+                      <span className="flex items-center gap-1 text-[13px] text-[#6B5A52]">
+                        <Loader2 size={12} className="animate-spin" /> Memeriksa slot...
+                      </span>
+                    )}
+                  </div>
 
-                    return (
-                      <button
-                        key={t}
-                        type="button"
-                        disabled={isFull}
-                        onClick={() => !isFull && setRescheduleTime(t)}
-                        className={`py-2 px-3 rounded-[8px] text-[13px] tabular-nums transition-colors duration-150 flex flex-col items-center justify-center ${
-                          isFull
-                            ? "bg-[#FFFFFF] border border-[var(--border)] text-[var(--text-muted)] opacity-50 cursor-not-allowed"
-                            : isSelected
-                              ? "bg-[#FAF7F4] border-[1.5px] border-[var(--text)] text-[var(--text)] font-semibold cursor-pointer"
-                              : "bg-[#FFFFFF] border border-[var(--border)] text-[var(--text)] hover:border-[var(--text-muted)] font-medium cursor-pointer"
-                        }`}
-                      >
-                        <span>{t} WIB</span>
-                        {isPast ? (
-                          <span className="text-[10px] text-[var(--text-muted)]">Lewat</span>
-                        ) : isFull ? (
-                          <span className="text-[10px] text-[var(--text-muted)]">Penuh</span>
-                        ) : isLimited ? (
-                          <span className="text-[10px] text-[var(--accent)]">Sisa 1 slot</span>
-                        ) : null}
-                      </button>
-                    );
-                  })}
+                  <div className="grid grid-cols-2 gap-2">
+                    {["08:30", "09:30", "10:30", "11:30", "13:00", "14:00", "15:00", "16:00"].map((t) => {
+                      const slotInfo = slotAvailability?.slots[t];
+                      const isPast = slotInfo?.is_past ?? false;
+                      const isFull = (slotInfo?.is_full ?? false) || isPast;
+                      const isLimited = slotInfo?.available === 1;
+                      const isSelected = rescheduleTime === t;
+
+                      return (
+                        <button
+                          key={t}
+                          type="button"
+                          disabled={isFull}
+                          onClick={() => !isFull && setRescheduleTime(t)}
+                          className={`min-h-[48px] py-2 px-3 rounded-[8px] text-[14px] tabular-nums transition-colors duration-150 flex flex-col items-center justify-center ${
+                            isFull
+                              ? "bg-white border border-black/10 text-[#6B5A52] opacity-50 cursor-not-allowed"
+                              : isSelected
+                                ? "bg-[#FFFBF8] border-[1.5px] border-[#C94A83] text-[#4A2A1A] font-semibold cursor-pointer"
+                                : "bg-white border border-black/10 text-[#4A2A1A] hover:border-black/25 font-medium cursor-pointer"
+                          }`}
+                        >
+                          <span>{t} WIB</span>
+                          {isPast ? (
+                            <span className="text-[12px] text-[#6B5A52]">Lewat</span>
+                          ) : isFull ? (
+                            <span className="text-[12px] text-[#6B5A52]">Penuh</span>
+                          ) : isLimited ? (
+                            <span className="text-[12px] text-[#C94A83]">Sisa 1 slot</span>
+                          ) : null}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="reschedule-notes" className="block text-[14px] font-medium text-[#4A2A1A] mb-1.5">
+                    Catatan perubahan (opsional)
+                  </label>
+                  <textarea
+                    id="reschedule-notes"
+                    rows={2}
+                    placeholder="Contoh: Penyesuaian jadwal imunisasi anak"
+                    className="input-field resize-none py-2.5 text-[16px]"
+                    value={rescheduleNotes}
+                    onChange={(e) => setRescheduleNotes(e.target.value)}
+                  />
                 </div>
               </div>
 
-              <div>
-                <label className="overline-label block mb-1.5">Catatan Perubahan (Opsional)</label>
-                <textarea
-                  rows={2}
-                  placeholder="Contoh: Penyesuaian jadwal imunisasi anak"
-                  className="input-field resize-none py-2"
-                  value={rescheduleNotes}
-                  onChange={(e) => setRescheduleNotes(e.target.value)}
-                />
-              </div>
-
-              <div className="flex gap-3 justify-end pt-2">
+              <div className="flex gap-3 justify-end px-5 sm:px-6 py-4 border-t border-black/10 shrink-0 bg-white">
                 <button
                   type="button"
                   onClick={() => setRescheduleModal(false)}
-                  className="btn-secondary"
+                  className="btn-secondary flex-1 sm:flex-none"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={isRescheduling}
-                  className="btn-primary"
+                  className="btn-primary flex-1 sm:flex-none"
                 >
                   {isRescheduling && <Loader2 size={15} className="animate-spin" />}
-                  {isRescheduling ? "Menyimpan..." : "Simpan Jadwal"}
+                  {isRescheduling ? "Menyimpan..." : "Simpan jadwal"}
                 </button>
               </div>
             </form>

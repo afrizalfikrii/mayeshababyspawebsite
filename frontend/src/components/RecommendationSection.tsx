@@ -78,22 +78,21 @@ function RecommendationCard({
         )}
       </div>
 
-      <div className="pt-4 mt-6 border-t border-black/10 flex items-center justify-between gap-3">
-        <span className="text-[13px] md:text-[14px] leading-[20px] text-[#6B5A52] tabular-nums">
-          {service.duration_minutes} menit
-        </span>
-
-        <div className="flex items-center gap-3.5">
+      <div className="pt-4 mt-5 border-t border-black/10 flex flex-col gap-3">
+        <div className="flex items-baseline justify-between gap-2">
+          <span className="text-[14px] leading-[20px] text-[#6B5A52] tabular-nums">
+            {service.duration_minutes} menit
+          </span>
           <span className="text-[18px] leading-[24px] font-medium text-[#4A2A1A] tabular-nums">
             Rp {Number(service.price ?? 0).toLocaleString("id-ID")}
           </span>
-          <Link
-            to={`/reservasi?service_id=${service.id}`}
-            className="relative z-10 inline-flex items-center justify-center border border-[#C94A83] text-[#C94A83] text-[13px] md:text-[14px] font-medium rounded-[8px] px-[14px] py-[6px] hover:bg-[#C94A83] hover:text-white transition-colors duration-150 after:absolute after:inset-0 after:rounded-[12px] focus:outline-none"
-          >
-            Reservasi
-          </Link>
         </div>
+        <Link
+          to={`/reservasi?service_id=${service.id}`}
+          className="relative z-10 w-full min-h-[44px] inline-flex items-center justify-center border border-[#C94A83] text-[#C94A83] text-[15px] font-medium rounded-[8px] px-4 hover:bg-[#C94A83] hover:text-white transition-colors duration-150 after:absolute after:inset-0 after:rounded-[12px] focus:outline-none"
+        >
+          Reservasi
+        </Link>
       </div>
     </article>
   );
@@ -161,7 +160,7 @@ export default function RecommendationSection() {
           <p className="text-[14px] text-[#6B5A52]">Memuat rekomendasi layanan...</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 md:gap-6">
           {recommendations.map((service) => (
             <RecommendationCard
               key={service.id}

@@ -83,7 +83,7 @@ export default function BookingStepper({
           >
             {activeStepItem.label}
           </span>
-          <span className="text-[12px] leading-[18px] text-[#6B5A52] tabular-nums shrink-0">
+          <span className="text-[13px] leading-[18px] text-[#6B5A52] tabular-nums shrink-0">
             Langkah {currentStep} dari {totalSteps}
           </span>
         </div>
