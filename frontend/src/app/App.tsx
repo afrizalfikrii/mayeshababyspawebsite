@@ -11,10 +11,18 @@ export default function App() {
       <RouterProvider router={router} />
       <Toaster
         position="top-right"
-        richColors
         closeButton
         toastOptions={{
           duration: 4000,
+          style: {
+            background: "#FFFFFF",
+            color: "#29211D",
+            border: "1px solid #E6DFD8",
+            borderRadius: "8px",
+            boxShadow: "none",
+            fontFamily: "'Plus Jakarta Sans', sans-serif",
+            fontSize: "14px",
+          },
         }}
       />
     </AuthProvider>

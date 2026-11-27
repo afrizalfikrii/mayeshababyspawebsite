@@ -1,23 +1,135 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
-import { Calendar, Clock, CheckCircle, ChevronRight, User, Loader2, Sparkles, Baby as BabyIcon, Plus, AlertCircle, MapPin, Navigation, Pencil } from "lucide-react";
+import { Loader2, MapPin, Navigation } from "lucide-react";
 import { toast } from "sonner";
-import { motion } from "motion/react";
 import { getServices, getTherapists } from "@/services/service.service";
 import { createReservation, getSlotAvailability } from "@/services/reservation.service";
 import { getBabies, createBaby } from "@/services/baby.service";
 import { useAuth } from "@/context/AuthContext";
+import { formatAgeRange } from "@/lib/formatAgeRange";
 import type { Service, Therapist, Baby, SlotAvailability } from "@/types/api.types";
+import BookingStepper, { BOOKING_STEPS } from "@/app/components/BookingStepper";
 
 const TIME_SLOTS = ["08:30", "09:30", "10:30", "11:30", "13:00", "14:00", "15:00", "16:00"];
+const GPS_PREFIX_REGEX = /\n?(?:\u{1F4CD}\s*)?Titik GPS:\s*https:\/\/maps\.google\.com\/\?q=[-0-9.,]+/gu;
+const BOOKING_DRAFT_KEY = "mayesha_booking_draft";
+
+interface BookingFormData {
+  serviceId: number;
+  date: string;
+  time: string;
+  babyName: string;
+  babyAge: string;
+  notes: string;
+  therapistId: string;
+  babyId: string;
+  deliveryAddress: string;
+}
+
+interface BookingDraft {
+  userId: number | null;
+  step: number;
+  segmentFilter: "all" | "Bayi" | "Anak" | "Ibu";
+  formData: BookingFormData;
+  babyProfileMode: "select" | "manual" | "create";
+  newBabyData: { name: string; birthDate: string; notes: string };
+}
+
+const DEFAULT_FORM_DATA: BookingFormData = {
+  serviceId: 0,
+  date: "",
+  time: "",
+  babyName: "",
+  babyAge: "",
+  notes: "",
+  therapistId: "",
+  babyId: "",
+  deliveryAddress: "",
+};
+
+const loadBookingDraft = (userId: number | null): BookingDraft | null => {
+  try {
+    const raw = sessionStorage.getItem(BOOKING_DRAFT_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<BookingDraft>;
+    if (!parsed || typeof parsed !== "object") return null;
+    if ((parsed.userId ?? null) !== userId) return null;
+    if (!parsed.formData || typeof parsed.formData !== "object") return null;
+
+    const validStep =
+      typeof parsed.step === "number" && parsed.step >= 1 && parsed.step <= 4
+        ? Math.floor(parsed.step)
+        : 1;
+    const validSegment =
+      parsed.segmentFilter === "all" ||
+      parsed.segmentFilter === "Bayi" ||
+      parsed.segmentFilter === "Anak" ||
+      parsed.segmentFilter === "Ibu"
+        ? parsed.segmentFilter
+        : "all";
+    const validMode =
+      parsed.babyProfileMode === "select" ||
+      parsed.babyProfileMode === "manual" ||
+      parsed.babyProfileMode === "create"
+        ? parsed.babyProfileMode
+        : "select";
+
+    return {
+      userId,
+      step: validStep,
+      segmentFilter: validSegment,
+      formData: {
+        ...DEFAULT_FORM_DATA,
+        ...parsed.formData,
+        serviceId: Number(parsed.formData.serviceId) || 0,
+      },
+      babyProfileMode: validMode,
+      newBabyData: {
+        name: parsed.newBabyData?.name ?? "",
+        birthDate: parsed.newBabyData?.birthDate ?? "",
+        notes: parsed.newBabyData?.notes ?? "",
+      },
+    };
+  } catch {
+    return null;
+  }
+};
+
+const clearBookingDraft = () => {
+  try {
+    sessionStorage.removeItem(BOOKING_DRAFT_KEY);
+  } catch {
+    // Ignore storage errors
+  }
+};
+
+const getLocalTodayStr = (): string => {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  const d = String(now.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+};
 
 export default function Booking() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
-  const [step, setStep] = useState(1);
+  const [initialDraft] = useState<BookingDraft | null>(() => {
+    const draft = loadBookingDraft(user?.id ?? null);
+    if (!draft) return null;
+    const preselectedId = parseInt(searchParams.get("service_id") ?? "0");
+    if (preselectedId && draft.formData.serviceId && preselectedId !== draft.formData.serviceId) {
+      return null;
+    }
+    return draft;
+  });
+
+  const [step, setStep] = useState(() => initialDraft?.step ?? 1);
   const [services, setServices] = useState<Service[]>([]);
-  const [segmentFilter, setSegmentFilter] = useState<"all" | "Bayi" | "Anak" | "Ibu">("all");
+  const [segmentFilter, setSegmentFilter] = useState<"all" | "Bayi" | "Anak" | "Ibu">(
+    () => initialDraft?.segmentFilter ?? "all"
+  );
   const [therapists, setTherapists] = useState<Therapist[]>([]);
   const [isLoadingServices, setIsLoadingServices] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -40,27 +152,21 @@ export default function Booking() {
     segmentFilter === "all" ? true : getServiceClassification(s) === segmentFilter
   );
 
-  const [formData, setFormData] = useState({
-    serviceId: 0,
-    date: "",
-    time: "",
-    babyName: "",
-    babyAge: "",
-    notes: "",
-    therapistId: "",
-    babyId: "",
-    deliveryAddress: "",
-  });
+  const [formData, setFormData] = useState<BookingFormData>(
+    () => initialDraft?.formData ?? DEFAULT_FORM_DATA
+  );
 
-  // ── Slot Availability State ─────────────────────────────────────────────────
   const [slotAvailability, setSlotAvailability] = useState<SlotAvailability | null>(null);
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
 
-  // ── Baby State ──────────────────────────────────────────────────────────────
   const [babies, setBabies] = useState<Baby[]>([]);
-  const [isLoadingBabies, setIsLoadingBabies] = useState(true);
-  const [babyProfileMode, setBabyProfileMode] = useState<"select" | "manual" | "create">("select");
-  const [newBabyData, setNewBabyData] = useState({ name: "", birthDate: "", notes: "" });
+  const [, setIsLoadingBabies] = useState(true);
+  const [babyProfileMode, setBabyProfileMode] = useState<"select" | "manual" | "create">(
+    () => initialDraft?.babyProfileMode ?? "select"
+  );
+  const [newBabyData, setNewBabyData] = useState(
+    () => initialDraft?.newBabyData ?? { name: "", birthDate: "", notes: "" }
+  );
   const [isCreatingBaby, setIsCreatingBaby] = useState(false);
 
   const calculateAgeInMonths = (birthDateString: string) => {
@@ -84,27 +190,98 @@ export default function Booking() {
         setTherapists(therapistsData);
         setBabies(babiesData);
 
-        // Baca ?service_id dari URL (dari tombol "Pesan Sekarang" di rekomendasi)
         const preselectedId = parseInt(searchParams.get("service_id") ?? "0");
-        const defaultService = preselectedId && servicesData.find((s) => s.id === preselectedId)
-          ? preselectedId
-          : servicesData[0]?.id ?? 0;
-        setFormData((prev) => ({ ...prev, serviceId: defaultService, deliveryAddress: user?.address ?? "" }));
-        if (babiesData.length > 0) {
+        const draftServiceValid =
+          initialDraft?.formData.serviceId &&
+          servicesData.some((s) => s.id === initialDraft.formData.serviceId);
+
+        const resolvedServiceId =
+          preselectedId && servicesData.some((s) => s.id === preselectedId)
+            ? preselectedId
+            : draftServiceValid
+              ? initialDraft!.formData.serviceId
+              : servicesData[0]?.id ?? 0;
+
+        if (initialDraft) {
+          const validTherapistId =
+            initialDraft.formData.therapistId &&
+            therapistsData.some((t) => String(t.id) === initialDraft.formData.therapistId)
+              ? initialDraft.formData.therapistId
+              : "";
+
+          const todayStr = getLocalTodayStr();
+          const isDatePast = Boolean(initialDraft.formData.date && initialDraft.formData.date < todayStr);
+          const resolvedDate = isDatePast ? "" : initialDraft.formData.date;
+          const resolvedTime = isDatePast ? "" : initialDraft.formData.time;
+
+          let resolvedMode = initialDraft.babyProfileMode;
+          let resolvedBabyId = initialDraft.formData.babyId;
+          let resolvedBabyName = initialDraft.formData.babyName;
+          let resolvedBabyAge = initialDraft.formData.babyAge;
+          let resolvedNotes = initialDraft.formData.notes;
+
+          if (resolvedMode === "select") {
+            const matchedBaby = babiesData.find((b) => String(b.id) === resolvedBabyId);
+            if (matchedBaby) {
+              resolvedBabyId = String(matchedBaby.id);
+              resolvedBabyName = matchedBaby.name;
+              resolvedBabyAge = String(calculateAgeInMonths(matchedBaby.birth_date));
+            } else if (babiesData.length > 0) {
+              resolvedBabyId = String(babiesData[0].id);
+              resolvedBabyName = babiesData[0].name;
+              resolvedBabyAge = String(calculateAgeInMonths(babiesData[0].birth_date));
+              resolvedNotes = resolvedNotes || babiesData[0].notes || "";
+            } else {
+              resolvedBabyId = "";
+              resolvedMode = "manual";
+            }
+          }
+
+          const resolvedService = servicesData.find((s) => s.id === resolvedServiceId);
+          let resolvedStep = initialDraft.step;
+          if (!resolvedServiceId || !draftServiceValid) {
+            resolvedStep = 1;
+          } else if (resolvedStep >= 3 && (!resolvedDate || !resolvedTime)) {
+            resolvedStep = 2;
+          } else if (resolvedStep === 3 && resolvedService?.category === "mom_treatment") {
+            resolvedStep = 4;
+          }
+
+          setFormData({
+            serviceId: resolvedServiceId,
+            date: resolvedDate,
+            time: resolvedTime,
+            babyName: resolvedBabyName,
+            babyAge: resolvedBabyAge,
+            notes: resolvedNotes,
+            therapistId: validTherapistId,
+            babyId: resolvedBabyId,
+            deliveryAddress: initialDraft.formData.deliveryAddress || user?.address || "",
+          });
+          setBabyProfileMode(resolvedMode);
+          setStep(resolvedStep);
+        } else {
           setFormData((prev) => ({
             ...prev,
-            babyId: String(babiesData[0].id),
-            babyName: babiesData[0].name,
-            babyAge: String(calculateAgeInMonths(babiesData[0].birth_date)),
-            notes: babiesData[0].notes || "",
+            serviceId: resolvedServiceId,
             deliveryAddress: user?.address ?? "",
           }));
-          setBabyProfileMode("select");
-        } else {
-          setBabyProfileMode("manual");
+          if (babiesData.length > 0) {
+            setFormData((prev) => ({
+              ...prev,
+              babyId: String(babiesData[0].id),
+              babyName: babiesData[0].name,
+              babyAge: String(calculateAgeInMonths(babiesData[0].birth_date)),
+              notes: babiesData[0].notes || "",
+              deliveryAddress: user?.address ?? "",
+            }));
+            setBabyProfileMode("select");
+          } else {
+            setBabyProfileMode("manual");
+          }
         }
       } catch {
-        toast.error("Gagal mengambil data layanan. Coba muat ulang halaman.");
+        toast.error("Gagal mengambil data layanan. Silakan muat ulang halaman.");
       } finally {
         setIsLoadingServices(false);
         setIsLoadingBabies(false);
@@ -113,7 +290,23 @@ export default function Booking() {
     fetchInitialData();
   }, []);
 
-  // Fetch slot availability whenever date or service changes (on Step 2)
+  useEffect(() => {
+    if (isLoadingServices) return;
+    try {
+      const draft: BookingDraft = {
+        userId: user?.id ?? null,
+        step,
+        segmentFilter,
+        formData,
+        babyProfileMode,
+        newBabyData,
+      };
+      sessionStorage.setItem(BOOKING_DRAFT_KEY, JSON.stringify(draft));
+    } catch {
+      // Ignore storage quota or privacy mode errors
+    }
+  }, [isLoadingServices, user?.id, step, segmentFilter, formData, babyProfileMode, newBabyData]);
+
   useEffect(() => {
     if (!formData.date || !formData.serviceId || step !== 2) return;
 
@@ -123,12 +316,11 @@ export default function Booking() {
       try {
         const data = await getSlotAvailability(formData.date, formData.serviceId);
         setSlotAvailability(data);
-        // Reset selected time if it was previously full
         if (formData.time && data.slots[formData.time]?.is_full) {
           setFormData((prev) => ({ ...prev, time: "" }));
         }
       } catch {
-        // Silently fail — slots will still render, just without availability info
+        // Silent fallback
       } finally {
         setIsLoadingSlots(false);
       }
@@ -137,19 +329,16 @@ export default function Booking() {
     fetchSlots();
   }, [formData.date, formData.serviceId, step]);
 
-  // Helper: check if a slot time is already in the past
   const isSlotPast = (time: string): boolean => {
     if (!formData.date) return false;
     if (slotAvailability?.slots[time]?.is_past) return true;
 
-    // Client-side fallback check
     const [year, month, day] = formData.date.split("-").map(Number);
     const [hours, minutes] = time.split(":").map(Number);
     const slotDate = new Date(year, month - 1, day, hours, minutes);
     return slotDate.getTime() <= Date.now();
   };
 
-  // Helper: get slot status for a given time
   const getSlotStatus = (time: string): "available" | "limited" | "full" | "past" | "unknown" => {
     if (isSlotPast(time)) return "past";
     if (!slotAvailability) return "unknown";
@@ -160,10 +349,9 @@ export default function Booking() {
     return "available";
   };
 
-  // ── Derived: selected service & category ───────────────────────────────────
   const selectedService = services.find((s) => s.id === formData.serviceId);
-  const isMomTreatment = selectedService?.category === 'mom_treatment';
-  // ── Helper: Deteksi Lokasi GPS Saat Ini ───────────────────────────────────
+  const isMomTreatment = selectedService?.category === "mom_treatment";
+
   const handleGetLocation = () => {
     if (!navigator.geolocation) {
       toast.error("Browser Anda tidak mendukung fitur deteksi GPS.");
@@ -178,16 +366,16 @@ export default function Booking() {
 
         setFormData((prev) => {
           const baseAddress = prev.deliveryAddress
-            ? prev.deliveryAddress.replace(/\n?📍 Titik GPS: https:\/\/maps\.google\.com\/\?q=[-0-9.,]+/g, "").trim()
+            ? prev.deliveryAddress.replace(GPS_PREFIX_REGEX, "").trim()
             : "";
           const newAddress = baseAddress
-            ? `${baseAddress}\n📍 Titik GPS: ${mapsLink}`
-            : `📍 Titik GPS: ${mapsLink}`;
+            ? `${baseAddress}\nTitik GPS: ${mapsLink}`
+            : `Titik GPS: ${mapsLink}`;
 
           return { ...prev, deliveryAddress: newAddress };
         });
 
-        toast.success(`Lokasi GPS berhasil diambil! (Akurasi: ±${Math.round(accuracy)}m)`);
+        toast.success(`Lokasi GPS berhasil diambil (akurasi ±${Math.round(accuracy)}m).`);
         setIsLocating(false);
       },
       (error) => {
@@ -197,7 +385,7 @@ export default function Booking() {
             toast.error("Izin lokasi ditolak. Silakan aktifkan izin lokasi di browser Anda.");
             break;
           case error.POSITION_UNAVAILABLE:
-            toast.error("Sinyal GPS / lokasi tidak terdeteksi.");
+            toast.error("Sinyal GPS tidak terdeteksi.");
             break;
           case error.TIMEOUT:
             toast.error("Waktu pencarian lokasi GPS habis. Silakan coba lagi.");
@@ -215,42 +403,42 @@ export default function Booking() {
   };
 
   const handleNext = async () => {
-    if (step === 1 && !formData.serviceId) return toast.error("Pilih layanan terlebih dahulu ya, Bun");
-    if (step === 2 && !formData.date) return toast.error("Pilih tanggalnya dulu ya");
-    if (step === 2 && !formData.time) return toast.error("Pilih jam sesinya dulu ya");
+    if (step === 1 && !formData.serviceId) return toast.error("Pilih layanan terlebih dahulu.");
+    if (step === 2 && !formData.date) return toast.error("Pilih tanggal sesi terlebih dahulu.");
+    if (step === 2 && !formData.time) return toast.error("Pilih jam sesi terlebih dahulu.");
     if (step === 3 && babyProfileMode === "manual") {
       const cleanManualName = formData.babyName.trim();
-      if (!cleanManualName || !formData.babyAge) return toast.error("Lengkapi data si Kecil ya");
+      if (!cleanManualName || !formData.babyAge) return toast.error("Lengkapi nama dan usia anak.");
       if (!/^[a-zA-Z\s'.-]+$/.test(cleanManualName) || !/[a-zA-Z]/.test(cleanManualName)) {
         return toast.error("Nama anak hanya boleh berisi huruf (tidak boleh angka).");
       }
     }
-    if (step === 3 && babyProfileMode === "select" && !formData.babyId) return toast.error("Pilih profil anak Bunda terlebih dahulu");
+    if (step === 3 && babyProfileMode === "select" && !formData.babyId) {
+      return toast.error("Pilih profil anak terlebih dahulu.");
+    }
 
     if (step < 4) {
-      // If mom treatment, skip Step 3 (baby data) entirely
       if (step === 2 && isMomTreatment) {
         setStep(4);
       } else {
         setStep(step + 1);
       }
     } else {
-      // Step 4: Submit to API
       setIsSubmitting(true);
       try {
         const booking = await createReservation({
           service_id: formData.serviceId,
           reservation_date: formData.date,
           start_time: formData.time,
-          // Only send baby data for non-mom services
-          baby_name: (!isMomTreatment && babyProfileMode === "manual") ? formData.babyName : undefined,
-          baby_age: (!isMomTreatment && babyProfileMode === "manual") ? Number(formData.babyAge) : undefined,
+          baby_name: !isMomTreatment && babyProfileMode === "manual" ? formData.babyName : undefined,
+          baby_age: !isMomTreatment && babyProfileMode === "manual" ? Number(formData.babyAge) : undefined,
           notes: formData.notes || undefined,
           therapist_id: formData.therapistId ? Number(formData.therapistId) : undefined,
-          baby_id: (!isMomTreatment && babyProfileMode === "select") ? Number(formData.babyId) : undefined,
+          baby_id: !isMomTreatment && babyProfileMode === "select" ? Number(formData.babyId) : undefined,
           delivery_address: formData.deliveryAddress || undefined,
         });
-        toast.success("Reservasi berhasil dibuat! Silakan lakukan pembayaran.");
+        clearBookingDraft();
+        toast.success("Reservasi berhasil dibuat. Silakan selesaikan pembayaran.");
         navigate(`/dashboard/reservasi/${booking.id}`);
       } catch (err: any) {
         toast.error(err.response?.data?.message ?? "Gagal membuat reservasi. Slot mungkin sudah penuh.");
@@ -278,7 +466,7 @@ export default function Booking() {
         birth_date: newBabyData.birthDate,
         notes: newBabyData.notes || null,
       });
-      toast.success("Profil anak berhasil disimpan secara permanen!");
+      toast.success("Profil anak berhasil disimpan.");
       setBabies((prev) => [...prev, newBaby]);
       setFormData((prev) => ({
         ...prev,
@@ -290,668 +478,726 @@ export default function Booking() {
       setNewBabyData({ name: "", birthDate: "", notes: "" });
       setBabyProfileMode("select");
     } catch (err: any) {
-      toast.error(err.response?.data?.message ?? "Gagal mendaftarkan profil bayi.");
+      toast.error(err.response?.data?.message ?? "Gagal mendaftarkan profil anak.");
     } finally {
       setIsCreatingBaby(false);
     }
   };
 
+  const selectedTherapistName = formData.therapistId
+    ? therapists.find((t) => String(t.id) === formData.therapistId)?.name ?? "Otomatis"
+    : "Otomatis";
 
   return (
     <>
-    <div className="max-w-3xl mx-auto px-6 py-12 pb-32">
-      <div className="mb-10 text-center">
-        <h1 className="text-3xl font-extrabold text-slate-800 mb-2 tracking-tight">Yuk, Booking Sesi! 🌸</h1>
-        <p className="text-slate-500">Pilih layanan kesukaan si Kecil dan atur jadwalnya</p>
-      </div>
+      <div className="max-w-6xl mx-auto px-4 md:px-6 py-8 md:py-12 pb-[calc(8rem+env(safe-area-inset-bottom))] overflow-x-clip">
+        <div className="mb-6 md:mb-8">
+          <h1 className="font-['Playfair_Display',Georgia,serif] font-medium text-[#4A2A1A] text-[clamp(26px,6.5vw,36px)] leading-[1.2] mb-1.5">
+            Reservasi sesi
+          </h1>
+          <p className="text-[16px] leading-[25px] text-[#6B5A52]">
+            Pilih layanan, atur jadwal, dan lengkapi data peserta perawatan.
+          </p>
+        </div>
 
-      {/* Progress Bar */}
-      <div className="flex items-center justify-between mb-12 relative max-w-md mx-auto">
-        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-pink-100 -z-10 rounded-full" />
-        <div
-          className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-pink-500 -z-10 rounded-full transition-all duration-300"
-          style={{ width: `${isMomTreatment ? ((step === 4 ? 3 : step - 1) / 3) * 100 : ((step - 1) / 3) * 100}%` }}
+        <BookingStepper
+          currentStep={step}
+          skippedSteps={isMomTreatment ? [3] : []}
         />
-        {[1, 2, 3, 4].map((i) => {
-          // For mom treatment, show step 3 as greyed out/skipped
-          const isSkipped = isMomTreatment && i === 3;
-          const isActive  = isMomTreatment
-            ? (i === 3 ? false : (i < 3 ? step >= i : step >= 4))
-            : step >= i;
-          return (
-            <div
-              key={i}
-              title={isSkipped ? 'Dilewati (layanan untuk Bunda)' : undefined}
-              className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all shadow-sm ${
-                isSkipped
-                  ? 'bg-slate-100 text-slate-300 border-2 border-slate-200'
-                  : isActive
-                  ? 'bg-pink-500 text-white shadow-pink-100 scale-105'
-                  : 'bg-white text-slate-400 border-2 border-pink-100'
-              }`}
-            >
-              {isSkipped ? '–' : i}
-            </div>
-          );
-        })}
-      </div>
 
-      <motion.div
-        key={step}
-        initial={{ opacity: 0, x: 20 }}
-        animate={{ opacity: 1, x: 0 }}
-        className="glass-panel p-5 sm:p-8 overflow-hidden w-full max-w-full"
-      >
-        {isLoadingServices ? (
-          <div className="flex flex-col items-center justify-center py-20 gap-3">
-            <Loader2 size={32} className="animate-spin text-pink-500" />
-            <p className="text-slate-400 text-sm">Menyiapkan menu layanan spa...</p>
-          </div>
-        ) : (
-          <>
-            {/* ── STEP 1: Pilih Layanan ─────────────────────────────────── */}
-            {step === 1 && (
-              <div className="flex flex-col gap-6">
-                <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                  <Sparkles size={20} className="text-pink-500" /> 1. Mau pilih layanan apa nih?
-                </h2>
-
-                {/* Info usia anak */}
-                <div className="flex items-start gap-3 p-3.5 bg-pink-50 border border-pink-100 rounded-2xl">
-                  <BabyIcon size={16} className="text-pink-400 shrink-0 mt-0.5" />
-                  <p className="text-xs text-pink-700 leading-relaxed">
-                    <span className="font-bold">Layanan Baby &amp; Kids</span> di Mayesha Baby Spa ditujukan untuk anak usia <span className="font-bold">0 – 5 tahun</span>. Pastikan usia si Kecil sudah sesuai sebelum melakukan pemesanan ya, Bun! 🌸
-                  </p>
-                </div>
-
-                {/* Filter Klasifikasi Layanan (Segmented Control) */}
-                <div className="grid grid-cols-2 sm:inline-flex items-center gap-1 p-1.5 rounded-2xl bg-slate-100/90 border border-slate-200/70 w-full sm:w-fit">
-                  {[
-                    { id: "all", label: "Semua Layanan" },
-                    { id: "Bayi", label: "Bayi" },
-                    { id: "Anak", label: "Anak" },
-                    { id: "Ibu", label: "Ibu" },
-                  ].map((tab) => {
-                    const isActive = segmentFilter === tab.id;
-                    return (
-                      <button
-                        key={tab.id}
-                        type="button"
-                        onClick={() => setSegmentFilter(tab.id as "all" | "Bayi" | "Anak" | "Ibu")}
-                        className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer text-center whitespace-nowrap ${
-                          isActive
-                            ? "bg-white text-pink-600 shadow-sm ring-1 ring-slate-200/60"
-                            : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
-                        }`}
-                      >
-                        {tab.label}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <div className="grid gap-4">
-                  {filteredBookingServices.map((s) => {
-                    const cls = getServiceClassification(s);
-                    return (
-                    <label
-                      key={s.id}
-                      className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 border rounded-2xl cursor-pointer transition-all ${
-                        formData.serviceId === s.id
-                          ? "border-pink-500 bg-pink-50/50 ring-1 ring-pink-500 shadow-md shadow-pink-50"
-                          : "border-slate-200 hover:border-pink-300 bg-white/50"
-                      }`}
-                    >
-                      <div className="flex items-start sm:items-center gap-3 sm:gap-4">
-                        <input
-                          type="radio"
-                          name="serviceId"
-                          value={s.id}
-                          checked={formData.serviceId === s.id}
-                          onChange={() => setFormData({ ...formData, serviceId: s.id })}
-                          className="w-5 h-5 mt-0.5 sm:mt-0 shrink-0 text-pink-500 focus:ring-pink-500 cursor-pointer"
-                        />
-                        <div className="min-w-0">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <h4 className="font-bold text-slate-800 text-sm sm:text-base">{s.name}</h4>
-                            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md border border-slate-200/80 bg-slate-100 text-slate-700">
-                              {cls}
-                            </span>
-                          </div>
-                          <p className="text-slate-500 text-xs mt-1 max-w-md line-clamp-2">{s.description}</p>
-                          <p className="text-xs font-semibold text-pink-600 flex items-center gap-1 mt-2">
-                            <Clock size={13} /> {s.duration_minutes} Menit
-                          </p>
-                        </div>
-                      </div>
-                      <span className="font-extrabold text-pink-500 text-base sm:text-lg whitespace-nowrap pl-8 sm:pl-4">
-                        Rp {s.price.toLocaleString("id-ID")}
-                      </span>
-                    </label>
-                    );
-                  })}
-                </div>
+        {/* Main 2-Column Layout: Form (8 cols) + Sticky Order Summary (4 cols) */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
+          <div className="lg:col-span-8 bg-white border border-black/10 rounded-[12px] p-4 sm:p-6 md:p-8 w-full min-w-0">
+            {isLoadingServices ? (
+              <div className="flex flex-col items-center justify-center py-20 gap-3">
+                <Loader2 size={24} className="animate-spin text-[#6B5A52]" />
+                <p className="text-[#6B5A52] text-[15px]">Memuat daftar layanan...</p>
               </div>
-            )}
+            ) : (
+              <>
+                {step === 1 && (
+                  <div className="flex flex-col gap-5 sm:gap-6">
+                    <h3 className="text-[20px] leading-[28px] font-semibold text-[#4A2A1A]">
+                      Pilih layanan
+                    </h3>
 
-            {/* ── STEP 2: Tanggal & Jam ─────────────────────────────────── */}
-            {step === 2 && (
-              <div className="flex flex-col gap-6">
-                <h2 className="text-xl font-bold text-slate-800">2. Kapan mau datang?</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-full">
-                  <div className="w-full min-w-0">
-                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Tanggal Sesi</label>
-                    <div className="relative w-full max-w-full">
-                      <Calendar className="absolute left-4 top-3.5 text-slate-400 pointer-events-none" size={18} />
-                      <input
-                        type="date"
-                        min={new Date().toISOString().split("T")[0]}
-                        className="input-glass pl-11 w-full max-w-full"
-                        value={formData.date}
-                        onChange={(e) => {
-                          setFormData({ ...formData, date: e.target.value, time: "" });
-                        }}
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider">Pilih Jam</label>
-                      {isLoadingSlots && (
-                        <span className="flex items-center gap-1 text-[10px] text-pink-500 font-medium">
-                          <Loader2 size={11} className="animate-spin" /> Cek ketersediaan...
-                        </span>
-                      )}
+                    <div className="p-3.5 sm:p-4 bg-[#FAF6F2] border border-black/10 rounded-[8px]">
+                      <p className="text-[14px] leading-[22px] text-[#4A2A1A]">
+                        Layanan bayi dan anak untuk usia 0–5 tahun. Pastikan usia anak sesuai rentang layanan.
+                      </p>
                     </div>
 
-                    {!formData.date ? (
-                      <div className="flex items-center gap-2 p-4 bg-slate-50 rounded-xl border border-slate-100 text-slate-400 text-sm">
-                        <Calendar size={16} />
-                        Pilih tanggal dulu untuk melihat slot tersedia
+                    <div className="overflow-x-auto overflow-y-hidden no-scrollbar max-w-full">
+                      <div className="flex items-center gap-3 sm:gap-4 border-b border-black/10">
+                        {[
+                          { id: "all", label: "Semua" },
+                          { id: "Bayi", label: "Bayi" },
+                          { id: "Anak", label: "Anak" },
+                          { id: "Ibu", label: "Ibu" },
+                        ].map((tab) => {
+                          const isActive = segmentFilter === tab.id;
+                          return (
+                            <button
+                              key={tab.id}
+                              type="button"
+                              onClick={() => setSegmentFilter(tab.id as "all" | "Bayi" | "Anak" | "Ibu")}
+                              className={`min-h-[44px] px-3 inline-flex items-center justify-center text-[15px] transition-colors duration-150 border-b-2 whitespace-nowrap cursor-pointer shrink-0 ${
+                                isActive
+                                  ? "text-[#4A2A1A] font-medium border-[#D4568F]"
+                                  : "text-[#6B5A52] font-normal border-transparent hover:text-[#4A2A1A]"
+                              }`}
+                            >
+                              {tab.label}
+                            </button>
+                          );
+                        })}
                       </div>
-                    ) : (
-                      <>
-                        <div className="grid grid-cols-2 gap-3">
-                          {TIME_SLOTS.map((t) => {
-                            const status = getSlotStatus(t);
-                            const isPast = status === "past";
-                            const isFull = status === "full" || isPast;
-                            const isSelected = formData.time === t;
-                            const isLimited = status === "limited";
+                    </div>
 
-                            return (
-                              <button
-                                key={t}
-                                type="button"
-                                disabled={isFull}
-                                onClick={() => !isFull && setFormData({ ...formData, time: t })}
-                                className={`relative flex flex-col items-center justify-center py-3 border rounded-xl text-sm font-semibold transition-all ${
-                                  isFull
-                                    ? "bg-slate-100 border-slate-200 text-slate-300 cursor-not-allowed opacity-60"
-                                    : isSelected
-                                    ? "bg-pink-500 text-white border-pink-500 shadow-md shadow-pink-100"
-                                    : isLimited
-                                    ? "bg-amber-50 border-amber-300 text-amber-700 hover:border-amber-400 cursor-pointer"
-                                    : "bg-white border-slate-200 text-slate-600 hover:border-pink-300 cursor-pointer"
+                    <div className="flex flex-col gap-3">
+                      {filteredBookingServices.map((s) => {
+                        const cls = getServiceClassification(s);
+                        const ageLabel = formatAgeRange(s);
+                        const isSelected = formData.serviceId === s.id;
+                        return (
+                          <label
+                            key={s.id}
+                            className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-[12px] cursor-pointer transition-colors duration-150 focus-within:ring-2 focus-within:ring-[#C94A83] focus-within:ring-offset-2 ${
+                              isSelected
+                                ? "bg-[#FFFBF8] border-[1.5px] border-[#C94A83]"
+                                : "bg-white border border-black/10 hover:border-black/20"
+                            }`}
+                          >
+                            <div className="flex items-start gap-3 min-w-0">
+                              <input
+                                type="radio"
+                                name="serviceId"
+                                value={s.id}
+                                checked={isSelected}
+                                onChange={() => setFormData({ ...formData, serviceId: s.id })}
+                                className="sr-only"
+                              />
+                              <span
+                                aria-hidden="true"
+                                className={`w-[20px] h-[20px] rounded-full shrink-0 mt-0.5 flex items-center justify-center transition-colors duration-150 ${
+                                  isSelected
+                                    ? "border-[1.5px] border-[#C94A83] bg-white"
+                                    : "border border-black/25 bg-white"
                                 }`}
                               >
-                                <span>{t} WIB</span>
-                                {isPast ? (
-                                  <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 mt-0.5">Lewat</span>
-                                ) : isFull ? (
-                                  <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 mt-0.5">Penuh</span>
-                                ) : isLimited && !isSelected ? (
-                                  <span className="text-[9px] font-bold uppercase tracking-wider text-amber-500 mt-0.5">Sisa 1 Slot</span>
-                                ) : isSelected && isLimited ? (
-                                  <span className="text-[9px] font-bold uppercase tracking-wider text-pink-100 mt-0.5">Sisa 1 Slot</span>
-                                ) : null}
-                              </button>
-                            );
-                          })}
-                        </div>
-
-                        {/* Legend */}
-                        <div className="flex items-center gap-4 mt-3 flex-wrap">
-                          <span className="flex items-center gap-1.5 text-[10px] text-slate-400 font-medium">
-                            <span className="w-3 h-3 rounded-full bg-white border-2 border-slate-200 inline-block" /> Tersedia
-                          </span>
-                          <span className="flex items-center gap-1.5 text-[10px] text-amber-500 font-medium">
-                            <span className="w-3 h-3 rounded-full bg-amber-100 border-2 border-amber-300 inline-block" /> Hampir Penuh
-                          </span>
-                          <span className="flex items-center gap-1.5 text-[10px] text-slate-400 font-medium">
-                            <span className="w-3 h-3 rounded-full bg-slate-200 border-2 border-slate-300 inline-block" /> Penuh
-                          </span>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                {/* Pemilihan terapis */}
-                <div className="border-t border-slate-100 pt-6 mt-2">
-                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Pilih Terapis (Opsional)</label>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <label
-                      className={`flex items-center justify-center p-3 border rounded-xl cursor-pointer text-xs font-bold transition-all text-center ${
-                        !formData.therapistId
-                          ? "bg-pink-500 text-white border-pink-500 shadow-md shadow-pink-100"
-                          : "bg-white border-slate-200 text-slate-600 hover:border-pink-300"
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="therapistId"
-                        value=""
-                        checked={!formData.therapistId}
-                        onChange={() => setFormData({ ...formData, therapistId: "" })}
-                        className="hidden"
-                      />
-                      Bebas / Mana Saja (Auto)
-                    </label>
-
-                    {therapists.map((t) => (
-                      <label
-                        key={t.id}
-                        className={`flex items-center justify-center p-3 border rounded-xl cursor-pointer text-xs font-bold transition-all text-center ${
-                          formData.therapistId === String(t.id)
-                            ? "bg-pink-500 text-white border-pink-500 shadow-md shadow-pink-100"
-                            : "bg-white border-slate-200 text-slate-600 hover:border-pink-300"
-                        }`}
-                      >
-                        <input
-                          type="radio"
-                          name="therapistId"
-                          value={t.id}
-                          checked={formData.therapistId === String(t.id)}
-                          onChange={() => setFormData({ ...formData, therapistId: String(t.id) })}
-                          className="hidden"
-                        />
-                        {t.name}
-                      </label>
-                    ))}
-                  </div>
-                  <p className="text-[10px] text-slate-400 mt-2 leading-relaxed text-left">
-                    * Jika memilih terapis tertentu, pemesanan hanya diizinkan bila terapis bersangkutan sedang kosong. Jika memilih &quot;Bebas / Mana Saja&quot;, sistem akan menugaskan terapis yang senggang secara otomatis.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* ── STEP 3: Data Bayi ─────────────────────────────────────── */}
-            {step === 3 && (
-              <div className="flex flex-col gap-6">
-                <h2 className="text-xl font-bold text-slate-800">3. Kenalan sama si Kecil yuk!</h2>
-
-                {/* Reminder usia anak */}
-                <div className="flex items-start gap-3 p-3.5 bg-amber-50 border border-amber-100 rounded-2xl">
-                  <AlertCircle size={15} className="text-amber-500 shrink-0 mt-0.5" />
-                  <p className="text-xs text-amber-700 leading-relaxed">
-                    Layanan ini untuk anak usia <span className="font-bold">maksimal 5 tahun</span>. Jika usia si Kecil sudah melebihi itu, silakan hubungi kami langsung ya, Bun.
-                  </p>
-                </div>
-
-                {/* Segmented Control Mode Profil Anak */}
-                <div
-                  className={`grid ${
-                    babies.length > 0 ? "grid-cols-3" : "grid-cols-2"
-                  } bg-slate-100/90 p-1.5 rounded-2xl gap-1.5 border border-slate-200/60 shadow-xs`}
-                >
-                  {babies.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => setBabyProfileMode("select")}
-                      className={`py-2.5 px-2 text-xs font-bold rounded-xl transition-all flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 cursor-pointer text-center leading-tight ${
-                        babyProfileMode === "select"
-                          ? "bg-white text-pink-600 shadow-sm ring-1 ring-slate-900/5 font-extrabold"
-                          : "text-slate-500 hover:text-slate-800 hover:bg-white/60"
-                      }`}
-                    >
-                      <BabyIcon size={14} className="shrink-0 text-pink-500" />
-                      <span className="truncate">Profil Anak ({babies.length})</span>
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => setBabyProfileMode("manual")}
-                    className={`py-2.5 px-2 text-xs font-bold rounded-xl transition-all flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 cursor-pointer text-center leading-tight ${
-                      babyProfileMode === "manual"
-                        ? "bg-white text-pink-600 shadow-sm ring-1 ring-slate-900/5 font-extrabold"
-                        : "text-slate-500 hover:text-slate-800 hover:bg-white/60"
-                    }`}
-                  >
-                    <Pencil size={13} className="shrink-0 text-slate-400" />
-                    <span className="truncate">Tulis Manual</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setBabyProfileMode("create")}
-                    className={`py-2.5 px-2 text-xs font-bold rounded-xl transition-all flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 cursor-pointer text-center leading-tight ${
-                      babyProfileMode === "create"
-                        ? "bg-white text-pink-600 shadow-sm ring-1 ring-slate-900/5 font-extrabold"
-                        : "text-slate-500 hover:text-slate-800 hover:bg-white/60"
-                    }`}
-                  >
-                    <Plus size={14} className="shrink-0 text-slate-400" />
-                    <span className="truncate">Tambah Baru</span>
-                  </button>
-                </div>
-
-                {babyProfileMode === "select" && babies.length > 0 && (
-                  <div className="grid sm:grid-cols-2 gap-4">
-                    {babies.map((b) => {
-                      const age = calculateAgeInMonths(b.birth_date);
-                      const isSelected = formData.babyId === String(b.id);
-                      return (
-                        <div
-                          key={b.id}
-                          onClick={() =>
-                            setFormData((prev) => ({
-                              ...prev,
-                              babyId: String(b.id),
-                              babyName: b.name,
-                              babyAge: String(age),
-                              notes: b.notes || "",
-                            }))
-                          }
-                          className={`p-4 border rounded-2xl cursor-pointer transition-all flex flex-col gap-2 text-left relative ${
-                            isSelected
-                              ? "border-pink-500 bg-pink-50/40 ring-1 ring-pink-500 shadow-md shadow-pink-50"
-                              : "border-slate-200 hover:border-pink-300 bg-white"
-                          }`}
-                        >
-                          <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-full bg-pink-100 text-pink-600 flex items-center justify-center font-bold text-xs uppercase">
-                              {b.name.substring(0, 2)}
+                                {isSelected && (
+                                  <span className="w-2.5 h-2.5 rounded-full bg-[#C94A83]" />
+                                )}
+                              </span>
+                              <div className="min-w-0 flex-1">
+                                <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                                  <span className="font-semibold text-[#4A2A1A] text-[16px] leading-[22px] break-words">
+                                    {s.name}
+                                  </span>
+                                  <span className="text-[13px] text-[#6B5A52] shrink-0">
+                                    • {cls} • {ageLabel}
+                                  </span>
+                                </div>
+                                <p className="text-[#6B5A52] text-[14px] leading-[21px] mt-1 max-w-lg line-clamp-2 break-words">
+                                  {s.description}
+                                </p>
+                                <p className="text-[13px] leading-[20px] text-[#6B5A52] tabular-nums mt-1.5">
+                                  Durasi {s.duration_minutes} menit
+                                </p>
+                              </div>
                             </div>
-                            <div>
-                              <h4 className="font-bold text-slate-800 text-sm">{b.name}</h4>
-                              <p className="text-slate-400 text-[10px] font-medium">Lahir: {new Date(b.birth_date).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}</p>
-                            </div>
-                          </div>
-                          <div className="text-xs text-slate-500 font-semibold mt-1">
-                            Usia: <span className="text-pink-600">{age} Bulan</span>
-                          </div>
-                          {b.notes && (
-                            <p className="text-[10px] text-slate-400 italic line-clamp-1 mt-1 border-t border-slate-100 pt-1">
-                              Catatan: {b.notes}
-                            </p>
-                          )}
-                        </div>
-                      );
-                    })}
+
+                            <span className="font-medium text-[#4A2A1A] text-[16px] leading-[24px] tabular-nums whitespace-nowrap pl-[32px] sm:pl-4 sm:text-right shrink-0">
+                              Rp {Number(s.price).toLocaleString("id-ID")}
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
 
-                {babyProfileMode === "manual" && (
-                  <div className="grid gap-5">
-                    <div>
-                      <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Nama Panggilan Anak</label>
-                      <div className="relative">
-                        <User className="absolute left-4 top-3.5 text-slate-400" size={18} />
+                {step === 2 && (
+                  <div className="flex flex-col gap-6 min-w-0">
+                    <h3 className="text-[20px] leading-[28px] font-semibold text-[#4A2A1A]">
+                      Atur tanggal dan waktu sesi
+                    </h3>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+                      <div className="w-full min-w-0">
+                        <label htmlFor="booking-date" className="block text-[14px] font-medium text-[#4A2A1A] mb-2">
+                          Tanggal sesi
+                        </label>
                         <input
-                          type="text"
-                          placeholder="Contoh: Kenzie"
-                          className="input-glass pl-11"
-                          value={formData.babyName}
-                          onChange={(e) =>
-                            setFormData({ ...formData, babyName: e.target.value.replace(/[^a-zA-Z\s'.-]/g, "") })
-                          }
+                          id="booking-date"
+                          type="date"
+                          min={new Date().toISOString().split("T")[0]}
+                          className="input-field tabular-nums text-[16px]"
+                          value={formData.date}
+                          onChange={(e) => {
+                            setFormData({ ...formData, date: e.target.value, time: "" });
+                          }}
                         />
                       </div>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Usia Anak (Bulan)</label>
-                      <input
-                        type="number"
-                        placeholder="Berapa bulan nih usianya?"
-                        className="input-glass"
-                        value={formData.babyAge}
-                        onChange={(e) => setFormData({ ...formData, babyAge: e.target.value })}
-                        min={1}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Pesan / Catatan Khusus (Opsional)</label>
-                      <textarea
-                        rows={3}
-                        placeholder="Mungkin kulit si Kecil sensitif, alergi baby oil tertentu, atau rewel..."
-                        className="input-glass resize-none py-2.5"
-                        value={formData.notes}
-                        onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                      />
-                    </div>
-                  </div>
-                )}
 
-                {babyProfileMode === "create" && (
-                  <form onSubmit={handleCreateBabyProfile} className="flex flex-col gap-4 bg-slate-50/50 p-5 rounded-2xl border border-slate-100 text-left">
-                    <h3 className="font-bold text-slate-800 text-sm mb-1 uppercase tracking-wider">Registrasi Profil Anak</h3>
-                    <p className="text-xs text-slate-400 mb-2">Data ini akan disimpan permanen agar bisa dipilih lagi di booking selanjutnya.</p>
-                    <div>
-                      <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Nama Lengkap Anak</label>
-                      <input
-                        type="text"
-                        placeholder="Contoh: Kenzie"
-                        className="input-glass bg-white"
-                        value={newBabyData.name}
-                        onChange={(e) =>
-                          setNewBabyData({ ...newBabyData, name: e.target.value.replace(/[^a-zA-Z\s'.-]/g, "") })
-                        }
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Tanggal Lahir</label>
-                      <input
-                        type="date"
-                        className="input-glass bg-white"
-                        value={newBabyData.birthDate}
-                        onChange={(e) => setNewBabyData({ ...newBabyData, birthDate: e.target.value })}
-                        max={new Date().toISOString().split("T")[0]}
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Pesan / Kondisi Kesehatan Khusus (Opsional)</label>
-                      <textarea
-                        rows={2}
-                        placeholder="Misal: Alergi lavender oil, kulit kering..."
-                        className="input-glass bg-white resize-none py-2"
-                        value={newBabyData.notes}
-                        onChange={(e) => setNewBabyData({ ...newBabyData, notes: e.target.value })}
-                      />
-                    </div>
-                    <button
-                      type="submit"
-                      disabled={isCreatingBaby}
-                      className="btn-primary py-2.5 mt-2 font-bold text-sm w-full shadow-md shadow-pink-100 flex items-center justify-center gap-1.5 cursor-pointer"
-                    >
-                      {isCreatingBaby ? (
-                        <>
-                          <Loader2 size={16} className="animate-spin" /> Mendaftarkan...
-                        </>
-                      ) : (
-                        "Simpan & Pilih Profil"
-                      )}
-                    </button>
-                  </form>
-                )}
+                      <div className="min-w-0">
+                        <div className="flex items-center justify-between gap-2 mb-2">
+                          <label className="block text-[14px] font-medium text-[#4A2A1A]">Jam kedatangan</label>
+                          {isLoadingSlots && (
+                            <span className="flex items-center gap-1.5 text-[13px] text-[#6B5A52]">
+                              <Loader2 size={13} className="animate-spin" /> Memeriksa slot...
+                            </span>
+                          )}
+                        </div>
 
-                {/* Input Alamat Pengiriman — selalu muncul di Step 3 */}
-                <div className="border-t border-slate-100 pt-5">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
-                    <div>
-                      <label className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-                        <MapPin size={14} className="text-pink-500" /> Alamat Kunjungan (Home Visit)
+                        {!formData.date ? (
+                          <div className="p-4 bg-[#FAF6F2] rounded-[8px] border border-black/10 text-[#6B5A52] text-[14px] leading-[21px]">
+                            Pilih tanggal sesi terlebih dahulu untuk melihat ketersediaan jam.
+                          </div>
+                        ) : (
+                          <>
+                            <div className="grid grid-cols-2 gap-2.5">
+                              {TIME_SLOTS.map((t) => {
+                                const status = getSlotStatus(t);
+                                const isPast = status === "past";
+                                const isFull = status === "full" || isPast;
+                                const isSelected = formData.time === t;
+                                const isLimited = status === "limited";
+
+                                return (
+                                  <button
+                                    key={t}
+                                    type="button"
+                                    disabled={isFull}
+                                    onClick={() => !isFull && setFormData({ ...formData, time: t })}
+                                    className={`min-h-[52px] flex flex-col items-center justify-center py-2.5 px-2 sm:px-3 rounded-[8px] text-[15px] tabular-nums transition-colors duration-150 min-w-0 ${isFull
+                                      ? "bg-white border border-black/10 text-[#6B5A52] opacity-50 cursor-not-allowed"
+                                      : isSelected
+                                        ? "bg-[#FFFBF8] border-[1.5px] border-[#C94A83] text-[#4A2A1A] font-semibold cursor-pointer"
+                                        : "bg-white border border-black/10 text-[#4A2A1A] hover:border-black/25 font-medium cursor-pointer"
+                                      }`}
+                                  >
+                                    <span>{t} WIB</span>
+                                    {isPast ? (
+                                      <span className="text-[12px] text-[#6B5A52] mt-0.5">Lewat</span>
+                                    ) : isFull ? (
+                                      <span className="text-[12px] text-[#6B5A52] mt-0.5">Penuh</span>
+                                    ) : isLimited ? (
+                                      <span className="text-[12px] text-[#C94A83] mt-0.5">Sisa 1 slot</span>
+                                    ) : (
+                                      <span className="text-[12px] text-[#6B5A52] mt-0.5">Tersedia</span>
+                                    )}
+                                  </button>
+                                );
+                              })}
+                            </div>
+
+                            <p className="text-[13px] text-[#6B5A52] mt-2.5">
+                              Jam operasional setiap hari pukul 08.30–16.30 WIB.
+                            </p>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="border-t border-black/10 pt-6 mt-2">
+                      <label className="block text-[14px] font-medium text-[#4A2A1A] mb-2.5">
+                        Pilihan terapis (opsional)
                       </label>
-                      <span className="text-[11px] text-slate-400 block mt-0.5">
-                        Tulis alamat manual atau klik bagikan titik GPS
-                      </span>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                        <label
+                          className={`min-h-[44px] flex items-center justify-center px-3 py-2.5 rounded-[8px] cursor-pointer text-[14px] transition-colors duration-150 text-center min-w-0 break-words focus-within:ring-2 focus-within:ring-[#C94A83] focus-within:ring-offset-2 ${!formData.therapistId
+                            ? "bg-[#FFFBF8] border-[1.5px] border-[#C94A83] text-[#4A2A1A] font-semibold"
+                            : "bg-white border border-black/10 text-[#4A2A1A] hover:border-black/25 font-medium"
+                            }`}
+                        >
+                          <input
+                            type="radio"
+                            name="therapistId"
+                            value=""
+                            checked={!formData.therapistId}
+                            onChange={() => setFormData({ ...formData, therapistId: "" })}
+                            className="sr-only"
+                          />
+                          Otomatis
+                        </label>
+
+                        {therapists.map((t) => {
+                          const isChosen = formData.therapistId === String(t.id);
+                          return (
+                            <label
+                              key={t.id}
+                              className={`min-h-[44px] flex items-center justify-center px-3 py-2.5 rounded-[8px] cursor-pointer text-[14px] transition-colors duration-150 text-center min-w-0 break-words focus-within:ring-2 focus-within:ring-[#C94A83] focus-within:ring-offset-2 ${isChosen
+                                ? "bg-[#FFFBF8] border-[1.5px] border-[#C94A83] text-[#4A2A1A] font-semibold"
+                                : "bg-white border border-black/10 text-[#4A2A1A] hover:border-black/25 font-medium"
+                                }`}
+                            >
+                              <input
+                                type="radio"
+                                name="therapistId"
+                                value={t.id}
+                                checked={isChosen}
+                                onChange={() => setFormData({ ...formData, therapistId: String(t.id) })}
+                                className="sr-only"
+                              />
+                              {t.name}
+                            </label>
+                          );
+                        })}
+                      </div>
+                      <p className="text-[13px] leading-[20px] text-[#6B5A52] mt-2.5">
+                        Jika memilih Otomatis, sistem akan menugaskan bidan atau terapis yang tersedia pada jam tersebut.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {step === 3 && (
+                  <div className="flex flex-col gap-6 min-w-0">
+                    <h3 className="text-[20px] leading-[28px] font-semibold text-[#4A2A1A]">
+                      Data peserta dan lokasi perawatan
+                    </h3>
+
+                    <div className="p-3.5 sm:p-4 bg-[#FAF6F2] border border-black/10 rounded-[8px]">
+                      <p className="text-[14px] leading-[21px] text-[#4A2A1A]">
+                        Layanan ini ditujukan untuk anak usia maksimal 5 tahun (60 bulan). Untuk usia di atas 5 tahun, silakan hubungi kontak WhatsApp studio.
+                      </p>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={handleGetLocation}
-                      disabled={isLocating}
-                      className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-pink-50 hover:bg-pink-100 text-pink-600 rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer disabled:opacity-50 self-start sm:self-auto border border-pink-200/60"
+                    <div
+                      role="tablist"
+                      aria-label="Mode pengisian data anak"
+                      className="flex items-center gap-5 overflow-x-auto overflow-y-hidden no-scrollbar border-b border-black/10 max-w-full"
                     >
-                      {isLocating ? (
-                        <Loader2 size={13} className="animate-spin text-pink-500" />
-                      ) : (
-                        <Navigation size={13} className="text-pink-500" />
+                      {babies.length > 0 && (
+                        <button
+                          type="button"
+                          role="tab"
+                          aria-selected={babyProfileMode === "select"}
+                          onClick={() => setBabyProfileMode("select")}
+                          className={`min-h-[44px] inline-flex items-center text-[15px] transition-colors duration-150 border-b-2 whitespace-nowrap cursor-pointer shrink-0 tabular-nums ${
+                            babyProfileMode === "select"
+                              ? "border-[#D4568F] text-[#4A2A1A] font-medium"
+                              : "border-transparent text-[#6B5A52] hover:text-[#4A2A1A] font-normal"
+                          }`}
+                        >
+                          Profil anak ({babies.length})
+                        </button>
                       )}
-                      <span>{isLocating ? "Mencari Titik GPS..." : "📍 Bagikan Lokasi Saat Ini (GPS)"}</span>
-                    </button>
-                  </div>
-
-                  <textarea
-                    rows={3}
-                    placeholder="Contoh: Jl. Mawar No. 10, RT 02/03, Bekasi Utara (Bisa ketik manual atau klik tombol GPS di atas) — Kosongkan jika treatment langsung di studio."
-                    className="input-glass w-full resize-none py-2.5 text-sm"
-                    value={formData.deliveryAddress}
-                    onChange={(e) => setFormData({ ...formData, deliveryAddress: e.target.value })}
-                  />
-
-                  {formData.deliveryAddress.includes("https://maps.google.com") && (
-                    <div className="mt-2 flex items-center gap-1.5 text-xs text-emerald-600 bg-emerald-50 p-2.5 rounded-xl border border-emerald-100">
-                      <CheckCircle size={14} className="shrink-0" />
-                      <span>Titik koordinat GPS berhasil disematkan ke dalam alamat reservasi.</span>
+                      <button
+                        type="button"
+                        role="tab"
+                        aria-selected={babyProfileMode === "manual"}
+                        onClick={() => setBabyProfileMode("manual")}
+                        className={`min-h-[44px] inline-flex items-center text-[15px] transition-colors duration-150 border-b-2 whitespace-nowrap cursor-pointer shrink-0 ${
+                          babyProfileMode === "manual"
+                            ? "border-[#D4568F] text-[#4A2A1A] font-medium"
+                            : "border-transparent text-[#6B5A52] hover:text-[#4A2A1A] font-normal"
+                        }`}
+                      >
+                        Tulis manual
+                      </button>
+                      <button
+                        type="button"
+                        role="tab"
+                        aria-selected={babyProfileMode === "create"}
+                        onClick={() => setBabyProfileMode("create")}
+                        className={`min-h-[44px] inline-flex items-center text-[15px] transition-colors duration-150 border-b-2 whitespace-nowrap cursor-pointer shrink-0 ${
+                          babyProfileMode === "create"
+                            ? "border-[#D4568F] text-[#4A2A1A] font-medium"
+                            : "border-transparent text-[#6B5A52] hover:text-[#4A2A1A] font-normal"
+                        }`}
+                      >
+                        Tambah profil baru
+                      </button>
                     </div>
-                  )}
 
-                  <p className="text-[10px] text-slate-400 mt-1.5 leading-relaxed">
-                    * Isi kolom di atas jika memesan layanan <span className="font-semibold text-slate-600">Home Visit (terapis datang ke rumah)</span>. Kosongkan jika Anda ingin datang ke studio Mayesha.
-                  </p>
-                </div>
-              </div>
-            )}
+                    {babyProfileMode === "select" && babies.length > 0 && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {babies.map((b) => {
+                          const age = calculateAgeInMonths(b.birth_date);
+                          const isSelected = formData.babyId === String(b.id);
+                          return (
+                            <button
+                              key={b.id}
+                              type="button"
+                              onClick={() =>
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  babyId: String(b.id),
+                                  babyName: b.name,
+                                  babyAge: String(age),
+                                  notes: b.notes || "",
+                                }))
+                              }
+                              className={`p-4 rounded-[8px] cursor-pointer transition-colors duration-150 flex flex-col gap-1.5 text-left min-w-0 ${isSelected
+                                ? "bg-[#FFFBF8] border-[1.5px] border-[#C94A83]"
+                                : "bg-white border border-black/10 hover:border-black/25"
+                                }`}
+                            >
+                              <div className="flex items-baseline justify-between gap-2 w-full">
+                                <span className="font-semibold text-[#4A2A1A] text-[15px] break-words">{b.name}</span>
+                                <span className="text-[13px] font-medium text-[#4A2A1A] tabular-nums shrink-0">
+                                  {age} bulan
+                                </span>
+                              </div>
+                              <p className="text-[#6B5A52] text-[13px] tabular-nums">
+                                Tanggal lahir:{" "}
+                                {new Date(b.birth_date).toLocaleDateString("id-ID", {
+                                  day: "numeric",
+                                  month: "short",
+                                  year: "numeric",
+                                })}
+                              </p>
+                              {b.notes && (
+                                <p className="text-[13px] text-[#6B5A52] line-clamp-1 pt-1.5 mt-1 border-t border-black/10 w-full">
+                                  Catatan: {b.notes}
+                                </p>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
 
-            {/* ── STEP 4: Review & Konfirmasi ──────────────────────────── */}
-            {step === 4 && (
-              <div className="flex flex-col gap-6">
-                <div className="text-center mb-4">
-                  <div className="w-16 h-16 bg-emerald-100 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <CheckCircle size={32} />
-                  </div>
-                  <h2 className="text-xl font-extrabold text-slate-800">Cek lagi yuk detailnya!</h2>
-                  <p className="text-sm text-slate-400">Pastikan jadwal dan informasi treatment sudah sesuai.</p>
-                </div>
+                    {babyProfileMode === "manual" && (
+                      <div className="grid gap-4">
+                        <div>
+                          <label htmlFor="manual-baby-name" className="block text-[14px] font-medium text-[#4A2A1A] mb-1.5">
+                            Nama anak
+                          </label>
+                          <input
+                            id="manual-baby-name"
+                            type="text"
+                            placeholder="Contoh: Kenzie"
+                            className="input-field text-[16px]"
+                            value={formData.babyName}
+                            onChange={(e) =>
+                              setFormData({ ...formData, babyName: e.target.value.replace(/[^a-zA-Z\s'.-]/g, "") })
+                            }
+                          />
+                        </div>
+                        <div>
+                          <label htmlFor="manual-baby-age" className="block text-[14px] font-medium text-[#4A2A1A] mb-1.5">
+                            Usia anak (bulan)
+                          </label>
+                          <input
+                            id="manual-baby-age"
+                            type="number"
+                            placeholder="Contoh: 8"
+                            className="input-field tabular-nums text-[16px]"
+                            value={formData.babyAge}
+                            onChange={(e) => setFormData({ ...formData, babyAge: e.target.value })}
+                            min={1}
+                          />
+                        </div>
+                        <div>
+                          <label htmlFor="manual-baby-notes" className="block text-[14px] font-medium text-[#4A2A1A] mb-1.5">
+                            Catatan kesehatan (opsional)
+                          </label>
+                          <textarea
+                            id="manual-baby-notes"
+                            rows={3}
+                            placeholder="Kondisi kulit sensitif, riwayat alergi minyak tertentu, atau catatan lain"
+                            className="input-field resize-none py-2.5 text-[16px]"
+                            value={formData.notes}
+                            onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                          />
+                        </div>
+                      </div>
+                    )}
 
-                <div className="bg-slate-50/70 rounded-2xl p-6 border border-slate-100 flex flex-col gap-4 text-sm">
-                  <div className="flex justify-between border-b border-slate-200/60 pb-3">
-                    <span className="text-slate-500 font-medium">Layanan</span>
-                    <span className="font-bold text-slate-800">{selectedService?.name}</span>
-                  </div>
-                  <div className="flex justify-between border-b border-slate-200/60 pb-3">
-                    <span className="text-slate-500 font-medium">Jadwal Sesi</span>
-                    <span className="font-bold text-slate-800">
-                      {new Date(formData.date).toLocaleDateString("id-ID", {
-                        day: "numeric",
-                        month: "long",
-                        year: "numeric",
-                      })}{" "}
-                      | {formData.time} WIB
-                    </span>
-                  </div>
-                  <div className="flex justify-between border-b border-slate-200/60 pb-3">
-                    <span className="text-slate-500 font-medium">Terapis</span>
-                    <span className="font-bold text-slate-800 font-medium">
-                      {formData.therapistId
-                        ? therapists.find((t) => String(t.id) === formData.therapistId)?.name
-                        : "Bebas / Otomatis"}
-                    </span>
-                  </div>
-                  <div className="flex justify-between border-b border-slate-200/60 pb-3">
-                    <span className="text-slate-500 font-medium">{isMomTreatment ? 'Untuk' : 'Si Kecil'}</span>
-                    <span className="font-bold text-slate-800">
-                      {isMomTreatment
-                        ? '💆‍♀️ Bunda (Mom Treatment)'
-                        : `${formData.babyName} (${formData.babyAge} Bulan)`}
-                    </span>
-                  </div>
-                  {formData.deliveryAddress && (
-                    <div className="flex justify-between border-b border-slate-200/60 pb-3">
-                      <span className="text-slate-500 font-medium flex items-center gap-1">
-                        <MapPin size={13} /> Alamat
-                      </span>
-                      <span className="font-semibold text-slate-700 text-right max-w-[60%] text-xs leading-relaxed">
-                        {formData.deliveryAddress}
-                      </span>
+                    {babyProfileMode === "create" && (
+                      <form
+                        onSubmit={handleCreateBabyProfile}
+                        className="flex flex-col gap-4 bg-[#FAF6F2] p-4 sm:p-5 rounded-[8px] border border-black/10 text-left"
+                      >
+                        <div>
+                          <h4 className="font-semibold text-[#4A2A1A] text-[15px]">Simpan profil anak</h4>
+                          <p className="text-[13px] text-[#6B5A52] mt-0.5">
+                            Data profil disimpan ke akun agar dapat dipilih kembali pada pemesanan berikutnya.
+                          </p>
+                        </div>
+                        <div>
+                          <label htmlFor="new-baby-name" className="block text-[14px] font-medium text-[#4A2A1A] mb-1.5">
+                            Nama lengkap anak
+                          </label>
+                          <input
+                            id="new-baby-name"
+                            type="text"
+                            placeholder="Contoh: Kenzie"
+                            className="input-field text-[16px]"
+                            value={newBabyData.name}
+                            onChange={(e) =>
+                              setNewBabyData({ ...newBabyData, name: e.target.value.replace(/[^a-zA-Z\s'.-]/g, "") })
+                            }
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label htmlFor="new-baby-birthdate" className="block text-[14px] font-medium text-[#4A2A1A] mb-1.5">
+                            Tanggal lahir
+                          </label>
+                          <input
+                            id="new-baby-birthdate"
+                            type="date"
+                            className="input-field tabular-nums text-[16px]"
+                            value={newBabyData.birthDate}
+                            onChange={(e) => setNewBabyData({ ...newBabyData, birthDate: e.target.value })}
+                            max={new Date().toISOString().split("T")[0]}
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label htmlFor="new-baby-notes" className="block text-[14px] font-medium text-[#4A2A1A] mb-1.5">
+                            Catatan kesehatan (opsional)
+                          </label>
+                          <textarea
+                            id="new-baby-notes"
+                            rows={2}
+                            placeholder="Contoh: Alergi minyak lavender, kulit sensitif"
+                            className="input-field resize-none py-2.5 text-[16px]"
+                            value={newBabyData.notes}
+                            onChange={(e) => setNewBabyData({ ...newBabyData, notes: e.target.value })}
+                          />
+                        </div>
+                        <button
+                          type="submit"
+                          disabled={isCreatingBaby}
+                          className="btn-primary w-full mt-1"
+                        >
+                          {isCreatingBaby && <Loader2 size={16} className="animate-spin" />}
+                          {isCreatingBaby ? "Menyimpan..." : "Simpan dan pilih profil"}
+                        </button>
+                      </form>
+                    )}
+
+                    <div className="border-t border-black/10 pt-5">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+                        <div className="min-w-0">
+                          <label htmlFor="booking-address" className="text-[14px] font-medium text-[#4A2A1A] flex items-center gap-1.5">
+                            <MapPin size={15} className="text-[#6B5A52] shrink-0" aria-hidden="true" />
+                            <span>Alamat kunjungan rumah (opsional)</span>
+                          </label>
+                          <span className="text-[13px] text-[#6B5A52] block mt-0.5">
+                            Isi alamat lengkap jika memilih kunjungan ke rumah. Kosongkan jika datang ke studio.
+                          </span>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={handleGetLocation}
+                          disabled={isLocating}
+                          className="min-h-[44px] px-3.5 rounded-[8px] border border-black/20 bg-white hover:bg-[#FAF6F2] text-[14px] font-medium text-[#4A2A1A] inline-flex items-center justify-center gap-1.5 transition-colors duration-150 cursor-pointer self-start sm:self-auto shrink-0"
+                        >
+                          {isLocating ? (
+                            <Loader2 size={14} className="animate-spin text-[#6B5A52]" aria-hidden="true" />
+                          ) : (
+                            <Navigation size={14} className="text-[#6B5A52]" aria-hidden="true" />
+                          )}
+                          <span>{isLocating ? "Mendeteksi GPS..." : "Sematkan titik GPS"}</span>
+                        </button>
+                      </div>
+
+                      <textarea
+                        id="booking-address"
+                        rows={3}
+                        placeholder="Contoh: Jl. Musi No. 10, RT 02/RW 13, Karanganyar. Kosongkan apabila sesi dilakukan di studio."
+                        className="input-field w-full resize-none py-2.5 text-[16px]"
+                        value={formData.deliveryAddress}
+                        onChange={(e) => setFormData({ ...formData, deliveryAddress: e.target.value })}
+                      />
+
+                      {formData.deliveryAddress.includes("https://maps.google.com") && (
+                        <p className="mt-2 text-[13px] text-[#C94A83] font-medium">
+                          Tautan koordinat GPS telah ditambahkan ke alamat kunjungan.
+                        </p>
+                      )}
                     </div>
-                  )}
-                  <div className="flex justify-between pt-2">
-                    <span className="font-extrabold text-slate-800">Total Pembayaran</span>
-                    <span className="font-extrabold text-pink-500 text-xl">
-                      Rp {selectedService?.price.toLocaleString("id-ID")}
-                    </span>
                   </div>
-                </div>
+                )}
 
-                <div className="flex items-start gap-2 p-3 bg-amber-50 rounded-xl border border-amber-100 text-xs text-amber-700">
-                  <AlertCircle size={14} className="shrink-0 mt-0.5" />
-                  <p>Setelah booking dibuat, kamu punya <strong>15 menit</strong> untuk mengunggah bukti pembayaran. Lewat dari itu, slot akan otomatis dilepas.</p>
-                </div>
-              </div>
+                {step === 4 && (
+                  <div className="flex flex-col gap-6 min-w-0">
+                    <div>
+                      <h3 className="text-[20px] leading-[28px] font-semibold text-[#4A2A1A]">
+                        Periksa rincian reservasi
+                      </h3>
+                      <p className="text-[15px] text-[#6B5A52] mt-1">
+                        Pastikan layanan, jadwal kedatangan, dan data peserta sudah sesuai sebelum membuat pesanan.
+                      </p>
+                    </div>
+
+                    <div className="border-t border-b border-black/10 divide-y divide-black/10 text-[15px]">
+                      <div className="py-3.5 flex justify-between gap-4">
+                        <span className="text-[#6B5A52] shrink-0">Layanan</span>
+                        <span className="font-semibold text-[#4A2A1A] text-right min-w-0 break-words">{selectedService?.name}</span>
+                      </div>
+                      <div className="py-3.5 flex justify-between gap-4">
+                        <span className="text-[#6B5A52] shrink-0">Jadwal sesi</span>
+                        <span className="font-semibold text-[#4A2A1A] tabular-nums text-right min-w-0 break-words">
+                          {new Date(formData.date).toLocaleDateString("id-ID", {
+                            day: "numeric",
+                            month: "long",
+                            year: "numeric",
+                          })}{" "}
+                          • {formData.time} WIB
+                        </span>
+                      </div>
+                      <div className="py-3.5 flex justify-between gap-4">
+                        <span className="text-[#6B5A52] shrink-0">Terapis</span>
+                        <span className="font-medium text-[#4A2A1A] text-right min-w-0 break-words">
+                          {selectedTherapistName}
+                        </span>
+                      </div>
+                      <div className="py-3.5 flex justify-between gap-4">
+                        <span className="text-[#6B5A52] shrink-0">{isMomTreatment ? "Peserta" : "Data peserta"}</span>
+                        <span className="font-medium text-[#4A2A1A] tabular-nums text-right min-w-0 break-words">
+                          {isMomTreatment
+                            ? "Ibu (Mom Treatment)"
+                            : `${formData.babyName} (${formData.babyAge} bulan)`}
+                        </span>
+                      </div>
+                      <div className="py-3.5 flex justify-between gap-4">
+                        <span className="text-[#6B5A52] shrink-0">Lokasi</span>
+                        <span className="font-medium text-[#4A2A1A] text-right max-w-[65%] min-w-0 break-words [overflow-wrap:anywhere]">
+                          {formData.deliveryAddress ? formData.deliveryAddress : "Studio Mayesha Baby Spa"}
+                        </span>
+                      </div>
+                      <div className="py-4 flex justify-between items-baseline gap-4">
+                        <span className="font-semibold text-[#4A2A1A] shrink-0">Total pembayaran</span>
+                        <span className="font-semibold text-[#C94A83] text-[20px] tabular-nums text-right">
+                          Rp {Number(selectedService?.price ?? 0).toLocaleString("id-ID")}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="p-3.5 sm:p-4 bg-[#FAF6F2] rounded-[8px] border border-black/10 text-[14px] leading-[21px] text-[#4A2A1A]">
+                      Setelah reservasi dibuat, unggah bukti pembayaran QRIS dalam waktu <span className="font-semibold tabular-nums">15 menit</span> agar jadwal tidak dibatalkan otomatis.
+                    </div>
+                  </div>
+                )}
+              </>
             )}
-
-
-          </>
-        )}
-      </motion.div>
-    </div>
-
-    {/* ── Sticky Bottom Navigation Bar ─────────────────────────────── */}
-    {!isLoadingServices && (
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-t border-pink-100 shadow-[0_-4px_24px_rgba(236,72,153,0.08)]">
-        <div className="max-w-3xl mx-auto px-6 py-3 flex items-center justify-between gap-4">
-          {/* Step indicator */}
-          <div className="hidden sm:flex flex-col">
-            <span className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">
-              Langkah {step} dari {isMomTreatment ? '3' : '4'}
-            </span>
-            <span className="text-xs font-bold text-slate-700">
-              {step === 1 && 'Pilih Layanan'}
-              {step === 2 && 'Pilih Jadwal'}
-              {step === 3 && 'Data Bayi'}
-              {step === 4 && 'Konfirmasi'}
-            </span>
           </div>
 
-          <div className="flex items-center gap-3 ml-auto">
-            {step > 1 && (
-              <button
-                type="button"
-                onClick={() => setStep(isMomTreatment && step === 4 ? 2 : step - 1)}
-                className="px-5 py-2.5 font-semibold text-sm border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-xl transition-all cursor-pointer"
-                disabled={isSubmitting}
-              >
-                ← Kembali
-              </button>
-            )}
+          <aside className="lg:col-span-4 lg:sticky lg:top-24 bg-white border border-black/10 rounded-[12px] p-5 sm:p-6 w-full min-w-0">
+            <h3 className="text-[18px] leading-[26px] font-semibold text-[#4A2A1A] mb-4">
+              Ringkasan pesanan
+            </h3>
 
-            <button
-              type="button"
-              onClick={handleNext}
-              disabled={isSubmitting}
-              className="btn-primary flex items-center justify-center gap-2 px-8 py-2.5 font-semibold text-sm shadow-md shadow-pink-100 cursor-pointer min-w-[160px]"
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 size={16} className="animate-spin" /> Sedang Memesan...
-                </>
-              ) : step === 4 ? (
-                '✓ Pesan Sesi Sekarang'
-              ) : (
-                <>
-                  Lanjut <ChevronRight size={18} />
-                </>
-              )}
-            </button>
-          </div>
+            <div className="divide-y divide-black/10 border-t border-b border-black/10 text-[14px] leading-[20px]">
+              <div className="py-3 flex justify-between gap-3">
+                <span className="text-[#6B5A52] shrink-0">Layanan</span>
+                <span className="font-semibold text-[#4A2A1A] text-right min-w-0 break-words">
+                  {selectedService ? selectedService.name : "Belum dipilih"}
+                </span>
+              </div>
+
+              <div className="py-3 flex justify-between gap-3">
+                <span className="text-[#6B5A52] shrink-0">Durasi</span>
+                <span className="text-[#4A2A1A] tabular-nums text-right">
+                  {selectedService ? `${selectedService.duration_minutes} menit` : "—"}
+                </span>
+              </div>
+
+              <div className="py-3 flex justify-between gap-3">
+                <span className="text-[#6B5A52] shrink-0">Tanggal</span>
+                <span className="text-[#4A2A1A] tabular-nums text-right">
+                  {formData.date
+                    ? new Date(formData.date).toLocaleDateString("id-ID", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })
+                    : "Belum dipilih"}
+                </span>
+              </div>
+
+              <div className="py-3 flex justify-between gap-3">
+                <span className="text-[#6B5A52] shrink-0">Jam sesi</span>
+                <span className="text-[#4A2A1A] tabular-nums text-right">
+                  {formData.time ? `${formData.time} WIB` : "Belum dipilih"}
+                </span>
+              </div>
+
+              <div className="py-3 flex justify-between gap-3">
+                <span className="text-[#6B5A52] shrink-0">Terapis</span>
+                <span className="text-[#4A2A1A] text-right min-w-0 break-words">{selectedTherapistName}</span>
+              </div>
+
+              <div className="py-3 flex justify-between gap-3">
+                <span className="text-[#6B5A52] shrink-0">
+                  Peserta
+                </span>
+                <span className="text-[#4A2A1A] tabular-nums text-right min-w-0 break-words">
+                  {isMomTreatment
+                    ? "Ibu (Mom Care)"
+                    : formData.babyName
+                      ? `${formData.babyName}${formData.babyAge ? ` (${formData.babyAge} bln)` : ""}`
+                      : "Belum diisi"}
+                </span>
+              </div>
+
+              <div className="py-3 flex justify-between gap-3">
+                <span className="text-[#6B5A52] shrink-0">Lokasi</span>
+                <span className="text-[#4A2A1A] text-right">
+                  {formData.deliveryAddress ? "Kunjungan rumah" : "Studio Tegalgede"}
+                </span>
+              </div>
+            </div>
+
+            <div className="pt-4 flex items-baseline justify-between gap-3">
+              <span className="text-[15px] font-semibold text-[#4A2A1A]">Total biaya</span>
+              <span className="text-[20px] font-medium text-[#4A2A1A] tabular-nums">
+                Rp {Number(selectedService?.price ?? 0).toLocaleString("id-ID")}
+              </span>
+            </div>
+          </aside>
         </div>
       </div>
-    )}
+
+      {!isLoadingServices && (
+        <div className="fixed bottom-0 left-0 right-0 z-30 bg-[#FFFBF8] border-t border-black/10 pb-[env(safe-area-inset-bottom)]">
+          <div className="max-w-6xl mx-auto px-4 md:px-6 py-3 flex items-center justify-between gap-4">
+            <div className="hidden sm:flex flex-col">
+              <span className="text-[13px] text-[#6B5A52] tabular-nums">
+                Langkah {step} dari 4
+              </span>
+              <span className="text-[14px] font-medium text-[#4A2A1A]">
+                {BOOKING_STEPS.find((item) => item.num === step)?.label}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-3 w-full sm:w-auto sm:ml-auto">
+              {step > 1 && (
+                <button
+                  type="button"
+                  onClick={() => setStep(isMomTreatment && step === 4 ? 2 : step - 1)}
+                  className="btn-secondary flex-1 sm:flex-none"
+                  disabled={isSubmitting}
+                >
+                  Kembali
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={handleNext}
+                disabled={isSubmitting}
+                className="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 rounded-[8px] text-[15px] font-medium text-white bg-[#C94A83] hover:bg-[#B73F73] disabled:opacity-55 disabled:cursor-not-allowed transition-colors duration-150 cursor-pointer flex-1 sm:flex-none sm:min-w-[152px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2"
+              >
+                {isSubmitting && <Loader2 size={16} className="animate-spin" />}
+                {isSubmitting
+                  ? "Memproses..."
+                  : step === 4
+                    ? "Buat reservasi"
+                    : "Lanjut"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

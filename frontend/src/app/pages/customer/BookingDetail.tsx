@@ -1,23 +1,13 @@
 import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router";
 import {
-  ArrowLeft,
-  Calendar,
-  Clock,
   MapPin,
-  User,
-  CreditCard,
   Loader2,
   FileImage,
   Upload,
-  CheckCircle,
-  XCircle,
   Printer,
-  Star,
-  Sparkles,
   X,
 } from "lucide-react";
-import { motion, AnimatePresence } from "motion/react";
 import { toast } from "sonner";
 import {
   getMyReservations,
@@ -28,6 +18,8 @@ import {
 } from "@/services/reservation.service";
 import type { Reservation, SlotAvailability } from "@/types/api.types";
 import { getStorageUrl } from "@/lib/axios";
+
+const GPS_PREFIX_REGEX = /\n?(?:\u{1F4CD}\s*)?Titik GPS:\s*https:\/\/maps\.google\.com\/\?q=[-0-9.,]+/gu;
 
 export default function BookingDetail() {
   const { id } = useParams();
@@ -40,12 +32,10 @@ export default function BookingDetail() {
   const [timeLeft, setTimeLeft] = useState<string>("");
   const [imageError, setImageError] = useState(false);
 
-  // State untuk form ulasan / rating
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
 
-  // State untuk Reschedule Customer
   const [rescheduleModal, setRescheduleModal] = useState(false);
   const [rescheduleDate, setRescheduleDate] = useState("");
   const [rescheduleTime, setRescheduleTime] = useState("");
@@ -78,7 +68,7 @@ export default function BookingDetail() {
     setIsSubmittingReview(true);
     try {
       await submitReview(booking.id, { rating, comment });
-      toast.success("Terima kasih! Ulasan Anda berhasil disimpan.");
+      toast.success("Terima kasih. Ulasan Anda berhasil disimpan.");
       setComment("");
       fetchDetail();
     } catch (err: any) {
@@ -88,7 +78,6 @@ export default function BookingDetail() {
     }
   };
 
-  // Fetch slot availability when rescheduleDate changes in modal
   useEffect(() => {
     if (!rescheduleDate || !booking?.service_id || !rescheduleModal) return;
 
@@ -102,7 +91,7 @@ export default function BookingDetail() {
           setRescheduleTime("");
         }
       } catch {
-        // Silently catch
+        // Silent catch
       } finally {
         setIsLoadingSlots(false);
       }
@@ -124,7 +113,7 @@ export default function BookingDetail() {
         start_time: rescheduleTime,
         notes: rescheduleNotes || undefined,
       });
-      toast.success("Jadwal reservasi berhasil diubah!");
+      toast.success("Jadwal reservasi berhasil diperbarui.");
       setBooking(updated);
       setRescheduleModal(false);
     } catch (err: any) {
@@ -138,7 +127,15 @@ export default function BookingDetail() {
     fetchDetail();
   }, [id]);
 
-  // ── Countdown Timer for Pending Expiry ──────────────────────────────────────
+  useEffect(() => {
+    if (!rescheduleModal) return;
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setRescheduleModal(false);
+    };
+    document.addEventListener("keydown", handleEsc);
+    return () => document.removeEventListener("keydown", handleEsc);
+  }, [rescheduleModal]);
+
   useEffect(() => {
     if (!booking || booking.status !== "pending" || !booking.expires_at) {
       setTimeLeft("");
@@ -151,7 +148,7 @@ export default function BookingDetail() {
 
       if (diff <= 0) {
         clearInterval(interval);
-        setTimeLeft("EXPIRED");
+        setTimeLeft("00:00");
         setBooking((prev) => (prev ? { ...prev, status: "cancelled" } : null));
         toast.error("Waktu pembayaran telah habis. Reservasi dibatalkan secara otomatis.");
       } else {
@@ -183,58 +180,53 @@ export default function BookingDetail() {
     setIsUploading(true);
     try {
       await uploadPaymentProof(booking.id, selectedFile);
-      toast.success("Bukti pembayaran berhasil diupload. Mohon tunggu verifikasi admin.");
+      toast.success("Bukti pembayaran berhasil dikirim. Menunggu verifikasi admin.");
       setSelectedFile(null);
       setFilePreview(null);
       fetchDetail();
     } catch (err: any) {
-      toast.error(err.response?.data?.message ?? "Gagal mengupload bukti pembayaran.");
+      toast.error(err.response?.data?.message ?? "Gagal mengunggah bukti pembayaran.");
     } finally {
       setIsUploading(false);
     }
   };
 
   const getStatusDisplay = (status: string) => {
-    const config: Record<string, { bg: string; text: string; label: string; desc: string }> = {
+    const config: Record<string, { textClass: string; label: string; desc: string }> = {
       pending: {
-        bg: "bg-amber-50 text-amber-600 border-amber-100",
-        text: "text-amber-600",
-        label: "Belum Bayar",
-        desc: "Selesaikan pembayaran QRIS di bawah ini sebelum batas waktu habis.",
+        textClass: "text-[var(--text)] font-semibold",
+        label: "Menunggu Pembayaran",
+        desc: "Silakan pindai kode QRIS dan unggah bukti pembayaran sebelum batas waktu berakhir.",
       },
       waiting_verification: {
-        bg: "bg-indigo-50 text-indigo-600 border-indigo-100",
-        text: "text-indigo-600",
+        textClass: "text-[var(--text-muted)] font-semibold",
         label: "Menunggu Verifikasi",
-        desc: "Bukti transfer telah kami terima. Admin sedang memverifikasi pembayaran Anda.",
+        desc: "Bukti transfer telah diterima. Admin sedang memverifikasi pembayaran Anda.",
       },
       confirmed: {
-        bg: "bg-emerald-50 text-emerald-600 border-emerald-100",
-        text: "text-emerald-600",
+        textClass: "text-[var(--accent)] font-semibold",
         label: "Dikonfirmasi",
-        desc: "Pembayaran terverifikasi! Silakan datang sesuai jadwal yang telah ditentukan.",
+        desc: "Pembayaran telah terverifikasi. Silakan hadir sesuai jadwal yang dipilih.",
       },
       cancelled: {
-        bg: "bg-rose-50 text-rose-600 border-rose-100",
-        text: "text-rose-600",
-        label: "Dibatalkan / Expired",
-        desc: "Reservasi dibatalkan. Batas waktu bayar telah habis atau bukti bayar tidak sesuai.",
+        textClass: "text-[var(--text-muted)] font-medium",
+        label: "Dibatalkan",
+        desc: "Reservasi dibatalkan karena melewati batas waktu pembayaran atau verifikasi tidak sesuai.",
       },
       completed: {
-        bg: "bg-slate-50 text-slate-600 border-slate-100",
-        text: "text-slate-600",
-        label: "Selesai Sesi",
-        desc: "Sesi spa si Kecil telah selesai dilakukan. Terima kasih atas kunjungan Anda!",
+        textClass: "text-[var(--sage)] font-semibold",
+        label: "Selesai",
+        desc: "Sesi perawatan telah selesai dilaksanakan.",
       },
     };
-    return config[status] || { bg: "bg-slate-100 text-slate-600 border-slate-200", text: "text-slate-600", label: status, desc: "" };
+    return config[status] || { textClass: "text-[var(--text-muted)] font-medium", label: status, desc: "" };
   };
 
   if (isLoading) {
     return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-3">
-        <Loader2 size={36} className="animate-spin text-pink-500" />
-        <p className="text-slate-400 text-sm font-semibold">Mengambil data reservasi...</p>
+      <div className="min-h-[60dvh] flex flex-col items-center justify-center gap-3">
+        <Loader2 size={26} className="animate-spin text-[#6B5A52]" />
+        <p className="text-[#6B5A52] text-[15px]">Memuat rincian reservasi...</p>
       </div>
     );
   }
@@ -242,45 +234,58 @@ export default function BookingDetail() {
   if (!booking) return null;
 
   const status = getStatusDisplay(booking.status);
+  const isCancelled = booking.status === "cancelled";
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-10">
-      <Link
-        to="/dashboard"
-        className="inline-flex items-center gap-2 text-slate-500 hover:text-pink-500 mb-6 transition-colors font-semibold text-sm print:hidden"
-      >
-        <ArrowLeft size={16} /> Balik ke Ruang Bunda
-      </Link>
+    <div className="max-w-5xl mx-auto px-4 md:px-6 py-8 md:py-10">
+      <div className="mb-4 print:hidden">
+        <Link
+          to="/dashboard"
+          className="min-h-[44px] inline-flex items-center text-[15px] font-medium text-[#6B5A52] hover:text-[#4A2A1A] hover:underline underline-offset-4 transition-colors duration-150"
+        >
+          Kembali ke Ruang Bunda
+        </Link>
+      </div>
 
-      <div className="grid md:grid-cols-3 gap-8 items-start">
-        {/* Detail Info (2 Columns) */}
+      <div className="grid md:grid-cols-3 gap-6 items-start">
         <div className="md:col-span-2 flex flex-col gap-6">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass-panel p-8">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-6 mb-6">
+          <div className="card-surface p-6 sm:p-8">
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 border-b border-[var(--border)] pb-5 mb-5">
               <div>
-                <h1 className="text-2xl font-extrabold text-slate-800 tracking-tight">Detail Reservasi</h1>
-                <p className="text-slate-400 text-xs font-mono mt-1">ID Booking: {booking.booking_code}</p>
+                <span className="overline-label block mb-1">RINCIAN RESERVASI</span>
+                <h2 className="text-[28px] leading-[36px] font-editorial text-[var(--text)]">
+                  Detail Reservasi
+                </h2>
+                <p className="text-[var(--text-muted)] text-[13px] mt-1">
+                  Kode:{" "}
+                  <span className="booking-code font-medium text-[var(--text)]">
+                    {booking.booking_code}
+                  </span>
+                </p>
               </div>
-              <div className={`px-4 py-1.5 rounded-full text-xs font-bold border ${status.bg}`}>
-                {status.label}
+              <div className="text-left sm:text-right text-[14px]">
+                <span className={status.textClass}>{status.label}</span>
+                {booking.is_rescheduled && (
+                  <span className="block text-[12px] text-[var(--text-muted)] mt-0.5">
+                    Dijadwalkan ulang
+                  </span>
+                )}
               </div>
             </div>
 
-            <p className="text-slate-500 text-sm mb-6 bg-slate-50 p-4 rounded-xl border border-slate-100/60 font-medium">
-              {status.desc}
-            </p>
+            {status.desc && (
+              <div className="p-4 bg-[var(--fill-subtle)] rounded-[8px] border border-[var(--border)] text-[13px] leading-[20px] text-[var(--text)] mb-6">
+                {status.desc}
+              </div>
+            )}
 
             <div className="grid sm:grid-cols-2 gap-8">
-              {/* Sesi Info */}
-              <div className="flex flex-col gap-4">
-                <h3 className="font-bold text-slate-800 flex items-center gap-2 text-sm uppercase tracking-wider text-slate-400">
-                  <Calendar className="text-pink-500" size={16} /> Info Sesi Spa
-                </h3>
-                <div className="bg-slate-50/80 p-5 rounded-2xl border border-slate-100 flex flex-col gap-3.5 text-sm shadow-xs">
-                  {/* Tanggal Sesi */}
-                  <div className="flex items-start justify-between gap-3 pb-3 border-b border-slate-200/50">
-                    <span className="text-slate-500 font-medium text-xs sm:text-sm shrink-0 w-32">Tanggal Sesi</span>
-                    <span className="font-bold text-slate-800 text-xs sm:text-sm text-right flex-1">
+              <div>
+                <span className="overline-label block mb-3">INFORMASI SESI</span>
+                <div className="divide-y divide-[var(--border)] border-t border-b border-[var(--border)] text-[14px]">
+                  <div className="py-3 flex items-baseline justify-between gap-3">
+                    <span className="text-[var(--text-muted)]">Tanggal</span>
+                    <span className="font-medium text-[var(--text)] tabular-nums text-right">
                       {booking.reservation_date
                         ? new Date(booking.reservation_date).toLocaleDateString("id-ID", {
                             day: "numeric",
@@ -291,113 +296,123 @@ export default function BookingDetail() {
                     </span>
                   </div>
 
-                  {/* Jam Kedatangan */}
-                  <div className="flex items-center justify-between gap-3 pb-3 border-b border-slate-200/50">
-                    <span className="text-slate-500 font-medium text-xs sm:text-sm shrink-0 w-32">Jam Kedatangan</span>
-                    <span className="font-bold text-slate-800 text-xs sm:text-sm text-right flex-1">
+                  <div className="py-3 flex items-baseline justify-between gap-3">
+                    <span className="text-[var(--text-muted)]">Jam Sesi</span>
+                    <span className="font-medium text-[var(--text)] tabular-nums text-right">
                       {booking.start_time ? booking.start_time.substring(0, 5) : "-"} WIB
                     </span>
                   </div>
 
-                  {/* Layanan */}
-                  <div className="flex items-start justify-between gap-3 pb-3 border-b border-slate-200/50">
-                    <span className="text-slate-500 font-medium text-xs sm:text-sm shrink-0 w-32">Layanan</span>
-                    <span className="font-bold text-slate-800 text-xs sm:text-sm text-right flex-1 leading-snug">
+                  <div className="py-3 flex items-baseline justify-between gap-3">
+                    <span className="text-[var(--text-muted)]">Layanan</span>
+                    <span className="font-semibold text-[var(--text)] text-right">
                       {booking.service?.name ?? "-"}
                     </span>
                   </div>
 
-                  {/* Durasi */}
-                  <div className="flex items-center justify-between gap-3 pb-3 border-b border-slate-200/50">
-                    <span className="text-slate-500 font-medium text-xs sm:text-sm shrink-0 w-32">Durasi</span>
-                    <span className="font-bold text-slate-800 text-xs sm:text-sm text-right flex-1">
-                      {booking.service?.duration_minutes ?? 0} Menit
+                  <div className="py-3 flex items-baseline justify-between gap-3">
+                    <span className="text-[var(--text-muted)]">Durasi</span>
+                    <span className="font-medium text-[var(--text)] tabular-nums text-right">
+                      {booking.service?.duration_minutes ?? 0} menit
                     </span>
                   </div>
 
-                  {/* Terapis */}
-                  <div className="flex items-start justify-between gap-3 pb-3 border-b border-slate-200/50">
-                    <span className="text-slate-500 font-medium text-xs sm:text-sm shrink-0 w-32">Terapis</span>
-                    <span className="font-bold text-slate-800 text-xs sm:text-sm text-right flex-1 leading-snug">
-                      {booking.therapist?.name || "Otomatis / Belum Ditentukan"}
+                  <div className="py-3 flex items-baseline justify-between gap-3">
+                    <span className="text-[var(--text-muted)]">Terapis</span>
+                    <span className="font-medium text-[var(--text)] text-right">
+                      {booking.therapist?.name || "Otomatis"}
                     </span>
                   </div>
 
-                  {/* Lokasi */}
-                  <div className="flex flex-col gap-2 pt-1">
-                    <div className="flex items-start justify-between gap-3">
-                      <span className="text-slate-500 font-medium text-xs sm:text-sm shrink-0 w-32">Lokasi</span>
-                      <span className="font-bold text-slate-800 text-xs sm:text-sm text-right flex-1 leading-snug">
-                        {booking.delivery_address ? "Home Care (Kunjungan Rumah)" : "Studio Mayesha Baby Spa"}
-                      </span>
-                    </div>
-
-                    {booking.delivery_address && (
-                      <div className="mt-2 p-3.5 bg-white rounded-xl border border-slate-200/80 text-xs text-slate-600 leading-relaxed shadow-xs break-words">
-                        <span className="font-bold text-slate-700 flex items-center gap-1.5 mb-1.5">
-                          <MapPin size={13} className="text-pink-500 shrink-0" />
-                          Detail Alamat Kunjungan:
-                        </span>
-                        {booking.delivery_address.includes("https://maps.google.com") ? (
-                          <div className="space-y-2 mt-1">
-                            <p>{booking.delivery_address.replace(/\n?📍 Titik GPS: https:\/\/maps\.google\.com\/\?q=[-0-9.,]+/g, "").trim() || "Titik GPS telah disematkan."}</p>
-                            {booking.delivery_address.match(/https:\/\/maps\.google\.com\/\?q=[-0-9.,]+/g)?.map((link, idx) => (
-                              <a
-                                key={idx}
-                                href={link}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg font-bold text-[11px] transition-all shadow-sm active:scale-95"
-                              >
-                                📍 Buka Rute di Google Maps →
-                              </a>
-                            ))}
-                          </div>
-                        ) : (
-                          <p className="mt-0.5">{booking.delivery_address}</p>
-                        )}
-                      </div>
-                    )}
+                  <div className="py-3 flex items-baseline justify-between gap-3">
+                    <span className="text-[var(--text-muted)]">Total Biaya</span>
+                    <span
+                      className={`tabular-nums text-right ${
+                        isCancelled
+                          ? "text-[var(--text-muted)] line-through"
+                          : "font-semibold text-[var(--accent)]"
+                      }`}
+                    >
+                      Rp {Number(booking.total_price).toLocaleString("id-ID")}
+                    </span>
                   </div>
                 </div>
               </div>
 
-              {/* Bayi Info */}
-              <div className="flex flex-col gap-4">
-                <h3 className="font-bold text-slate-800 flex items-center gap-2 text-sm uppercase tracking-wider text-slate-400">
-                  <User className="text-pink-500" size={16} /> Profil Si Kecil
-                </h3>
-                <div className="bg-slate-50/80 p-5 rounded-2xl border border-slate-100 flex flex-col gap-3.5 text-sm shadow-xs h-full">
-                  <div className="flex items-center justify-between gap-3 pb-3 border-b border-slate-200/50">
-                    <span className="text-slate-500 font-medium text-xs sm:text-sm shrink-0 w-32">Nama Panggilan</span>
-                    <span className="font-bold text-slate-800 text-xs sm:text-sm text-right flex-1">
-                      {booking.baby_name ?? "-"}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between gap-3 pb-3 border-b border-slate-200/50">
-                    <span className="text-slate-500 font-medium text-xs sm:text-sm shrink-0 w-32">Usia Bayi</span>
-                    <span className="font-bold text-slate-800 text-xs sm:text-sm text-right flex-1">
-                      {booking.baby_age != null ? `${booking.baby_age} Bulan` : "-"}
-                    </span>
-                  </div>
-                  <div className="flex flex-col gap-1.5 pt-1">
-                    <span className="text-slate-500 font-medium text-xs sm:text-sm">Catatan / Pesan:</span>
-                    <div className="p-3.5 bg-white rounded-xl border border-slate-200/70 text-xs sm:text-sm text-slate-700 italic leading-relaxed mt-0.5 shadow-xs">
-                      {booking.notes ? `"${booking.notes}"` : "Tidak ada catatan khusus."}
+              <div className="flex flex-col gap-6">
+                <div>
+                  <span className="overline-label block mb-3">PESERTA &amp; LOKASI</span>
+                  <div className="divide-y divide-[var(--border)] border-t border-b border-[var(--border)] text-[14px]">
+                    <div className="py-3 flex items-baseline justify-between gap-3">
+                      <span className="text-[var(--text-muted)]">Nama Anak / Peserta</span>
+                      <span className="font-medium text-[var(--text)] text-right">
+                        {booking.baby_name ?? "-"}
+                      </span>
+                    </div>
+                    <div className="py-3 flex items-baseline justify-between gap-3">
+                      <span className="text-[var(--text-muted)]">Usia</span>
+                      <span className="font-medium text-[var(--text)] tabular-nums text-right">
+                        {booking.baby_age != null ? `${booking.baby_age} bulan` : "-"}
+                      </span>
+                    </div>
+                    <div className="py-3 flex items-baseline justify-between gap-3">
+                      <span className="text-[var(--text-muted)]">Lokasi</span>
+                      <span className="font-medium text-[var(--text)] text-right">
+                        {booking.delivery_address ? "Kunjungan Rumah" : "Studio Mayesha"}
+                      </span>
                     </div>
                   </div>
+                </div>
+
+                {booking.delivery_address && (
+                  <div className="p-3.5 bg-[#FAF7F4] rounded-[8px] border border-[var(--border)] text-[13px] leading-[20px]">
+                    <span className="font-semibold text-[var(--text)] flex items-center gap-1.5 mb-1">
+                      <MapPin size={14} className="text-[var(--text-muted)] shrink-0" />
+                      Alamat Kunjungan
+                    </span>
+                    {booking.delivery_address.includes("https://maps.google.com") ? (
+                      <div className="space-y-2">
+                        <p className="text-[var(--text-muted)] break-words">
+                          {booking.delivery_address.replace(GPS_PREFIX_REGEX, "").trim() ||
+                            "Koordinat GPS terlampir."}
+                        </p>
+                        {booking.delivery_address
+                          .match(/https:\/\/maps\.google\.com\/\?q=[-0-9.,]+/g)
+                          ?.map((link, idx) => (
+                            <a
+                              key={idx}
+                              href={link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-block font-semibold text-[var(--text)] underline underline-offset-4"
+                            >
+                              Buka Lokasi di Google Maps
+                            </a>
+                          ))}
+                      </div>
+                    ) : (
+                      <p className="text-[var(--text-muted)] break-words">{booking.delivery_address}</p>
+                    )}
+                  </div>
+                )}
+
+                <div>
+                  <span className="overline-label block mb-1.5">CATATAN</span>
+                  <p className="text-[13px] leading-[20px] text-[var(--text-muted)]">
+                    {booking.notes ? booking.notes : "Tidak ada catatan tambahan."}
+                  </p>
                 </div>
               </div>
             </div>
 
-            {/* Action Bar (Print & Reschedule) */}
-            <div className="border-t border-slate-200/60 pt-6 mt-8 flex flex-col sm:flex-row gap-3 justify-start items-center print:hidden">
+            <div className="border-t border-[var(--border)] pt-6 mt-8 flex flex-wrap gap-3 items-center print:hidden">
               <button
                 type="button"
                 onClick={() => window.print()}
-                className="px-4 py-2.5 font-bold text-sm text-slate-600 hover:text-pink-600 border border-slate-200 hover:border-pink-500 rounded-xl flex items-center gap-2 transition-all cursor-pointer w-full sm:w-auto justify-center bg-white"
+                className="btn-secondary"
               >
-                <Printer size={16} /> Cetak Tiket
+                <Printer size={16} className="text-[var(--text-muted)]" />
+                Cetak Bukti Reservasi
               </button>
               {booking.status !== "completed" && booking.status !== "cancelled" && (
                 <button
@@ -408,80 +423,69 @@ export default function BookingDetail() {
                     setRescheduleNotes("");
                     setRescheduleModal(true);
                   }}
-                  className="px-4 py-2.5 font-bold text-sm text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-xl flex items-center gap-2 transition-all cursor-pointer w-full sm:w-auto justify-center"
+                  className="btn-secondary"
                 >
-                  <Calendar size={16} /> Ubah Jadwal
+                  Ubah Jadwal
                 </button>
               )}
             </div>
-          </motion.div>
+          </div>
 
-          {/* Kartu untuk berikan ulasan & rating */}
           {booking.status === "completed" && (
-            <motion.div
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="glass-panel p-8 border-pink-100 flex flex-col gap-6"
-            >
+            <div className="card-surface p-6 sm:p-8 flex flex-col gap-5 print:hidden">
               <div>
-                <h3 className="text-lg font-extrabold text-slate-800 flex items-center gap-2">
-                  <Sparkles className="text-pink-500" size={18} /> Berikan Ulasan & Rating
+                <span className="overline-label block mb-1">ULASAN LAYANAN</span>
+                <h3 className="text-[20px] leading-[28px] font-semibold text-[var(--text)]">
+                  Penilaian Sesi Perawatan
                 </h3>
-                <p className="text-slate-400 text-xs mt-1">Bagaimana pengalaman Bunda dan si Kecil selama sesi spa?</p>
+                <p className="text-[14px] text-[var(--text-muted)] mt-0.5">
+                  Bagikan pengalaman perawatan Anda sebagai masukan bagi pelayanan studio.
+                </p>
               </div>
 
               {booking.review ? (
-                // Already Reviewed
-                <div className="bg-slate-50/70 p-5 rounded-2xl border border-slate-100 flex flex-col gap-3">
+                <div className="p-4 bg-[#FAF7F4] rounded-[8px] border border-[var(--border)] flex flex-col gap-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">Ulasan Anda</span>
-                    <div className="flex gap-1">
-                      {Array.from({ length: 5 }).map((_, idx) => (
-                        <Star
-                          key={idx}
-                          size={16}
-                          className={idx < booking.review!.rating ? "text-amber-400 fill-amber-400" : "text-slate-200"}
-                        />
-                      ))}
-                    </div>
+                    <span className="overline-label">ULASAN TERSIMPAN</span>
+                    <span className="text-[13px] font-semibold text-[var(--accent)] tabular-nums">
+                      Nilai {booking.review.rating}/5
+                    </span>
                   </div>
-                  <p className="text-slate-700 text-sm font-semibold italic">
-                    &quot;{booking.review.comment || "Bunda tidak menulis komentar."}&quot;
+                  <p className="text-[14px] leading-[22px] text-[var(--text)]">
+                    &ldquo;{booking.review.comment || "Tanpa catatan tertulis."}&rdquo;
                   </p>
-                  <p className="text-[10px] text-slate-400 font-medium">Ulasan Anda membantu kami untuk terus meningkatkan layanan spa.</p>
                 </div>
               ) : (
-                // Form to Submit Review
-                <form onSubmit={handleSendReview} className="flex flex-col gap-5">
-                  <div className="flex flex-col items-center gap-2 bg-slate-50/50 py-4 rounded-2xl border border-slate-100">
-                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Pilih Rating Bintang</span>
-                    <div className="flex gap-2">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <button
-                          key={star}
-                          type="button"
-                          onClick={() => setRating(star)}
-                          className="p-1 hover:scale-110 transition-transform cursor-pointer"
-                        >
-                          <Star
-                            size={28}
-                            className={
-                              star <= rating
-                                ? "text-amber-400 fill-amber-400 drop-shadow-sm"
-                                : "text-slate-200 hover:text-amber-300"
-                            }
-                          />
-                        </button>
-                      ))}
+                <form onSubmit={handleSendReview} className="flex flex-col gap-4">
+                  <div>
+                    <label className="overline-label block mb-2">Skala Kepuasan (1–5)</label>
+                    <div className="flex items-center gap-2">
+                      {[1, 2, 3, 4, 5].map((score) => {
+                        const isChosen = rating === score;
+                        return (
+                          <button
+                            key={score}
+                            type="button"
+                            onClick={() => setRating(score)}
+                            className={`w-11 h-11 rounded-[8px] text-[15px] tabular-nums transition-colors duration-150 cursor-pointer ${
+                              isChosen
+                                ? "bg-[#FAF7F4] border-[1.5px] border-[var(--text)] text-[var(--text)] font-semibold"
+                                : "bg-[#FFFFFF] border border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--text)] font-medium"
+                            }`}
+                          >
+                            {score}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
 
                   <div>
-                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-2">Komentar Bunda</label>
+                    <label className="overline-label block mb-2">Catatan Ulasan</label>
                     <textarea
                       rows={3}
-                      placeholder="Bagikan ulasan jujur Bunda tentang pijatan terapis, kebersihan kolam, ramahnya staf, dll..."
-                      className="input-glass resize-none py-2.5"
+                      placeholder="Tuliskan kesan mengenai ketepatan jadwal, kenyamanan ruang, atau pelayanan terapis"
+                      className="input-field resize-none py-2.5"
                       value={comment}
                       onChange={(e) => setComment(e.target.value)}
                     />
@@ -490,75 +494,64 @@ export default function BookingDetail() {
                   <button
                     type="submit"
                     disabled={isSubmittingReview}
-                    className="btn-primary py-3 w-full text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-60 shadow-lg shadow-pink-100 hover:shadow"
+                    className="btn-primary self-start"
                   >
-                    {isSubmittingReview ? (
-                      <>
-                        <Loader2 size={16} className="animate-spin" /> Mengirim Ulasan...
-                      </>
-                    ) : (
-                      "Kirim Ulasan Sekarang"
-                    )}
+                    {isSubmittingReview && <Loader2 size={16} className="animate-spin" />}
+                    {isSubmittingReview ? "Menyimpan..." : "Simpan Ulasan"}
                   </button>
                 </form>
               )}
-            </motion.div>
+            </div>
           )}
         </div>
 
-        {/* QRIS / Upload Proof Area (1 Column) */}
         <div className="md:col-span-1 print:hidden">
           {booking.status === "pending" && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="glass-panel p-6 border-pink-100 flex flex-col gap-6"
-            >
-              <div className="text-center">
-                <h3 className="font-extrabold text-slate-800 text-lg">Metode Pembayaran QRIS</h3>
-                <p className="text-slate-400 text-xs mt-1">Scan kode QRIS resmi Mayesha</p>
+            <div className="card-surface p-6 flex flex-col gap-5">
+              <div>
+                <span className="overline-label block mb-1">PEMBAYARAN</span>
+                <h3 className="text-[18px] leading-[26px] font-semibold text-[var(--text)]">
+                  Pembayaran QRIS
+                </h3>
+                <p className="text-[13px] text-[var(--text-muted)] mt-0.5">
+                  Pindai kode QRIS resmi Mayesha Baby Spa di bawah ini.
+                </p>
               </div>
 
-              {/* Countdown Alert */}
               {timeLeft && (
-                <div className="bg-amber-50 border border-amber-200 text-amber-700 px-4 py-2.5 rounded-xl text-center text-xs font-bold flex items-center justify-center gap-1.5">
-                  <Clock size={14} className="animate-pulse" /> Selesaikan dalam: {timeLeft}
+                <div className="p-3 bg-[var(--fill-subtle)] border border-[var(--border)] rounded-[8px] flex items-center justify-between text-[13px]">
+                  <span className="text-[var(--text-muted)]">Batas waktu</span>
+                  <span className="font-semibold text-[var(--text)] tabular-nums">{timeLeft}</span>
                 </div>
               )}
 
-              {/* Clean Minimal QRIS Card */}
-              <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col items-center gap-5">
-                {/* Official QRIS Logo */}
+              <div className="bg-[#FFFFFF] border border-[var(--border)] rounded-[12px] p-5 flex flex-col items-center gap-4">
                 <img
                   src="/qris-logo.png"
                   alt="QRIS"
-                  className="h-11 w-auto object-contain"
+                  className="h-9 w-auto object-contain"
                 />
 
-                {/* QR Barcode */}
-                <div className="w-full aspect-square max-w-[210px] bg-white p-2.5 border border-slate-200/80 rounded-xl flex items-center justify-center shadow-xs">
+                <div className="w-full aspect-square max-w-[200px] bg-[#FFFFFF] p-2.5 border border-[var(--border)] rounded-[8px] flex items-center justify-center">
                   <img
                     src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=qris-mayesha-${booking.booking_code}`}
-                    alt="Barcode Pembayaran QRIS"
+                    alt="Kode QRIS Mayesha Baby Spa"
                     className="w-full h-full object-contain"
                   />
                 </div>
               </div>
 
-              <div className="text-center text-sm font-semibold text-slate-700">
-                Total Tagihan:{" "}
-                <span className="font-extrabold text-pink-600 block text-lg mt-0.5">
-                  Rp {booking.total_price.toLocaleString("id-ID")}
+              <div className="flex items-baseline justify-between py-3 border-t border-b border-[var(--border)]">
+                <span className="text-[13px] text-[var(--text-muted)]">Total Tagihan</span>
+                <span className="text-[18px] font-semibold text-[var(--accent)] tabular-nums">
+                  Rp {Number(booking.total_price).toLocaleString("id-ID")}
                 </span>
               </div>
 
-              {/* Upload Form */}
-              <form onSubmit={handleUpload} className="flex flex-col gap-4 border-t border-slate-100 pt-4">
-                <div className="relative">
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-2">
-                    Upload Bukti Transfer
-                  </label>
-                  <div className="flex flex-col items-center justify-center border-2 border-dashed border-slate-200 hover:border-pink-300 rounded-2xl p-4 transition-colors relative cursor-pointer group bg-slate-50/50">
+              <form onSubmit={handleUpload} className="flex flex-col gap-4">
+                <div>
+                  <label className="overline-label block mb-2">Unggah Bukti Transfer</label>
+                  <div className="flex flex-col items-center justify-center border border-dashed border-[var(--border)] hover:border-[var(--text)] rounded-[8px] p-4 transition-colors duration-150 relative cursor-pointer bg-[#FAF7F4]">
                     <input
                       type="file"
                       accept="image/*"
@@ -567,14 +560,14 @@ export default function BookingDetail() {
                       required
                     />
                     {filePreview ? (
-                      <div className="w-full aspect-video rounded-lg overflow-hidden border border-slate-200">
-                        <img src={filePreview} alt="Preview Bukti" className="w-full h-full object-cover" />
+                      <div className="w-full aspect-video rounded-[8px] overflow-hidden border border-[var(--border)] bg-[#FFFFFF]">
+                        <img src={filePreview} alt="Pratinjau bukti pembayaran" className="w-full h-full object-cover" />
                       </div>
                     ) : (
-                      <div className="text-slate-400 flex flex-col items-center gap-2 group-hover:text-pink-500 transition-colors">
-                        <Upload size={24} />
-                        <span className="text-[10px] font-bold uppercase tracking-wider">Pilih Gambar</span>
-                        <span className="text-[10px] text-slate-400">(Max 2MB)</span>
+                      <div className="text-[var(--text-muted)] flex flex-col items-center gap-1.5 py-2">
+                        <Upload size={20} />
+                        <span className="text-[13px] font-medium text-[var(--text)]">Pilih Gambar Bukti</span>
+                        <span className="text-[12px] text-[var(--text-muted)]">Format JPG/PNG, maks. 2MB</span>
                       </div>
                     )}
                   </div>
@@ -583,91 +576,81 @@ export default function BookingDetail() {
                 <button
                   type="submit"
                   disabled={isUploading || !selectedFile}
-                  className="btn-primary py-2.5 w-full text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed shadow-md shadow-pink-100"
+                  className="btn-primary w-full"
                 >
-                  {isUploading ? (
-                    <>
-                      <Loader2 size={16} className="animate-spin" /> Mengupload...
-                    </>
-                  ) : (
-                    "Kirim Bukti Pembayaran"
-                  )}
+                  {isUploading && <Loader2 size={16} className="animate-spin" />}
+                  {isUploading ? "Mengunggah..." : "Kirim Bukti Pembayaran"}
                 </button>
               </form>
-            </motion.div>
+            </div>
           )}
 
-          {/* If already uploaded, show preview of proof */}
           {booking.status !== "pending" && booking.payment_proof_url && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="glass-panel p-6 border-slate-100 flex flex-col gap-4"
-            >
-              <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                <FileImage size={16} className="text-pink-500" /> Bukti Pembayaran Anda
-              </h3>
-              <div className="w-full aspect-[3/4] bg-slate-50 border border-slate-200 rounded-2xl overflow-hidden p-2 relative flex items-center justify-center">
+            <div className="card-surface p-6 flex flex-col gap-4">
+              <span className="overline-label">BUKTI PEMBAYARAN</span>
+              <div className="w-full aspect-[3/4] bg-[#FAF7F4] border border-[var(--border)] rounded-[8px] overflow-hidden p-2 flex items-center justify-center">
                 {imageError ? (
-                  <div className="text-center p-4 flex flex-col items-center gap-2 text-slate-400">
-                    <FileImage size={36} className="text-slate-300" />
-                    <p className="text-xs font-medium text-slate-600">File bukti tidak dapat dimuat</p>
-                    <p className="text-[11px] text-slate-400">
-                      Foto pada server sementara mungkin telah terhapus saat redeploy.
+                  <div className="text-center p-4 flex flex-col items-center gap-2 text-[var(--text-muted)]">
+                    <FileImage size={28} />
+                    <p className="text-[13px] font-medium text-[var(--text)]">Gambar bukti tidak dapat dimuat</p>
+                    <p className="text-[12px] text-[var(--text-muted)]">
+                      Berkas bukti pembayaran pada penyimpanan tidak ditemukan.
                     </p>
                   </div>
                 ) : (
                   <img
                     src={getStorageUrl(booking.payment_proof_url)}
                     alt="Bukti Transfer QRIS"
-                    className="w-full h-full object-cover rounded-xl"
+                    className="w-full h-full object-cover rounded-[8px]"
                     onError={() => setImageError(true)}
                   />
                 )}
               </div>
-            </motion.div>
+            </div>
           )}
         </div>
       </div>
 
-      {/* ── Customer Reschedule Modal ────────────────────────────────────── */}
-      <AnimatePresence>
-        {rescheduleModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setRescheduleModal(false)}
-              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 15 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              className="glass-panel w-full max-w-md p-6 relative z-10 border border-white/80 shadow-2xl flex flex-col gap-5"
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-xl font-bold text-slate-800">Ubah Jadwal Sesi Spa 🌸</h3>
-                  <p className="text-xs text-slate-400 mt-0.5">Pilih tanggal dan jam kedatangan yang baru</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setRescheduleModal(false)}
-                  className="p-1 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition-colors cursor-pointer"
-                >
-                  <X size={20} />
-                </button>
+      {rescheduleModal && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Ubah jadwal sesi"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+        >
+          <div
+            onClick={() => setRescheduleModal(false)}
+            className="absolute inset-0 bg-black/50"
+          />
+          <div className="bg-white border border-black/10 rounded-[12px] w-full max-w-[calc(100vw-32px)] sm:max-w-md max-h-[90dvh] relative z-10 flex flex-col overflow-hidden">
+            <div className="flex items-start justify-between px-5 sm:px-6 py-4 border-b border-black/10 shrink-0">
+              <div className="min-w-0">
+                <h3 className="text-[18px] font-semibold text-[#4A2A1A]">Ubah jadwal sesi</h3>
+                <p className="text-[13px] text-[#6B5A52] mt-0.5">
+                  Pilih tanggal dan jam kedatangan yang baru.
+                </p>
               </div>
+              <button
+                type="button"
+                onClick={() => setRescheduleModal(false)}
+                className="w-11 h-11 min-w-[44px] min-h-[44px] inline-flex items-center justify-center text-[#6B5A52] hover:text-[#4A2A1A] rounded-[8px] hover:bg-[#FAF6F2] transition-colors duration-150 cursor-pointer shrink-0 -mr-2 -mt-1"
+                aria-label="Tutup modal"
+              >
+                <X size={20} aria-hidden="true" />
+              </button>
+            </div>
 
-              <form onSubmit={handleCustomerReschedule} className="flex flex-col gap-4">
+            <form onSubmit={handleCustomerReschedule} className="flex flex-col flex-1 min-h-0">
+              <div className="overflow-y-auto px-5 sm:px-6 py-4 flex flex-col gap-4">
                 <div>
-                  <label className="text-xs font-bold text-slate-500 uppercase block mb-1.5">Pilih Tanggal Baru</label>
+                  <label htmlFor="reschedule-date" className="block text-[14px] font-medium text-[#4A2A1A] mb-1.5">
+                    Tanggal baru
+                  </label>
                   <input
+                    id="reschedule-date"
                     type="date"
                     min={new Date().toISOString().split("T")[0]}
-                    className="input-glass w-full"
+                    className="input-field tabular-nums text-[16px]"
                     value={rescheduleDate}
                     onChange={(e) => setRescheduleDate(e.target.value)}
                     required
@@ -676,10 +659,10 @@ export default function BookingDetail() {
 
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-xs font-bold text-slate-500 uppercase block">Pilih Jam Baru</label>
+                    <label className="block text-[14px] font-medium text-[#4A2A1A]">Jam baru</label>
                     {isLoadingSlots && (
-                      <span className="flex items-center gap-1 text-[10px] text-pink-500 font-medium">
-                        <Loader2 size={11} className="animate-spin" /> Memeriksa slot...
+                      <span className="flex items-center gap-1 text-[13px] text-[#6B5A52]">
+                        <Loader2 size={12} className="animate-spin" /> Memeriksa slot...
                       </span>
                     )}
                   </div>
@@ -698,22 +681,21 @@ export default function BookingDetail() {
                           type="button"
                           disabled={isFull}
                           onClick={() => !isFull && setRescheduleTime(t)}
-                          className={`py-2 px-3 border rounded-xl text-xs font-bold transition-all flex flex-col items-center justify-center ${isFull
-                              ? "bg-slate-100 border-slate-200 text-slate-300 cursor-not-allowed opacity-60"
+                          className={`min-h-[48px] py-2 px-3 rounded-[8px] text-[14px] tabular-nums transition-colors duration-150 flex flex-col items-center justify-center ${
+                            isFull
+                              ? "bg-white border border-black/10 text-[#6B5A52] opacity-50 cursor-not-allowed"
                               : isSelected
-                                ? "bg-pink-500 text-white border-pink-500 shadow-md shadow-pink-100"
-                                : isLimited
-                                  ? "bg-amber-50 border-amber-300 text-amber-700 hover:border-amber-400 cursor-pointer"
-                                  : "bg-white border-slate-200 text-slate-700 hover:border-pink-300 cursor-pointer"
-                            }`}
+                                ? "bg-[#FFFBF8] border-[1.5px] border-[#C94A83] text-[#4A2A1A] font-semibold cursor-pointer"
+                                : "bg-white border border-black/10 text-[#4A2A1A] hover:border-black/25 font-medium cursor-pointer"
+                          }`}
                         >
                           <span>{t} WIB</span>
                           {isPast ? (
-                            <span className="text-[8px] uppercase tracking-wider text-slate-400 font-bold">Lewat</span>
+                            <span className="text-[12px] text-[#6B5A52]">Lewat</span>
                           ) : isFull ? (
-                            <span className="text-[8px] uppercase tracking-wider text-slate-400 font-bold">Penuh</span>
-                          ) : isLimited && !isSelected ? (
-                            <span className="text-[8px] uppercase tracking-wider text-amber-600 font-bold">Sisa 1</span>
+                            <span className="text-[12px] text-[#6B5A52]">Penuh</span>
+                          ) : isLimited ? (
+                            <span className="text-[12px] text-[#C94A83]">Sisa 1 slot</span>
                           ) : null}
                         </button>
                       );
@@ -722,41 +704,41 @@ export default function BookingDetail() {
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-slate-500 uppercase block mb-1.5">Alasan / Catatan (Opsional)</label>
+                  <label htmlFor="reschedule-notes" className="block text-[14px] font-medium text-[#4A2A1A] mb-1.5">
+                    Catatan perubahan (opsional)
+                  </label>
                   <textarea
+                    id="reschedule-notes"
                     rows={2}
-                    placeholder="Misal: Si kecil baru imunisasi, mohon diundur..."
-                    className="input-glass w-full resize-none py-2"
+                    placeholder="Contoh: Penyesuaian jadwal imunisasi anak"
+                    className="input-field resize-none py-2.5 text-[16px]"
                     value={rescheduleNotes}
                     onChange={(e) => setRescheduleNotes(e.target.value)}
                   />
                 </div>
+              </div>
 
-                <div className="flex gap-3 justify-end mt-2">
-                  <button
-                    type="button"
-                    onClick={() => setRescheduleModal(false)}
-                    className="px-5 py-2.5 font-semibold text-sm text-slate-500 hover:bg-slate-50 border border-slate-200 rounded-xl transition-all cursor-pointer"
-                  >
-                    Batal
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isRescheduling}
-                    className="btn-primary px-5 py-2.5 font-semibold text-sm shadow-md shadow-pink-100 flex items-center gap-2 cursor-pointer"
-                  >
-                    {isRescheduling ? (
-                      <><Loader2 size={15} className="animate-spin" /> Menyimpan...</>
-                    ) : (
-                      <><Calendar size={15} /> Simpan Jadwal Baru</>
-                    )}
-                  </button>
-                </div>
-              </form>
-            </motion.div>
+              <div className="flex gap-3 justify-end px-5 sm:px-6 py-4 border-t border-black/10 shrink-0 bg-white">
+                <button
+                  type="button"
+                  onClick={() => setRescheduleModal(false)}
+                  className="btn-secondary flex-1 sm:flex-none"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={isRescheduling}
+                  className="btn-primary flex-1 sm:flex-none"
+                >
+                  {isRescheduling && <Loader2 size={15} className="animate-spin" />}
+                  {isRescheduling ? "Menyimpan..." : "Simpan jadwal"}
+                </button>
+              </div>
+            </form>
           </div>
-        )}
-      </AnimatePresence>
+        </div>
+      )}
     </div>
   );
 }

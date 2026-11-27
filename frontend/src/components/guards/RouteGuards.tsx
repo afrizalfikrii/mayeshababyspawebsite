@@ -13,6 +13,14 @@ function getStoredUser(): User | null {
   }
 }
 
+function LoadingScreen() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-[var(--bg)]">
+      <div className="w-7 h-7 border-2 border-[var(--border)] border-t-[var(--accent)] rounded-full animate-spin" />
+    </div>
+  );
+}
+
 /**
  * Redirects to /auth if user is not authenticated.
  */
@@ -20,11 +28,7 @@ export function RequireAuth() {
   const { isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-pink-400 border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
   const hasToken = isAuthenticated || !!localStorage.getItem("babyspa_token");
@@ -39,11 +43,7 @@ export function RedirectIfAuth() {
   const { user, isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-pink-400 border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
   const tokenInStorage = localStorage.getItem("babyspa_token");
@@ -63,7 +63,7 @@ export function RedirectIfAuth() {
  * Redirects to /dashboard immediately if the server rejects or role is customer.
  */
 export function RequireAdmin() {
-  const { user, isAuthenticated, isLoading, setUser } = useAuth();
+  const { isAuthenticated, isLoading, setUser } = useAuth();
   const [isVerifying, setIsVerifying] = useState(true);
   const [isServerAdmin, setIsServerAdmin] = useState(false);
 
@@ -103,11 +103,7 @@ export function RequireAdmin() {
   }, []);
 
   if (isLoading || isVerifying) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-pink-400 border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
   const tokenInStorage = localStorage.getItem("babyspa_token");
@@ -125,11 +121,7 @@ export function RequireCustomer() {
   const { user, isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-pink-400 border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
   const tokenInStorage = localStorage.getItem("babyspa_token");
@@ -140,4 +132,3 @@ export function RequireCustomer() {
 
   return <Outlet />;
 }
-
