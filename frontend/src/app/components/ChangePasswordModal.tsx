@@ -246,7 +246,7 @@ export default function ChangePasswordModal({ isOpen, onClose }: ChangePasswordM
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 min-h-[44px] px-5 rounded-[8px] bg-[#C94A83] hover:bg-[#B73F73] text-white text-[15px] font-medium transition-colors duration-150 cursor-pointer disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2"
+              className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 min-h-[44px] px-5 rounded-[8px] bg-[#B73F73] hover:bg-[#A13464] text-white text-[15px] font-medium transition-colors duration-150 cursor-pointer disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2"
             >
               {isSubmitting && <Loader2 size={15} className="animate-spin" aria-hidden="true" />}
               {isSubmitting ? "Menyimpan..." : "Simpan kata sandi"}

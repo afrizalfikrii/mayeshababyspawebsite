@@ -1185,7 +1185,7 @@ export default function Booking() {
                 type="button"
                 onClick={handleNext}
                 disabled={isSubmitting}
-                className="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 rounded-[8px] text-[15px] font-medium text-white bg-[#C94A83] hover:bg-[#B73F73] disabled:opacity-55 disabled:cursor-not-allowed transition-colors duration-150 cursor-pointer flex-1 sm:flex-none sm:min-w-[152px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2"
+                className="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 rounded-[8px] text-[15px] font-medium text-white bg-[#B73F73] hover:bg-[#A13464] disabled:opacity-55 disabled:cursor-not-allowed transition-colors duration-150 cursor-pointer flex-1 sm:flex-none sm:min-w-[152px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2"
               >
                 {isSubmitting && <Loader2 size={16} className="animate-spin" />}
                 {isSubmitting

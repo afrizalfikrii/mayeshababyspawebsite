@@ -80,7 +80,7 @@ function RecommendationCard({
           </span>
           <Link
             to={`/reservasi?service_id=${service.id}`}
-            className="relative z-10 w-full sm:w-auto min-h-[44px] lg:min-h-[36px] inline-flex items-center justify-center border border-[#C94A83] text-[#C94A83] text-[15px] lg:text-[14px] font-medium rounded-[8px] px-4 lg:px-3.5 hover:bg-[#C94A83] hover:text-white transition-colors duration-150 after:absolute after:inset-0 after:rounded-[12px] focus:outline-none whitespace-nowrap"
+            className="relative z-10 w-full sm:w-auto min-h-[44px] lg:min-h-[36px] inline-flex items-center justify-center border border-[#C94A83] text-[#C94A83] text-[15px] lg:text-[14px] font-medium rounded-[8px] px-4 lg:px-3.5 hover:bg-[#B73F73] hover:text-white transition-colors duration-150 after:absolute after:inset-0 after:rounded-[12px] focus:outline-none whitespace-nowrap"
           >
             Reservasi
           </Link>

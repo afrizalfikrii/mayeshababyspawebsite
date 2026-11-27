@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { Link } from "react-router";
-import { Loader2, X as CloseIcon, ChevronLeft, ChevronRight, Clock, Search } from "lucide-react";
+import { Loader2, X as CloseIcon, ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { getServices } from "@/services/service.service";
 import { getPublicReviews } from "@/services/reservation.service";
 import { formatAgeRange } from "@/lib/formatAgeRange";
@@ -239,72 +239,130 @@ export default function Home() {
 
   return (
     <div className="flex flex-col gap-10 md:gap-16 lg:gap-20 pb-12 md:pb-20">
-      {/* Hero Section */}
-      <section className="bg-[#FAF6F2] w-full py-10 md:py-14 lg:py-16">
-        <div className="max-w-7xl mx-auto px-4 md:px-6">
-          <div className="grid grid-cols-1 md:grid-cols-[1.15fr_0.85fr] gap-8 md:gap-12 lg:gap-16 items-center">
-            {/* Left Column (teks lebih dulu di HP) */}
-            <div className="flex flex-col items-start min-w-0 font-['DM_Sans',sans-serif]">
-              <h1 className="font-['Playfair_Display',Georgia,serif] font-medium text-[#4A2A1A] text-[clamp(32px,8vw,68px)] leading-[1.12] tracking-[-0.01em] [text-wrap:balance] break-words max-w-full">
-                Pijat dan spa bayi <br className="hidden sm:inline" />di Karanganyar
-              </h1>
+      {/* Hero + Trust Bar (menempel rapi tanpa celah) */}
+      <div>
+        {/* Hero Section — Blok Warna Hangat */}
+        <section className="relative overflow-hidden bg-[var(--peach)] w-full py-7 sm:py-10 lg:py-16">
+          {/* Logo memudar sebagai cap air lembut di sudut kiri bawah */}
+          <img
+            src="/logo-mayesha.png"
+            alt=""
+            aria-hidden="true"
+            width={240}
+            height={240}
+            className="pointer-events-none select-none absolute -left-[40px] -bottom-[60px] w-[160px] h-[160px] lg:w-[240px] lg:h-[240px] object-contain z-0"
+            style={{ filter: "grayscale(1) brightness(2.2)", opacity: 0.45 }}
+          />
 
-              <p className="mt-4 md:mt-5 text-[16px] md:text-[18px] leading-[1.65] text-[#6B5A52] max-w-[30rem] break-words">
-                Untuk bayi dan anak 0–5 tahun, juga perawatan untuk ibu. Dikerjakan bidan tersertifikasi di studio Tegalgede atau di rumah Bunda.
-              </p>
+          <div className="relative z-10 max-w-7xl mx-auto px-4 md:px-6">
+            <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-6 sm:gap-8 lg:gap-[56px] items-center">
+              {/* Kolom Kiri (Teks lebih dulu di < 1024px) */}
+              <div className="flex flex-col items-start min-w-0 font-['DM_Sans',sans-serif]">
+                <h1 className="font-['Playfair_Display',Georgia,serif] font-medium text-[var(--ink-hero)] text-[32px] sm:text-[clamp(36px,4.4vw,60px)] leading-[1.12] tracking-[-0.01em] [text-wrap:balance] max-w-full">
+                  Pijat dan spa bayi
+                  <br />
+                  di Karanganyar
+                </h1>
 
-              {/* Aksi: tombol penuh di HP, tautan di bawahnya */}
-              <div className="mt-6 md:mt-8 w-full sm:w-auto flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5">
-                <Link
-                  to="/reservasi"
-                  className="w-full sm:w-auto min-h-[44px] inline-flex items-center justify-center rounded-[8px] px-5 py-2.5 text-[15px] font-medium text-white bg-[#C94A83] hover:bg-[#B73F73] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2"
-                >
-                  Buat reservasi
-                </Link>
-                <a
-                  href="#layanan"
-                  className="min-h-[44px] inline-flex items-center justify-center sm:justify-start text-[15px] font-medium text-[#4A2A1A] underline decoration-[#D4568F] decoration-[1.5px] underline-offset-4 hover:text-[#C94A83] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2 rounded-sm"
-                >
-                  Lihat layanan
-                </a>
-              </div>
+                <p className="mt-3 sm:mt-4 lg:mt-5 font-['Playfair_Display',Georgia,serif] italic font-normal text-[16px] sm:text-[18px] lg:text-[20px] leading-[1.5] text-[#4A2A1A] max-w-[30rem] break-words">
+                  Untuk bayi, anak 0–5 tahun, dan ibu, oleh bidan tersertifikasi.
+                </p>
 
-              {/* Info jam & info harga termurah */}
-              <div className="mt-5 md:mt-6 flex flex-col gap-2 font-normal">
-                <div className="flex items-center gap-2 text-[14px] leading-[20px] text-[#6B5A52]">
-                  <Clock size={16} className="text-[#D4568F] shrink-0" aria-hidden="true" />
-                  <span>Setiap hari, 08.30–16.30 WIB</span>
+                {/* Aksi: tombol penuh di HP + baris bawah kiri-kanan rapi; sejajar gap 18px di >= 640px */}
+                <div className="mt-5 sm:mt-7 lg:mt-8 w-full sm:w-auto flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-[18px]">
+                  <Link
+                    to="/reservasi"
+                    className="w-full sm:w-auto min-h-[44px] inline-flex items-center justify-center rounded-[8px] px-5 py-2.5 text-[15px] font-medium text-white bg-[#B73F73] hover:bg-[#A13464] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B73F73] focus-visible:ring-offset-2 focus-visible:ring-offset-[#EFE6DC]"
+                  >
+                    Buat reservasi
+                  </Link>
+                  <div className="flex items-center justify-between gap-3 w-full sm:w-auto">
+                    <a
+                      href="#layanan"
+                      className="min-h-[44px] inline-flex items-center justify-start text-[15px] font-medium text-[var(--ink-hero)] underline decoration-[#C94A83] decoration-[1.5px] underline-offset-4 hover:text-[#B73F73] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B73F73] focus-visible:ring-offset-2 focus-visible:ring-offset-[#EFE6DC] rounded-sm"
+                    >
+                      Lihat layanan
+                    </a>
+                    {lowestPrice !== null && isFinite(lowestPrice) && (
+                      <p className="sm:hidden text-[13px] leading-[18px] text-[#6B5A52] tabular-nums whitespace-nowrap">
+                        Mulai Rp {lowestPrice.toLocaleString("id-ID")}
+                      </p>
+                    )}
+                  </div>
                 </div>
+
                 {lowestPrice !== null && isFinite(lowestPrice) && (
-                  <p className="text-[14px] leading-[20px] text-[#6B5A52] tabular-nums">
+                  <p className="hidden sm:block mt-4 text-[14px] leading-[20px] text-[#6B5A52] tabular-nums">
                     Layanan mulai Rp {lowestPrice.toLocaleString("id-ID")}
                   </p>
                 )}
               </div>
-            </div>
 
-            {/* Right Column (Foto lebar penuh di HP, maks ~70dvh) */}
-            <div className="w-full md:max-w-[400px] lg:max-w-[410px] mx-auto md:mx-0 md:justify-self-end min-w-0">
-              <div className="w-full aspect-[4/5] max-h-[70dvh] rounded-[12px] overflow-hidden bg-[#FAF6F2]">
-                <img
-                  src="/images/activity-massage.jpg"
-                  alt="Terapis memijat bayi di studio Mayesha"
-                  width={768}
-                  height={1020}
-                  fetchPriority="high"
-                  decoding="async"
-                  className="w-full h-full object-cover object-[50%_55%]"
-                  loading="eager"
-                />
+              {/* Kolom Kanan (Foto proporsional 4:3 di HP agar wajah bayi utuh di atas Bottom Nav, 4:5 di >= 640px, max 440px rata kanan di desktop) */}
+              <div className="w-full lg:max-w-[440px] lg:justify-self-end min-w-0">
+                <div className="w-full aspect-[4/3] sm:aspect-[4/5] rounded-tl-[12px] rounded-tr-[12px] rounded-bl-[12px] rounded-br-[36px] lg:rounded-br-[64px] overflow-hidden">
+                  <img
+                    src="/images/activity-massage.jpg"
+                    alt="Terapis memijat bayi di studio Mayesha"
+                    width={768}
+                    height={1020}
+                    fetchPriority="high"
+                    decoding="async"
+                    className="w-full h-full object-cover object-[50%_62%] sm:object-[50%_55%]"
+                    loading="eager"
+                  />
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+
+        {/* Trust Bar 3 Kolom Bernomor (adopsi editorial dari Stitch, selaras token Mayesha) */}
+        <section
+          aria-label="Keunggulan Mayesha Baby Spa"
+          className="w-full bg-[#F6EFEA] border-b border-black/10"
+        >
+          <div className="max-w-7xl mx-auto px-4 md:px-6 py-8 md:py-10">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-10">
+              {[
+                {
+                  num: "01",
+                  title: "Bidan tersertifikasi",
+                  desc: "Seluruh sesi ditangani langsung oleh tenaga bidan berlisensi dengan sertifikasi spa bayi dan ibu.",
+                },
+                {
+                  num: "02",
+                  title: "Pelayanan aman dan higienis",
+                  desc: "Kolam, matras, dan perlengkapan dibersihkan sebelum tiap sesi dengan minyak ramah kulit bayi.",
+                },
+                {
+                  num: "03",
+                  title: "Studio dan kunjungan rumah",
+                  desc: "Pilih perawatan di studio Tegalgede, Karanganyar atau layanan Home Care ke rumah Bunda.",
+                },
+              ].map((item) => (
+                <div key={item.num} className="flex flex-col gap-2 min-w-0">
+                  <div className="flex items-baseline gap-2.5">
+                    <span className="font-['Playfair_Display',Georgia,serif] font-medium text-[22px] leading-none text-[#B73F73] tabular-nums shrink-0">
+                      {item.num}
+                    </span>
+                    <h2 className="font-['DM_Sans',sans-serif] text-[16px] leading-[22px] font-medium text-[#4A2A1A]">
+                      {item.title}
+                    </h2>
+                  </div>
+                  <p className="text-[14px] leading-[22px] text-[#6B5A52]">
+                    {item.desc}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      </div>
 
       {/* Gallery & Facilities Section (Interactive Carousel) */}
       <section id="galeri" className="px-4 md:px-6 max-w-7xl mx-auto w-full scroll-mt-20 overflow-hidden">
-        <div className="border-t border-black/10 pt-10 md:pt-16">
+        <div className="pt-2 md:pt-4">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-5 md:gap-6 mb-6 md:mb-8">
             <div className="max-w-xl min-w-0">
               <h2 className="font-['Playfair_Display',Georgia,serif] font-medium text-[#4A2A1A] text-[clamp(26px,6vw,44px)] leading-[1.15] mb-2">
@@ -569,7 +627,7 @@ export default function Home() {
                       </span>
                       <Link
                         to={`/reservasi?service_id=${service.id}`}
-                        className="relative z-10 w-full sm:w-auto min-h-[44px] lg:min-h-[36px] inline-flex items-center justify-center border border-[#C94A83] text-[#C94A83] text-[15px] lg:text-[14px] font-medium rounded-[8px] px-4 lg:px-3.5 hover:bg-[#C94A83] hover:text-white transition-colors duration-150 after:absolute after:inset-0 after:rounded-[12px] focus:outline-none whitespace-nowrap"
+                        className="relative z-10 w-full sm:w-auto min-h-[44px] lg:min-h-[36px] inline-flex items-center justify-center border border-[#C94A83] text-[#C94A83] text-[15px] lg:text-[14px] font-medium rounded-[8px] px-4 lg:px-3.5 hover:bg-[#B73F73] hover:text-white transition-colors duration-150 after:absolute after:inset-0 after:rounded-[12px] focus:outline-none whitespace-nowrap"
                       >
                         Reservasi
                       </Link>
@@ -654,7 +712,7 @@ export default function Home() {
                   className="w-[80vw] sm:w-[360px] md:w-[380px] shrink-0 snap-start bg-white border border-black/10 rounded-[12px] p-5 md:p-6 flex flex-col justify-between"
                 >
                   <div className="flex flex-col gap-3">
-                    <span className="text-[13px] font-medium text-[#C94A83] tabular-nums">
+                    <span className="text-[13px] font-medium text-[#B73F73] tabular-nums">
                       Penilaian {r.rating}/5
                     </span>
                     <p className="text-[15px] leading-[24px] text-[#4A2A1A] break-words">

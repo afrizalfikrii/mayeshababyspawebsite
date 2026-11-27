@@ -1325,7 +1325,7 @@ export default function AdminDashboard() {
                                   setProofImgError(false);
                                 }}
                                 aria-label={`Verifikasi pembayaran ${r.booking_code}`}
-                                className="flex-1 min-h-[44px] inline-flex items-center justify-center px-3.5 rounded-[8px] bg-[#C94A83] hover:bg-[#B73F73] text-white text-[14px] font-medium transition-colors duration-150 cursor-pointer whitespace-nowrap"
+                                className="flex-1 min-h-[44px] inline-flex items-center justify-center px-3.5 rounded-[8px] bg-[#B73F73] hover:bg-[#A13464] text-white text-[14px] font-medium transition-colors duration-150 cursor-pointer whitespace-nowrap"
                               >
                                 Verifikasi
                               </button>
@@ -1334,7 +1334,7 @@ export default function AdminDashboard() {
                                 type="button"
                                 onClick={() => handleVerify(r.id, "completed")}
                                 aria-label={`Selesaikan sesi ${r.booking_code}`}
-                                className="flex-1 min-h-[44px] inline-flex items-center justify-center px-3.5 rounded-[8px] border border-[#C94A83] text-[#C94A83] bg-transparent hover:bg-[#C94A83] hover:text-white text-[14px] font-medium transition-colors duration-150 cursor-pointer whitespace-nowrap"
+                                className="flex-1 min-h-[44px] inline-flex items-center justify-center px-3.5 rounded-[8px] border border-[#C94A83] text-[#C94A83] bg-transparent hover:bg-[#B73F73] hover:text-white text-[14px] font-medium transition-colors duration-150 cursor-pointer whitespace-nowrap"
                               >
                                 Selesaikan
                               </button>
@@ -1352,7 +1352,7 @@ export default function AdminDashboard() {
                                 })
                               }
                               aria-label={`Reschedule reservasi ${r.booking_code}`}
-                              className="flex-1 min-h-[44px] inline-flex items-center justify-center px-3.5 rounded-[8px] border border-[#C94A83] text-[#C94A83] bg-transparent hover:bg-[#C94A83] hover:text-white text-[14px] font-medium transition-colors duration-150 cursor-pointer whitespace-nowrap"
+                              className="flex-1 min-h-[44px] inline-flex items-center justify-center px-3.5 rounded-[8px] border border-[#C94A83] text-[#C94A83] bg-transparent hover:bg-[#B73F73] hover:text-white text-[14px] font-medium transition-colors duration-150 cursor-pointer whitespace-nowrap"
                             >
                               Reschedule
                             </button>
@@ -1540,7 +1540,7 @@ export default function AdminDashboard() {
                                       setProofImgError(false);
                                     }}
                                     aria-label={`Verifikasi pembayaran ${r.booking_code}`}
-                                    className="inline-flex items-center justify-center h-8 px-3 rounded-[8px] bg-[#C94A83] hover:bg-[#B73F73] text-white text-[13px] font-medium transition-colors duration-150 cursor-pointer whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2"
+                                    className="inline-flex items-center justify-center h-8 px-3 rounded-[8px] bg-[#B73F73] hover:bg-[#A13464] text-white text-[13px] font-medium transition-colors duration-150 cursor-pointer whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2"
                                   >
                                     Verifikasi
                                   </button>
@@ -1549,7 +1549,7 @@ export default function AdminDashboard() {
                                     type="button"
                                     onClick={() => handleVerify(r.id, "completed")}
                                     aria-label={`Selesaikan sesi ${r.booking_code}`}
-                                    className="inline-flex items-center justify-center h-8 px-3 rounded-[8px] border border-[#C94A83] text-[#C94A83] bg-transparent hover:bg-[#C94A83] hover:text-white text-[13px] font-medium transition-colors duration-150 cursor-pointer whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2"
+                                    className="inline-flex items-center justify-center h-8 px-3 rounded-[8px] border border-[#C94A83] text-[#C94A83] bg-transparent hover:bg-[#B73F73] hover:text-white text-[13px] font-medium transition-colors duration-150 cursor-pointer whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2"
                                   >
                                     Selesaikan
                                   </button>
@@ -1568,7 +1568,7 @@ export default function AdminDashboard() {
                                       })
                                     }
                                     aria-label={`Reschedule reservasi ${r.booking_code}`}
-                                    className="inline-flex items-center justify-center h-8 px-3 rounded-[8px] border border-[#C94A83] text-[#C94A83] bg-transparent hover:bg-[#C94A83] hover:text-white text-[13px] font-medium transition-colors duration-150 cursor-pointer whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2"
+                                    className="inline-flex items-center justify-center h-8 px-3 rounded-[8px] border border-[#C94A83] text-[#C94A83] bg-transparent hover:bg-[#B73F73] hover:text-white text-[13px] font-medium transition-colors duration-150 cursor-pointer whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2"
                                   >
                                     Reschedule
                                   </button>
@@ -1648,7 +1648,7 @@ export default function AdminDashboard() {
               <button
                 type="button"
                 onClick={() => setServiceModal({ isOpen: true, mode: "create", data: {} })}
-                className="w-full sm:w-auto inline-flex items-center justify-center min-h-[44px] px-4 rounded-[8px] bg-[#C94A83] hover:bg-[#B73F73] text-white text-[14px] font-medium transition-colors duration-150 cursor-pointer shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2"
+                className="w-full sm:w-auto inline-flex items-center justify-center min-h-[44px] px-4 rounded-[8px] bg-[#B73F73] hover:bg-[#A13464] text-white text-[14px] font-medium transition-colors duration-150 cursor-pointer shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2"
               >
                 Tambah layanan
               </button>
@@ -1844,7 +1844,7 @@ export default function AdminDashboard() {
               <button
                 type="button"
                 onClick={() => setTherapistModal({ isOpen: true, mode: "create", data: {} })}
-                className="w-full sm:w-auto inline-flex items-center justify-center min-h-[44px] px-4 rounded-[8px] bg-[#C94A83] hover:bg-[#B73F73] text-white text-[14px] font-medium transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2"
+                className="w-full sm:w-auto inline-flex items-center justify-center min-h-[44px] px-4 rounded-[8px] bg-[#B73F73] hover:bg-[#A13464] text-white text-[14px] font-medium transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2"
               >
                 Tambah terapis
               </button>
@@ -2028,7 +2028,7 @@ export default function AdminDashboard() {
                     <button
                       type="button"
                       onClick={handleExportCSV}
-                      className="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-3.5 rounded-[8px] border border-[#C94A83] text-[14px] font-medium text-[#C94A83] hover:bg-[#C94A83] hover:text-white transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2"
+                      className="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-3.5 rounded-[8px] border border-[#C94A83] text-[14px] font-medium text-[#C94A83] hover:bg-[#B73F73] hover:text-white transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2"
                     >
                       <Download size={15} aria-hidden="true" />
                       Export CSV
@@ -2036,7 +2036,7 @@ export default function AdminDashboard() {
                     <button
                       type="button"
                       onClick={() => window.print()}
-                      className="col-span-2 sm:col-span-1 bg-[#C94A83] hover:bg-[#B73F73] text-white text-[14px] font-medium min-h-[44px] px-3.5 rounded-[8px] inline-flex items-center justify-center gap-1.5 transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2"
+                      className="col-span-2 sm:col-span-1 bg-[#B73F73] hover:bg-[#A13464] text-white text-[14px] font-medium min-h-[44px] px-3.5 rounded-[8px] inline-flex items-center justify-center gap-1.5 transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2"
                     >
                       <Printer size={15} aria-hidden="true" />
                       Cetak PDF
@@ -2591,7 +2591,7 @@ export default function AdminDashboard() {
                     <button
                       type="button"
                       onClick={() => setShowAllTopServices(!showAllTopServices)}
-                      className="w-full sm:w-auto inline-flex items-center justify-center min-h-[44px] px-3.5 rounded-[8px] border border-[#C94A83] text-[14px] font-medium text-[#C94A83] hover:bg-[#C94A83] hover:text-white transition-colors duration-150 cursor-pointer tabular-nums focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2"
+                      className="w-full sm:w-auto inline-flex items-center justify-center min-h-[44px] px-3.5 rounded-[8px] border border-[#C94A83] text-[14px] font-medium text-[#C94A83] hover:bg-[#B73F73] hover:text-white transition-colors duration-150 cursor-pointer tabular-nums focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2"
                     >
                       {showAllTopServices
                         ? topServicesSort === "most"

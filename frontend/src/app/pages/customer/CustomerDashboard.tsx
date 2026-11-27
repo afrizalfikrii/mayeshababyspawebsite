@@ -241,7 +241,7 @@ export default function CustomerDashboard() {
           </div>
           <Link
             to="/reservasi"
-            className="w-full sm:w-auto inline-flex items-center justify-center min-h-[44px] px-5 rounded-[8px] border border-[#C94A83] bg-transparent text-[#C94A83] hover:bg-[#C94A83] hover:text-white text-[15px] font-medium transition-colors duration-150 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2"
+            className="w-full sm:w-auto inline-flex items-center justify-center min-h-[44px] px-5 rounded-[8px] border border-[#C94A83] bg-transparent text-[#C94A83] hover:bg-[#B73F73] hover:text-white text-[15px] font-medium transition-colors duration-150 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2"
           >
             Buat reservasi
           </Link>
@@ -304,7 +304,7 @@ export default function CustomerDashboard() {
                       type="button"
                       onClick={handleSaveAddress}
                       disabled={isSavingAddress}
-                      className="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-[8px] bg-[#C94A83] hover:bg-[#B73F73] text-white text-[14px] font-medium transition-colors duration-150 cursor-pointer disabled:opacity-60"
+                      className="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-[8px] bg-[#B73F73] hover:bg-[#A13464] text-white text-[14px] font-medium transition-colors duration-150 cursor-pointer disabled:opacity-60"
                     >
                       {isSavingAddress && <Loader2 size={14} className="animate-spin" aria-hidden="true" />}
                       {isSavingAddress ? "Menyimpan..." : "Simpan"}
@@ -501,7 +501,7 @@ export default function CustomerDashboard() {
                           className={`w-full min-[360px]:w-auto min-h-[44px] inline-flex items-center justify-center rounded-[8px] px-4 text-[14px] font-medium border transition-colors duration-150 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2 ${
                             isCancelled
                               ? "border-black/20 text-[#6B5A52] hover:border-[#4A2A1A] hover:text-[#4A2A1A]"
-                              : "border-[#C94A83] text-[#C94A83] hover:bg-[#C94A83] hover:text-white"
+                              : "border-[#C94A83] text-[#C94A83] hover:bg-[#B73F73] hover:text-white"
                           }`}
                         >
                           {booking.status === "pending" ? "Detail dan bayar" : "Lihat detail"}
@@ -608,7 +608,7 @@ export default function CustomerDashboard() {
                 <button
                   type="submit"
                   disabled={isCreatingBaby}
-                  className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 min-h-[44px] px-5 rounded-[8px] bg-[#C94A83] hover:bg-[#B73F73] text-white text-[15px] font-medium transition-colors duration-150 cursor-pointer disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2"
+                  className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 min-h-[44px] px-5 rounded-[8px] bg-[#B73F73] hover:bg-[#A13464] text-white text-[15px] font-medium transition-colors duration-150 cursor-pointer disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2"
                 >
                   {isCreatingBaby && <Loader2 size={15} className="animate-spin" aria-hidden="true" />}
                   {isCreatingBaby ? "Menyimpan..." : "Simpan profil"}

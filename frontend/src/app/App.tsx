@@ -20,7 +20,7 @@ export default function App() {
             border: "1px solid #E6DFD8",
             borderRadius: "8px",
             boxShadow: "none",
-            fontFamily: "'Plus Jakarta Sans', sans-serif",
+            fontFamily: "'DM Sans', sans-serif",
             fontSize: "14px",
           },
         }}

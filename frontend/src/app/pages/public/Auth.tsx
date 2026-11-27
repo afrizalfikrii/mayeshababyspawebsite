@@ -321,7 +321,7 @@ export default function Auth() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full min-h-[44px] mt-2 inline-flex items-center justify-center gap-2 rounded-[8px] bg-[#C94A83] hover:bg-[#B73F73] text-white text-[15px] font-medium transition-colors duration-150 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2"
+            className="w-full min-h-[44px] mt-2 inline-flex items-center justify-center gap-2 rounded-[8px] bg-[#B73F73] hover:bg-[#A13464] text-white text-[15px] font-medium transition-colors duration-150 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2"
           >
             {isLoading && <Loader2 size={16} className="animate-spin" aria-hidden="true" />}
             {isLoading ? "Memproses..." : isLogin ? "Masuk" : "Daftar akun"}

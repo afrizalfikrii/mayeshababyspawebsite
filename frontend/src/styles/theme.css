@@ -3,15 +3,20 @@
 @layer base {
   :root {
     --bg: #FAF6F2;
+    --header-bg: #FFFBF8;
     --surface: #FFFFFF;
     --border: rgba(0, 0, 0, 0.1);
     --text: #4A2A1A;
     --text-muted: #6B5A52;
-    --accent: #C94A83;
-    --accent-hover: #B73F73;
+    --accent: #B73F73;
+    --accent-hover: #A13464;
     --accent-text: #D4568F;
     --sage: #2F6B45;
     --fill-subtle: #F2ECE6;
+    --peach: #EFE6DC;
+    --ink-hero: #3B2417;
+    --strip: #4A2A1A;
+    --strip-text: #F6EDE4;
   }
 
   .admin-theme {
@@ -20,8 +25,8 @@
     --border: rgba(0, 0, 0, 0.1);
     --text: #4A2A1A;
     --text-muted: #6B5A52;
-    --accent: #C94A83;
-    --accent-hover: #B73F73;
+    --accent: #B73F73;
+    --accent-hover: #A13464;
     --accent-text: #D4568F;
     --sage: #2F6B45;
     --fill-subtle: #F2ECE6;
@@ -91,7 +96,7 @@
 
 @layer components {
   .font-editorial {
-    font-family: 'Fraunces', Georgia, serif;
+    font-family: 'Playfair Display', Georgia, serif;
     font-weight: 500;
     letter-spacing: -0.01em;
     color: var(--text);

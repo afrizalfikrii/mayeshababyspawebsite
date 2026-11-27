@@ -22,6 +22,8 @@ import { toast } from "sonner";
 import BrandLogo from "./BrandLogo";
 import ChangePasswordModal from "./ChangePasswordModal";
 
+const OPERATING_HOURS = "08.30–16.30 WIB";
+
 const isTextEntryElement = (el: Element | null): boolean => {
   if (!el || !(el instanceof HTMLElement)) return false;
   if (el.isContentEditable) return true;
@@ -52,6 +54,7 @@ export default function AppShell() {
   const navigate = useNavigate();
 
   const isAuthPage = location.pathname === "/auth";
+  const isPublicPage = location.pathname === "/";
   const isAdmin = user?.role === "admin";
   const isAdminRoute = location.pathname.startsWith("/admin");
   const isBookingRoute = location.pathname === "/reservasi";
@@ -347,10 +350,10 @@ export default function AppShell() {
   };
 
   const navLinkClass = (active: boolean) =>
-    `inline-flex items-center min-h-[44px] text-[15px] font-medium transition-colors duration-150 whitespace-nowrap cursor-pointer border-b-2 ${
+    `inline-flex items-center min-h-[44px] text-[14px] transition-colors duration-150 whitespace-nowrap cursor-pointer border-b-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B73F73] focus-visible:ring-offset-2 rounded-t-[4px] ${
       active
-        ? "text-[#4A2A1A] border-[#D4568F]"
-        : "text-[#6B5A52] border-transparent hover:text-[#4A2A1A]"
+        ? "text-[#4A2A1A] font-medium border-[#D4568F]"
+        : "text-[#6B5A52] font-normal border-transparent hover:text-[#4A2A1A]"
     }`;
 
   const isHomeActive = location.pathname === "/" && activeSection === "beranda";
@@ -367,77 +370,113 @@ export default function AppShell() {
         isAdminRoute ? "admin-theme" : ""
       } ${hasBottomNavOnRoute ? "pb-[calc(72px+env(safe-area-inset-bottom))] md:pb-0" : ""}`}
     >
+      {/* Bar info di atas header — hanya halaman publik (bukan admin/login/reservasi) */}
+      {isPublicPage && (
+        <div
+          data-info-strip
+          className="w-full bg-[var(--strip)] text-[#F6EDE4] text-[12px] sm:text-[13px] leading-[18px] text-center px-3 py-2 pt-[calc(8px+env(safe-area-inset-top))] print:hidden"
+        >
+          <span className="sm:hidden">Buka setiap hari, {OPERATING_HOURS}</span>
+          <span className="hidden sm:inline">
+            Buka setiap hari, {OPERATING_HOURS}. Di studio Tegalgede atau kunjungan ke rumah Bunda.
+          </span>
+        </div>
+      )}
+
       {!isAuthPage && (
-        <header className="sticky top-0 z-40 w-full border-b border-black/10 bg-[#FFFBF8] pt-[env(safe-area-inset-top)] print:hidden">
-          <div
-            className={`max-w-7xl mx-auto px-4 md:px-6 flex items-center justify-between gap-2 md:gap-6 ${
-              isAdminRoute ? "h-16 md:h-[72px]" : "h-[56px] md:h-[72px]"
-            }`}
-          >
-            {/* Brand / Mobile Customer Top Bar */}
-            {isAdminRoute ? (
-              <div className="flex items-center gap-2 md:gap-3 min-w-0 shrink-0">
-                <BrandLogo hideTaglineOnMobile onClick={handleBerandaClick} />
-                <span className="text-[13px] leading-[18px] font-normal text-[#6B5A52] pl-2.5 md:pl-3 border-l border-black/10 self-center whitespace-nowrap">
-                  Panel admin
-                </span>
-              </div>
-            ) : (
-              <>
-                {/* Bilah atas HP (< 768px): tombol kembali + judul pada sub-alur, atau hanya logo 32px + Mayesha */}
-                {isSubFlowPage ? (
-                  <div className="flex md:hidden items-center gap-2 min-w-0 flex-1">
-                    <button
-                      type="button"
-                      onClick={handleSubFlowBack}
-                      aria-label="Kembali"
-                      className="w-11 h-11 min-w-[44px] min-h-[44px] -ml-2 inline-flex items-center justify-center rounded-[8px] text-[#4A2A1A] hover:bg-[#FAF6F2] transition-colors duration-150 cursor-pointer shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83]"
-                    >
-                      <ArrowLeft size={20} aria-hidden="true" />
-                    </button>
-                    <span className="text-[16px] leading-[22px] font-medium text-[#4A2A1A] truncate">
-                      {subFlowTitle}
-                    </span>
-                  </div>
-                ) : (
-                  <Link
-                    to="/"
-                    onClick={handleBerandaClick}
-                    aria-label="Mayesha - ke beranda"
-                    className="md:hidden inline-flex items-center gap-2 min-h-[44px] rounded-[8px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2 select-none"
+        <header
+          className={`sticky top-0 z-40 w-full border-b border-black/10 bg-[#FFFBF8] print:hidden ${
+            isPublicPage ? "" : "pt-[env(safe-area-inset-top)]"
+          }`}
+        >
+          {!isAdminRoute ? (
+            <div
+              className={`max-w-7xl mx-auto px-4 md:px-6 h-[56px] md:h-[72px] lg:h-auto lg:min-h-[84px] lg:py-1.5 flex items-center md:justify-between md:gap-4 lg:grid lg:grid-cols-[1fr_auto_1fr] lg:items-center lg:gap-6 ${
+                isSubFlowPage ? "justify-start" : "justify-center"
+              }`}
+            >
+              {/* Bilah atas HP (< 768px): tombol kembali + judul pada sub-alur, atau logo 32px + Mayesha di tengah */}
+              {isSubFlowPage ? (
+                <div className="flex md:hidden items-center gap-2 min-w-0 flex-1">
+                  <button
+                    type="button"
+                    onClick={handleSubFlowBack}
+                    aria-label="Kembali"
+                    className="w-11 h-11 min-w-[44px] min-h-[44px] -ml-2 inline-flex items-center justify-center rounded-[8px] text-[#4A2A1A] hover:bg-[#FAF6F2] transition-colors duration-150 cursor-pointer shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B73F73]"
                   >
-                    <img
-                      src="/logo-mayesha.png"
-                      alt="Mayesha Logo"
-                      width={32}
-                      height={32}
-                      className="w-8 h-8 shrink-0 object-contain"
-                      onError={(e) => {
-                        const target = e.currentTarget;
-                        if (!target.src.endsWith("/logo.png")) {
-                          target.src = "/logo.png";
-                        }
-                      }}
-                    />
-                    <span
-                      className="font-['Playfair_Display',Georgia,serif] font-medium italic text-[22px] leading-none text-[#D4568F]"
-                      style={{ letterSpacing: "-0.01em" }}
-                    >
-                      Mayesha
-                    </span>
-                  </Link>
-                )}
-
-                {/* Brand desktop (>= 768px) */}
-                <div className="hidden md:flex items-center gap-3 min-w-0 shrink-0">
-                  <BrandLogo onClick={handleBerandaClick} />
+                    <ArrowLeft size={20} aria-hidden="true" />
+                  </button>
+                  <span className="text-[16px] leading-[22px] font-medium text-[#4A2A1A] truncate">
+                    {subFlowTitle}
+                  </span>
                 </div>
-              </>
-            )}
+              ) : (
+                <Link
+                  to="/"
+                  onClick={handleBerandaClick}
+                  aria-label="Mayesha, ke beranda"
+                  className="md:hidden inline-flex items-center gap-2 min-h-[44px] rounded-[8px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B73F73] focus-visible:ring-offset-2 select-none"
+                >
+                  <img
+                    src="/logo-mayesha.png"
+                    alt=""
+                    width={32}
+                    height={32}
+                    className="w-8 h-8 shrink-0 object-contain"
+                    onError={(e) => {
+                      const target = e.currentTarget;
+                      if (!target.src.endsWith("/logo.png")) {
+                        target.src = "/logo.png";
+                      }
+                    }}
+                  />
+                  <span
+                    className="font-['Playfair_Display',Georgia,serif] font-medium italic text-[22px] leading-none text-[#D4568F]"
+                    style={{ letterSpacing: "-0.01em" }}
+                  >
+                    Mayesha
+                  </span>
+                </Link>
+              )}
 
-            {/* Center Links (>= 768px) — hanya halaman pelanggan; di admin "Lihat situs" ada di kanan dekat menu pengguna */}
-            {!isAdminRoute && (
-              <nav className="hidden md:flex items-center gap-6 lg:gap-7">
+              {/* Tablet (768px - 1023px): logo horizontal di kiri (ikon 36px + nama + tagline) */}
+              <Link
+                to="/"
+                onClick={handleBerandaClick}
+                aria-label="Mayesha, ke beranda"
+                className="hidden md:inline-flex lg:hidden items-center gap-2.5 min-h-[44px] rounded-[8px] shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B73F73] focus-visible:ring-offset-2 select-none"
+              >
+                <img
+                  src="/logo-mayesha.png"
+                  alt=""
+                  width={36}
+                  height={36}
+                  className="w-9 h-9 shrink-0 object-contain"
+                  onError={(e) => {
+                    const target = e.currentTarget;
+                    if (!target.src.endsWith("/logo.png")) {
+                      target.src = "/logo.png";
+                    }
+                  }}
+                />
+                <span className="flex flex-col leading-none">
+                  <span
+                    className="font-['Playfair_Display',Georgia,serif] font-medium italic text-[22px] leading-none text-[#D4568F]"
+                    style={{ letterSpacing: "-0.01em" }}
+                  >
+                    Mayesha
+                  </span>
+                  <span className="font-['DM_Sans',sans-serif] font-normal text-[12px] leading-[15px] text-[#6B3A1E] mt-0.5 whitespace-nowrap">
+                    Mom, Kids &amp; Baby Spa
+                  </span>
+                </span>
+              </Link>
+
+              {/* Kiri desktop (>= 1024px) & kanan rapat tablet (768px-1023px): menu navigasi */}
+              <nav
+                aria-label="Navigasi utama"
+                className="hidden md:flex items-center gap-4 lg:gap-6 md:ml-auto lg:ml-0 lg:col-start-1 lg:row-start-1 lg:justify-self-start"
+              >
                 <Link to="/" onClick={handleBerandaClick} className={navLinkClass(isHomeActive)}>
                   Beranda
                 </Link>
@@ -448,36 +487,170 @@ export default function AppShell() {
                   Menu layanan
                 </Link>
               </nav>
-            )}
 
-            {/* Right Actions (>= 768px) */}
-            <div className="hidden md:flex items-center gap-3 lg:gap-4 shrink-0">
-              {isAuthenticated ? (
-                <>
-                  {isAdminRoute && (
+              {/* Tengah desktop (>= 1024px): logo bertumpuk rata tengah */}
+              <Link
+                to="/"
+                onClick={handleBerandaClick}
+                aria-label="Mayesha, ke beranda"
+                className="hidden lg:inline-flex flex-col items-center justify-center text-center lg:col-start-2 lg:row-start-1 lg:justify-self-center rounded-[8px] px-2 py-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B73F73] focus-visible:ring-offset-2 select-none"
+              >
+                <img
+                  src="/logo-mayesha.png"
+                  alt=""
+                  width={40}
+                  height={40}
+                  className="w-10 h-10 shrink-0 object-contain"
+                  onError={(e) => {
+                    const target = e.currentTarget;
+                    if (!target.src.endsWith("/logo.png")) {
+                      target.src = "/logo.png";
+                    }
+                  }}
+                />
+                <span
+                  className="font-['Playfair_Display',Georgia,serif] font-medium italic text-[22px] leading-[1.05] text-[#D4568F] mt-0.5"
+                  style={{ letterSpacing: "-0.01em" }}
+                >
+                  Mayesha
+                </span>
+                <span className="font-['DM_Sans',sans-serif] font-normal text-[12px] leading-[14px] text-[#6B3A1E] mt-0.5 whitespace-nowrap">
+                  Mom, Kids &amp; Baby Spa
+                </span>
+              </Link>
+
+              {/* Kanan (>= 768px): Masuk / Menu Profil + Reservasi */}
+              <div className="hidden md:flex items-center gap-3 lg:gap-4 shrink-0 lg:col-start-3 lg:row-start-1 lg:justify-self-end">
+                {isAuthenticated ? (
+                  <>
+                    <div className="relative" ref={profileRef}>
+                      <button
+                        type="button"
+                        onClick={() => setIsProfileOpen((v) => !v)}
+                        aria-haspopup="menu"
+                        aria-expanded={isProfileOpen}
+                        className="flex items-center gap-2 min-h-[40px] pl-1.5 pr-3 rounded-[8px] border border-black/10 bg-white hover:bg-[#FAF6F2] transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B73F73] focus-visible:ring-offset-2"
+                      >
+                        <span className="w-7 h-7 rounded-full bg-[#FAF6F2] border border-black/10 flex items-center justify-center text-[13px] font-semibold text-[#4A2A1A]">
+                          {initial}
+                        </span>
+                        <span className="text-[14px] font-medium text-[#4A2A1A] max-w-[96px] lg:max-w-[110px] truncate capitalize">
+                          {firstName}
+                        </span>
+                        <ChevronDown
+                          size={14}
+                          aria-hidden="true"
+                          className={`text-[#6B5A52] transition-transform duration-150 ${
+                            isProfileOpen ? "rotate-180" : ""
+                          }`}
+                        />
+                      </button>
+
+                      {isProfileOpen && (
+                        <div
+                          role="menu"
+                          className="absolute right-0 top-[calc(100%+8px)] w-64 bg-white border border-black/10 rounded-[12px] p-2 z-50"
+                        >
+                          <div className="px-3 py-2.5 border-b border-black/10 mb-2">
+                            <p className="text-[14px] font-semibold text-[#4A2A1A] truncate capitalize">{displayName}</p>
+                            {user?.email && (
+                              <p className="text-[12px] text-[#6B5A52] truncate">{user.email}</p>
+                            )}
+                          </div>
+
+                          <Link
+                            to={portalPath}
+                            role="menuitem"
+                            onClick={() => setIsProfileOpen(false)}
+                            className="flex items-center gap-2.5 px-3 min-h-[44px] rounded-[8px] text-[14px] font-medium text-[#4A2A1A] hover:bg-[#FAF6F2] transition-colors duration-150"
+                          >
+                            <User size={16} className="text-[#6B5A52]" aria-hidden="true" />
+                            {portalLabel}
+                          </Link>
+
+                          <button
+                            type="button"
+                            role="menuitem"
+                            onClick={() => {
+                              setIsProfileOpen(false);
+                              setIsPasswordModalOpen(true);
+                            }}
+                            className="w-full flex items-center gap-2.5 px-3 min-h-[44px] rounded-[8px] text-[14px] font-medium text-[#4A2A1A] hover:bg-[#FAF6F2] transition-colors duration-150 cursor-pointer text-left"
+                          >
+                            <KeyRound size={16} className="text-[#6B5A52]" aria-hidden="true" />
+                            Ubah kata sandi
+                          </button>
+
+                          <button
+                            type="button"
+                            role="menuitem"
+                            onClick={() => {
+                              setIsProfileOpen(false);
+                              handleLogout();
+                            }}
+                            className="w-full min-h-[44px] mt-1.5 inline-flex items-center justify-center gap-2 px-3 rounded-[8px] border border-black/15 text-[14px] font-medium text-[#4A2A1A] hover:bg-[#FAF6F2] transition-colors duration-150 cursor-pointer"
+                          >
+                            <LogOut size={15} className="text-[#6B5A52]" aria-hidden="true" />
+                            Keluar
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    {!isAdmin && (
+                      <Link
+                        to="/reservasi"
+                        className="inline-flex items-center justify-center px-4 py-2 rounded-[8px] bg-[#B73F73] hover:bg-[#A13464] text-white text-[14px] font-medium transition-colors duration-150 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B73F73] focus-visible:ring-offset-2"
+                      >
+                        Reservasi
+                      </Link>
+                    )}
+                  </>
+                ) : (
+                  <>
                     <Link
-                      to="/"
-                      className="inline-flex items-center gap-[6px] min-h-[44px] px-1 text-[14px] font-medium text-[#4A2A1A] hover:text-[#C94A83] hover:underline decoration-[#D4568F] decoration-[1.5px] underline-offset-4 transition-colors duration-150 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2 rounded-sm"
+                      to="/auth"
+                      className="inline-flex items-center min-h-[40px] px-1.5 text-[14px] font-medium text-[#4A2A1A] hover:text-[#B73F73] hover:underline decoration-[#D4568F] underline-offset-4 transition-colors duration-150 whitespace-nowrap rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B73F73] focus-visible:ring-offset-2"
                     >
-                      <span>Lihat situs</span>
-                      <ArrowUpRight size={14} aria-hidden="true" className="shrink-0" />
+                      Masuk
                     </Link>
-                  )}
-                  {!isAdmin && !isAdminRoute && (
                     <Link
                       to="/reservasi"
-                      className="inline-flex items-center justify-center min-h-[44px] px-4 rounded-[8px] bg-[#C94A83] hover:bg-[#B73F73] text-white text-[14px] font-medium transition-colors duration-150 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2"
+                      className="inline-flex items-center justify-center px-4 py-2 rounded-[8px] bg-[#B73F73] hover:bg-[#A13464] text-white text-[14px] font-medium transition-colors duration-150 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B73F73] focus-visible:ring-offset-2"
                     >
                       Reservasi
                     </Link>
-                  )}
+                  </>
+                )}
+              </div>
+            </div>
+          ) : (
+            /* Header khusus Area Admin */
+            <div className="max-w-7xl mx-auto px-4 md:px-6 flex items-center justify-between gap-2 md:gap-6 h-16 md:h-[72px]">
+              <div className="flex items-center gap-2 md:gap-3 min-w-0 shrink-0">
+                <BrandLogo hideTaglineOnMobile onClick={handleBerandaClick} />
+                <span className="text-[13px] leading-[18px] font-normal text-[#6B5A52] pl-2.5 md:pl-3 border-l border-black/10 self-center whitespace-nowrap">
+                  Panel admin
+                </span>
+              </div>
+
+              {/* Right Actions Admin (>= 768px) */}
+              <div className="hidden md:flex items-center gap-3 lg:gap-4 shrink-0">
+                <Link
+                  to="/"
+                  className="inline-flex items-center gap-[6px] min-h-[44px] px-1 text-[14px] font-medium text-[#4A2A1A] hover:text-[#B73F73] hover:underline decoration-[#D4568F] decoration-[1.5px] underline-offset-4 transition-colors duration-150 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B73F73] focus-visible:ring-offset-2 rounded-sm"
+                >
+                  <span>Lihat situs</span>
+                  <ArrowUpRight size={14} aria-hidden="true" className="shrink-0" />
+                </Link>
+
+                {isAuthenticated && (
                   <div className="relative" ref={profileRef}>
                     <button
                       type="button"
                       onClick={() => setIsProfileOpen((v) => !v)}
                       aria-haspopup="menu"
                       aria-expanded={isProfileOpen}
-                      className="flex items-center gap-2.5 min-h-[44px] pl-1.5 pr-3 rounded-[8px] border border-black/10 bg-white hover:bg-[#FAF6F2] transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2"
+                      className="flex items-center gap-2.5 min-h-[44px] pl-1.5 pr-3 rounded-[8px] border border-black/10 bg-white hover:bg-[#FAF6F2] transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B73F73] focus-visible:ring-offset-2"
                     >
                       <span className="w-7 h-7 rounded-full bg-[#FAF6F2] border border-black/10 flex items-center justify-center text-[13px] font-semibold text-[#4A2A1A]">
                         {initial}
@@ -544,27 +717,10 @@ export default function AppShell() {
                       </div>
                     )}
                   </div>
-                </>
-              ) : (
-                <div className="flex items-center gap-4">
-                  <Link
-                    to="/auth"
-                    className="inline-flex items-center min-h-[44px] px-2 text-[15px] font-medium text-[#4A2A1A] hover:text-[#C94A83] hover:underline decoration-[#D4568F] underline-offset-4 transition-colors duration-150 whitespace-nowrap"
-                  >
-                    Masuk
-                  </Link>
-                  <Link
-                    to="/reservasi"
-                    className="inline-flex items-center justify-center min-h-[44px] px-4 rounded-[8px] bg-[#C94A83] hover:bg-[#B73F73] text-white text-[14px] font-medium transition-colors duration-150 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2"
-                  >
-                    Reservasi
-                  </Link>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
 
-            {/* Mobile Right Controls (< 768px): KHUSUS AREA ADMIN (halaman pelanggan memakai Bottom Nav) */}
-            {isAdminRoute && (
+              {/* Mobile Right Controls (< 768px): KHUSUS AREA ADMIN */}
               <div className="flex md:hidden items-center gap-2 shrink-0">
                 {isAuthenticated && (
                   <span
@@ -578,7 +734,7 @@ export default function AppShell() {
                 <button
                   ref={menuButtonRef}
                   type="button"
-                  className="w-11 h-11 min-w-[44px] min-h-[44px] inline-flex items-center justify-center text-[#4A2A1A] hover:bg-[#FAF6F2] rounded-[8px] transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2"
+                  className="w-11 h-11 min-w-[44px] min-h-[44px] inline-flex items-center justify-center text-[#4A2A1A] hover:bg-[#FAF6F2] rounded-[8px] transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B73F73] focus-visible:ring-offset-2"
                   onClick={() => setIsMenuOpen((v) => !v)}
                   aria-label={isMenuOpen ? "Tutup menu navigasi" : "Buka menu navigasi"}
                   aria-expanded={isMenuOpen}
@@ -587,8 +743,8 @@ export default function AppShell() {
                   {isMenuOpen ? <X size={22} aria-hidden="true" /> : <Menu size={22} aria-hidden="true" />}
                 </button>
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </header>
       )}
 
@@ -696,7 +852,7 @@ export default function AppShell() {
                       <Link
                         to="/reservasi"
                         onClick={() => setIsMenuOpen(false)}
-                        className="w-full min-h-[44px] inline-flex items-center justify-center px-4 rounded-[8px] bg-[#C94A83] hover:bg-[#B73F73] text-white text-[15px] font-medium transition-colors duration-150"
+                        className="w-full min-h-[44px] inline-flex items-center justify-center px-4 rounded-[8px] bg-[#B73F73] hover:bg-[#A13464] text-white text-[15px] font-medium transition-colors duration-150"
                       >
                         Buat reservasi
                       </Link>
@@ -744,7 +900,7 @@ export default function AppShell() {
                     <Link
                       to="/reservasi"
                       onClick={() => setIsMenuOpen(false)}
-                      className="w-full min-h-[44px] inline-flex items-center justify-center px-4 rounded-[8px] bg-[#C94A83] hover:bg-[#B73F73] text-white text-[15px] font-medium transition-colors duration-150"
+                      className="w-full min-h-[44px] inline-flex items-center justify-center px-4 rounded-[8px] bg-[#B73F73] hover:bg-[#A13464] text-white text-[15px] font-medium transition-colors duration-150"
                     >
                       Buat reservasi
                     </Link>
@@ -834,7 +990,7 @@ export default function AppShell() {
                 <h4 className="text-[15px] font-semibold text-[#4A2A1A] mb-3.5">Jam operasional</h4>
                 <div className="space-y-2 text-[15px] leading-[23px]">
                   <p className="text-[#4A2A1A] font-medium tabular-nums">
-                    Setiap hari, 08.30–16.30 WIB
+                    Setiap hari, {OPERATING_HOURS}
                   </p>
                   <p className="text-[14px] leading-[22px] text-[#6B5A52]">
                     Tersedia layanan di studio maupun kunjungan ke rumah (Home Care).
