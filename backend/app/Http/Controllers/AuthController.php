@@ -9,6 +9,7 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -155,6 +156,55 @@ class AuthController extends Controller
             'success' => true,
             'message' => 'Profil berhasil diperbarui.',
             'data'    => new UserResource($user),
+        ]);
+    }
+
+    /**
+     * Update authenticated user's password and revoke other active sessions.
+     */
+    public function updatePassword(Request $request): JsonResponse
+    {
+        $validated = $request->validate(
+            [
+                'current_password' => ['required', 'string'],
+                'password'         => ['required', 'string', 'min:8', 'confirmed', 'different:current_password'],
+            ],
+            [
+                'current_password.required' => 'Kata sandi saat ini wajib diisi.',
+                'password.required'         => 'Kata sandi baru wajib diisi.',
+                'password.min'              => 'Kata sandi baru minimal 8 karakter.',
+                'password.confirmed'        => 'Konfirmasi kata sandi baru tidak cocok.',
+                'password.different'        => 'Kata sandi baru harus berbeda dari kata sandi saat ini.',
+            ]
+        );
+
+        /** @var \App\Models\User $user */
+        $user = $request->user();
+
+        if (! Hash::check($validated['current_password'], $user->password)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Kata sandi saat ini tidak sesuai.',
+                'errors'  => [
+                    'current_password' => ['Kata sandi saat ini tidak sesuai.'],
+                ],
+            ], 422);
+        }
+
+        $user->update([
+            'password' => $validated['password'], // auto-hashed via cast
+        ]);
+
+        // Cabut token sesi perangkat lain, pertahankan sesi aktif saat ini
+        $currentTokenId = $request->user()->currentAccessToken()?->id;
+        $user->tokens()
+            ->when($currentTokenId, fn ($query) => $query->where('id', '!=', $currentTokenId))
+            ->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Kata sandi berhasil diperbarui.',
+            'data'    => null,
         ]);
     }
 }

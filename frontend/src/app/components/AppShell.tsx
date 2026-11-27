@@ -9,6 +9,7 @@ import {
   ChevronDown,
   User,
   LogOut,
+  KeyRound,
   ArrowLeft,
   Home as HomeIcon,
   LayoutGrid,
@@ -18,6 +19,7 @@ import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import BrandLogo from "./BrandLogo";
+import ChangePasswordModal from "./ChangePasswordModal";
 
 const isTextEntryElement = (el: Element | null): boolean => {
   if (!el || !(el instanceof HTMLElement)) return false;
@@ -33,6 +35,7 @@ const isTextEntryElement = (el: Element | null): boolean => {
 export default function AppShell() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [isMobileViewport, setIsMobileViewport] = useState<boolean>(() =>
     typeof window !== "undefined" ? window.matchMedia("(max-width: 767px)").matches : false
   );
@@ -517,6 +520,19 @@ export default function AppShell() {
                           role="menuitem"
                           onClick={() => {
                             setIsProfileOpen(false);
+                            setIsPasswordModalOpen(true);
+                          }}
+                          className="w-full flex items-center gap-2.5 px-3 min-h-[44px] rounded-[8px] text-[14px] font-medium text-[#4A2A1A] hover:bg-[#FAF6F2] transition-colors duration-150 cursor-pointer text-left"
+                        >
+                          <KeyRound size={16} className="text-[#6B5A52]" aria-hidden="true" />
+                          Ubah kata sandi
+                        </button>
+
+                        <button
+                          type="button"
+                          role="menuitem"
+                          onClick={() => {
+                            setIsProfileOpen(false);
                             handleLogout();
                           }}
                           className="w-full min-h-[44px] mt-1.5 inline-flex items-center justify-center gap-2 px-3 rounded-[8px] border border-black/15 text-[14px] font-medium text-[#4A2A1A] hover:bg-[#FAF6F2] transition-colors duration-150 cursor-pointer"
@@ -691,6 +707,17 @@ export default function AppShell() {
                       <User size={16} className="text-[#6B5A52]" aria-hidden="true" />
                       {portalLabel}
                     </Link>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        setIsPasswordModalOpen(true);
+                      }}
+                      className="w-full min-h-[44px] inline-flex items-center justify-center gap-2 px-4 rounded-[8px] border border-black/20 bg-white text-[#4A2A1A] hover:bg-[#FAF6F2] text-[15px] font-medium transition-colors duration-150 cursor-pointer"
+                    >
+                      <KeyRound size={16} className="text-[#6B5A52]" aria-hidden="true" />
+                      Ubah kata sandi
+                    </button>
                     <button
                       type="button"
                       onClick={() => {
@@ -983,6 +1010,11 @@ export default function AppShell() {
           </div>
         </nav>
       )}
+      {/* Modal Ubah Kata Sandi (Desktop Profile Menu & Mobile Admin Drawer) */}
+      <ChangePasswordModal
+        isOpen={isPasswordModalOpen}
+        onClose={() => setIsPasswordModalOpen(false)}
+      />
     </div>
   );
 }

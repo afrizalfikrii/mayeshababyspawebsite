@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { Loader2, LogOut, Trash2, X } from "lucide-react";
+import { KeyRound, Loader2, LogOut, Trash2, X } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import { getMyReservations } from "@/services/reservation.service";
@@ -8,11 +8,13 @@ import { getBabies, createBaby, deleteBaby } from "@/services/baby.service";
 import { updateProfile } from "@/services/auth.service";
 import type { Reservation, Baby } from "@/types/api.types";
 import RecommendationSection from "@/components/RecommendationSection";
+import ChangePasswordModal from "@/app/components/ChangePasswordModal";
 
 export default function CustomerDashboard() {
   const { user, setUser, logout } = useAuth();
   const navigate = useNavigate();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [babies, setBabies] = useState<Baby[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -369,8 +371,16 @@ export default function CustomerDashboard() {
               )}
             </div>
 
-            {/* Tombol Keluar Akun */}
-            <div className="pt-4 mt-4 border-t border-black/10">
+            {/* Aksi Akun: Ubah Kata Sandi & Keluar */}
+            <div className="pt-4 mt-4 border-t border-black/10 flex flex-col gap-2.5">
+              <button
+                type="button"
+                onClick={() => setIsPasswordModalOpen(true)}
+                className="w-full min-h-[44px] inline-flex items-center justify-center gap-2 px-4 rounded-[8px] border border-black/15 bg-white text-[14px] font-medium text-[#4A2A1A] hover:bg-[#FAF6F2] transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2"
+              >
+                <KeyRound size={15} className="text-[#6B5A52]" aria-hidden="true" />
+                Ubah kata sandi
+              </button>
               <button
                 type="button"
                 onClick={handleLogout}
@@ -650,6 +660,11 @@ export default function CustomerDashboard() {
           </div>
         </div>
       )}
+      {/* Modal Ubah Kata Sandi */}
+      <ChangePasswordModal
+        isOpen={isPasswordModalOpen}
+        onClose={() => setIsPasswordModalOpen(false)}
+      />
     </div>
   );
 }

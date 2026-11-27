@@ -145,6 +145,12 @@ export interface UpdateProfilePayload {
   address?: string | null;
 }
 
+export interface UpdatePasswordPayload {
+  current_password: string;
+  password: string;
+  password_confirmation: string;
+}
+
 // ─── Slot Availability ───────────────────────────────────────────────────────
 export interface SlotInfo {
   available: number;

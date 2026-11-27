@@ -27,10 +27,11 @@ Route::get('/reviews',    [ReviewController::class, 'index']);
 // Route yang wajib menggunakan Token (Sanctum)
 Route::middleware('auth:sanctum')->group(function () {
 
-    Route::post('/logout', [AuthController::class, 'logout']);
-    Route::get('/me',      [AuthController::class, 'me']);
-    Route::put('/me',      [AuthController::class, 'updateProfile']);
-    Route::get('/therapists', [ServiceController::class, 'therapists']);
+    Route::post('/logout',      [AuthController::class, 'logout']);
+    Route::get('/me',           [AuthController::class, 'me']);
+    Route::put('/me',           [AuthController::class, 'updateProfile']);
+    Route::put('/me/password',  [AuthController::class, 'updatePassword'])->middleware('throttle:6,1');
+    Route::get('/therapists',   [ServiceController::class, 'therapists']);
 
     // Route khusus Customer
     Route::middleware('role:customer')->group(function () {
