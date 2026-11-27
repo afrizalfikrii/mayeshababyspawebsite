@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { Loader2 } from "lucide-react";
 import { getRecommendations } from "@/services/service.service";
+import { formatAgeRange } from "@/lib/formatAgeRange";
 import type { Service } from "@/types/api.types";
 
 function getServiceSegment(service: Service): "Bayi" | "Anak" | "Ibu" {
@@ -17,21 +18,6 @@ function getServiceSegment(service: Service): "Bayi" | "Anak" | "Ibu" {
   return "Bayi";
 }
 
-function formatAge(minMonths: number | null, maxMonths: number | null): string {
-  if (minMonths === null) return "0–5 tahun";
-  if (maxMonths === null) return "Ibu / dewasa";
-
-  const toYearsLabel = (months: number) => {
-    if (months === 0) return "0 bulan";
-    if (months < 12) return `${months} bulan`;
-    const years = Math.floor(months / 12);
-    const rem = months % 12;
-    return rem === 0 ? `${years} tahun` : `${years} thn ${rem} bln`;
-  };
-
-  return `${toYearsLabel(minMonths)}–${toYearsLabel(maxMonths)}`;
-}
-
 function RecommendationCard({
   service,
   isColdStart,
@@ -40,15 +26,15 @@ function RecommendationCard({
   isColdStart: boolean;
 }) {
   const segment = getServiceSegment(service);
-  const ageRange = formatAge(service.age_min_months, service.age_max_months);
+  const ageLabel = formatAgeRange(service);
   const similarityPct =
     service.similarity_score !== null && service.similarity_score !== undefined
       ? Math.round(service.similarity_score * 100)
       : null;
 
   return (
-    <article className="relative bg-white border border-black/10 rounded-[12px] p-5 md:p-6 flex flex-col justify-between h-full hover:border-[#D4568F] focus-within:ring-2 focus-within:ring-[#C94A83] focus-within:ring-offset-2 transition-colors duration-150">
-      <div>
+    <article className="relative bg-white border border-black/10 rounded-[12px] p-5 md:p-6 flex flex-col justify-between h-full min-w-0 hover:border-[#D4568F] focus-within:ring-2 focus-within:ring-[#C94A83] focus-within:ring-offset-2 transition-colors duration-150">
+      <div className="min-w-0">
         <div className="flex items-center justify-between gap-2 text-[13px] leading-[18px] text-[#6B5A52] tabular-nums mb-2.5">
           <span className="font-medium text-[#6B5A52]">{segment}</span>
           {!isColdStart && similarityPct !== null ? (
@@ -56,43 +42,49 @@ function RecommendationCard({
               {similarityPct}% sesuai riwayat
             </span>
           ) : (
-            <span>Usia {ageRange}</span>
+            <span className="shrink-0">{ageLabel}</span>
           )}
         </div>
 
         <h3
           title={service.name}
-          className="text-[18px] leading-[25px] font-semibold text-[#4A2A1A]"
+          className="text-[18px] leading-[25px] font-semibold text-[#4A2A1A] break-words"
         >
           {service.name}
         </h3>
 
-        <p className="text-[14px] leading-[22px] text-[#6B5A52] mt-2 line-clamp-2">
+        <p className="text-[15px] leading-[23px] text-[#6B5A52] mt-2 line-clamp-2 break-words">
           {service.description}
         </p>
 
         {!isColdStart && similarityPct !== null && (
           <p className="text-[13px] leading-[18px] text-[#6B5A52] mt-2 tabular-nums">
-            Usia {ageRange}
+            {ageLabel}
           </p>
         )}
       </div>
 
-      <div className="pt-4 mt-5 border-t border-black/10 flex flex-col gap-3">
+      <div className="pt-4 mt-5 border-t border-black/10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
         <div className="flex items-baseline justify-between gap-2">
-          <span className="text-[14px] leading-[20px] text-[#6B5A52] tabular-nums">
+          <span className="text-[14px] leading-[20px] text-[#6B5A52] tabular-nums shrink-0">
             {service.duration_minutes} menit
           </span>
-          <span className="text-[18px] leading-[24px] font-medium text-[#4A2A1A] tabular-nums">
+          <span className="lg:hidden text-[18px] leading-[24px] font-medium text-[#4A2A1A] tabular-nums">
             Rp {Number(service.price ?? 0).toLocaleString("id-ID")}
           </span>
         </div>
-        <Link
-          to={`/reservasi?service_id=${service.id}`}
-          className="relative z-10 w-full min-h-[44px] inline-flex items-center justify-center border border-[#C94A83] text-[#C94A83] text-[15px] font-medium rounded-[8px] px-4 hover:bg-[#C94A83] hover:text-white transition-colors duration-150 after:absolute after:inset-0 after:rounded-[12px] focus:outline-none"
-        >
-          Reservasi
-        </Link>
+
+        <div className="flex items-center lg:gap-3.5 w-full lg:w-auto">
+          <span className="hidden lg:inline text-[17px] leading-[24px] font-medium text-[#4A2A1A] tabular-nums whitespace-nowrap">
+            Rp {Number(service.price ?? 0).toLocaleString("id-ID")}
+          </span>
+          <Link
+            to={`/reservasi?service_id=${service.id}`}
+            className="relative z-10 w-full sm:w-auto min-h-[44px] lg:min-h-[36px] inline-flex items-center justify-center border border-[#C94A83] text-[#C94A83] text-[15px] lg:text-[14px] font-medium rounded-[8px] px-4 lg:px-3.5 hover:bg-[#C94A83] hover:text-white transition-colors duration-150 after:absolute after:inset-0 after:rounded-[12px] focus:outline-none whitespace-nowrap"
+          >
+            Reservasi
+          </Link>
+        </div>
       </div>
     </article>
   );

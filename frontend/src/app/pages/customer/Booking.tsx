@@ -6,6 +6,7 @@ import { getServices, getTherapists } from "@/services/service.service";
 import { createReservation, getSlotAvailability } from "@/services/reservation.service";
 import { getBabies, createBaby } from "@/services/baby.service";
 import { useAuth } from "@/context/AuthContext";
+import { formatAgeRange } from "@/lib/formatAgeRange";
 import type { Service, Therapist, Baby, SlotAvailability } from "@/types/api.types";
 import BookingStepper, { BOOKING_STEPS } from "@/app/components/BookingStepper";
 
@@ -527,7 +528,7 @@ export default function Booking() {
                     </div>
 
                     <div className="overflow-x-auto overflow-y-hidden no-scrollbar max-w-full">
-                      <div className="flex items-center gap-5 sm:gap-6 border-b border-black/10">
+                      <div className="flex items-center gap-3 sm:gap-4 border-b border-black/10">
                         {[
                           { id: "all", label: "Semua" },
                           { id: "Bayi", label: "Bayi" },
@@ -540,7 +541,7 @@ export default function Booking() {
                               key={tab.id}
                               type="button"
                               onClick={() => setSegmentFilter(tab.id as "all" | "Bayi" | "Anak" | "Ibu")}
-                              className={`min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-[15px] transition-colors duration-150 border-b-2 whitespace-nowrap cursor-pointer shrink-0 ${
+                              className={`min-h-[44px] px-3 inline-flex items-center justify-center text-[15px] transition-colors duration-150 border-b-2 whitespace-nowrap cursor-pointer shrink-0 ${
                                 isActive
                                   ? "text-[#4A2A1A] font-medium border-[#D4568F]"
                                   : "text-[#6B5A52] font-normal border-transparent hover:text-[#4A2A1A]"
@@ -556,6 +557,7 @@ export default function Booking() {
                     <div className="flex flex-col gap-3">
                       {filteredBookingServices.map((s) => {
                         const cls = getServiceClassification(s);
+                        const ageLabel = formatAgeRange(s);
                         const isSelected = formData.serviceId === s.id;
                         return (
                           <label
@@ -593,7 +595,7 @@ export default function Booking() {
                                     {s.name}
                                   </span>
                                   <span className="text-[13px] text-[#6B5A52] shrink-0">
-                                    • {cls}
+                                    • {cls} • {ageLabel}
                                   </span>
                                 </div>
                                 <p className="text-[#6B5A52] text-[14px] leading-[21px] mt-1 max-w-lg line-clamp-2 break-words">

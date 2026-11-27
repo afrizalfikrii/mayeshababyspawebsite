@@ -1,13 +1,15 @@
 import { useEffect, useState, useRef } from "react";
 import { Link } from "react-router";
-import { Loader2, X as CloseIcon, ChevronLeft, ChevronRight, Clock } from "lucide-react";
+import { Loader2, X as CloseIcon, ChevronLeft, ChevronRight, Clock, Search } from "lucide-react";
 import { getServices } from "@/services/service.service";
 import { getPublicReviews } from "@/services/reservation.service";
+import { formatAgeRange } from "@/lib/formatAgeRange";
 import type { Service, Review } from "@/types/api.types";
 
 export default function Home() {
   const [services, setServices] = useState<Service[]>([]);
   const [segmentFilter, setSegmentFilter] = useState<"all" | "Bayi" | "Anak" | "Ibu">("all");
+  const [serviceSearch, setServiceSearch] = useState("");
   const [reviews, setReviews] = useState<Review[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState<{ src: string; title: string; desc: string } | null>(null);
@@ -50,9 +52,26 @@ export default function Home() {
     return segA - segB;
   });
 
-  const filteredServices = sortedServices.filter((s) =>
-    segmentFilter === "all" ? true : getServiceClassification(s) === segmentFilter
-  );
+  const normalizedServiceQuery = serviceSearch.trim().toLowerCase();
+
+  const filteredServices = sortedServices.filter((s) => {
+    const matchesSegment =
+      segmentFilter === "all" ? true : getServiceClassification(s) === segmentFilter;
+    if (!matchesSegment) return false;
+    if (!normalizedServiceQuery) return true;
+    const name = (s.name ?? "").toLowerCase();
+    const desc = (s.description ?? "").toLowerCase();
+    return name.includes(normalizedServiceQuery) || desc.includes(normalizedServiceQuery);
+  });
+
+  const groupedServices: Array<{ segment: "Bayi" | "Anak" | "Ibu"; items: Service[] }> = (
+    ["Bayi", "Anak", "Ibu"] as const
+  )
+    .map((segment) => ({
+      segment,
+      items: filteredServices.filter((s) => getServiceClassification(s) === segment),
+    }))
+    .filter((group) => group.items.length > 0);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -71,27 +90,6 @@ export default function Home() {
     };
     fetchData();
   }, []);
-
-  const formatAgeRange = (service: Service): string => {
-    if (service.category === "mom_treatment" || (service.age_min_months !== null && service.age_min_months >= 216)) {
-      return "Ibu / Dewasa";
-    }
-    if (service.age_min_months === null && service.age_max_months === null) {
-      return "0–5 tahun";
-    }
-    const min = service.age_min_months ?? 0;
-    const max = service.age_max_months;
-    if (max === null) return `${min}+ bln`;
-
-    const fmt = (m: number) => {
-      if (m < 12) return `${m} bln`;
-      if (m % 12 === 0) return `${m / 12} thn`;
-      return `${m} bln`;
-    };
-
-    if (min === 0 && max <= 12) return `0–${max} bln`;
-    return `${fmt(min)}–${fmt(max)}`;
-  };
 
   const averageRating =
     reviews.length > 0
@@ -427,7 +425,7 @@ export default function Home() {
       {/* Services Section */}
       <section id="layanan" className="px-4 md:px-6 max-w-7xl mx-auto w-full scroll-mt-20">
         <div className="border-t border-black/10 pt-10 md:pt-16">
-          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-5 md:gap-6 mb-8 md:mb-10">
+          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-5 md:gap-6 mb-6">
             <div className="max-w-xl min-w-0">
               <h2 className="font-['Playfair_Display',Georgia,serif] font-medium text-[#4A2A1A] text-[clamp(26px,6vw,38px)] leading-[1.18] mb-2">
                 Pilihan perawatan
@@ -439,7 +437,11 @@ export default function Home() {
 
             {!isLoading && services.length > 0 && (
               <div className="overflow-x-auto overflow-y-hidden no-scrollbar max-w-full">
-                <div className="flex items-center gap-6 border-b border-black/10">
+                <div
+                  role="tablist"
+                  aria-label="Filter segmen layanan"
+                  className="flex items-center gap-3 sm:gap-4 border-b border-black/10"
+                >
                   {[
                     { id: "all", label: "Semua" },
                     { id: "Bayi", label: "Bayi" },
@@ -451,8 +453,10 @@ export default function Home() {
                       <button
                         key={tab.id}
                         type="button"
+                        role="tab"
+                        aria-selected={isActive}
                         onClick={() => setSegmentFilter(tab.id as "all" | "Bayi" | "Anak" | "Ibu")}
-                        className={`min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-[15px] font-medium transition-colors duration-150 border-b-2 whitespace-nowrap cursor-pointer shrink-0 ${
+                        className={`min-h-[44px] px-3 inline-flex items-center justify-center text-[15px] font-medium transition-colors duration-150 border-b-2 whitespace-nowrap cursor-pointer shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-inset rounded-t-[4px] ${
                           isActive
                             ? "text-[#4A2A1A] border-[#D4568F]"
                             : "text-[#6B5A52] border-transparent hover:text-[#4A2A1A]"
@@ -467,65 +471,137 @@ export default function Home() {
             )}
           </div>
 
+          {!isLoading && services.length > 0 && (
+            <div className="mb-8">
+              <div className="relative w-full md:max-w-sm">
+                <Search
+                  size={17}
+                  aria-hidden="true"
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#6B5A52] pointer-events-none"
+                />
+                <input
+                  type="search"
+                  aria-label="Cari layanan"
+                  placeholder="Cari layanan"
+                  value={serviceSearch}
+                  onChange={(e) => setServiceSearch(e.target.value)}
+                  className="w-full h-[44px] pl-10 pr-11 rounded-[8px] bg-white border border-black/20 text-[16px] text-[#4A2A1A] placeholder:text-[#6B5A52]/75 focus:outline-none focus:ring-2 focus:ring-[#C94A83] focus:ring-offset-2 focus:border-[#C94A83] [&::-webkit-search-cancel-button]:hidden"
+                />
+                {serviceSearch && (
+                  <button
+                    type="button"
+                    onClick={() => setServiceSearch("")}
+                    aria-label="Hapus pencarian"
+                    className="absolute right-0 top-1/2 -translate-y-1/2 w-11 h-11 min-w-[44px] min-h-[44px] inline-flex items-center justify-center text-[#6B5A52] hover:text-[#4A2A1A] rounded-[8px] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83]"
+                  >
+                    <CloseIcon size={16} aria-hidden="true" />
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-20 gap-3 bg-white border border-black/10 rounded-[12px]">
               <Loader2 size={24} className="animate-spin text-[#6B5A52]" />
               <p className="text-[#6B5A52] text-[14px]">Memuat daftar layanan...</p>
             </div>
           ) : filteredServices.length === 0 ? (
-            <div className="text-center py-16 bg-white border border-black/10 rounded-[12px] px-6">
-              <p className="text-[#4A2A1A] font-semibold text-[18px]">Layanan belum tersedia</p>
-              <p className="text-[#6B5A52] text-[14px] max-w-sm mx-auto mt-1">
-                Daftar layanan pada kategori ini sedang diperbarui.
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 md:gap-6">
-              {filteredServices.map((service) => {
-                const cls = getServiceClassification(service);
-                const ageRange = formatAgeRange(service);
-
-                return (
-                  <article
-                    key={service.id}
-                    className="relative bg-white border border-black/10 rounded-[12px] p-5 md:p-6 flex flex-col justify-between h-full min-w-0 hover:border-[#D4568F] focus-within:ring-2 focus-within:ring-[#C94A83] focus-within:ring-offset-2 transition-colors duration-150 group"
+            <div className="text-center py-14 bg-white border border-black/10 rounded-[12px] px-6">
+              {normalizedServiceQuery ? (
+                <div className="flex flex-col items-center gap-1">
+                  <p className="text-[#4A2A1A] text-[16px]">Tidak ada layanan yang cocok.</p>
+                  <button
+                    type="button"
+                    onClick={() => setServiceSearch("")}
+                    className="min-h-[44px] px-2 inline-flex items-center text-[15px] font-medium text-[#C94A83] underline decoration-[#D4568F] decoration-[1.5px] underline-offset-4 hover:text-[#B73F73] transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2 rounded-sm"
                   >
-                    <div className="min-w-0">
-                      <div className="flex items-center justify-between gap-2 text-[13px] leading-[18px] text-[#6B5A52] tabular-nums mb-2">
-                        <span className="font-medium text-[#6B5A52]">{cls}</span>
-                        <span className="shrink-0">Usia {ageRange}</span>
-                      </div>
+                    Hapus pencarian
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <p className="text-[#4A2A1A] font-semibold text-[18px]">Layanan belum tersedia</p>
+                  <p className="text-[#6B5A52] text-[14px] max-w-sm mx-auto mt-1">
+                    Daftar layanan pada kategori ini sedang diperbarui.
+                  </p>
+                </>
+              )}
+            </div>
+          ) : (() => {
+            const renderServiceCard = (service: Service) => {
+              const cls = getServiceClassification(service);
+              const ageLabel = formatAgeRange(service);
 
-                      <h3 className="text-[18px] leading-[25px] font-semibold text-[#4A2A1A] break-words">
-                        {service.name}
-                      </h3>
-
-                      <p className="text-[15px] leading-[23px] text-[#6B5A52] mt-2 line-clamp-2 break-words">
-                        {service.description}
-                      </p>
+              return (
+                <article
+                  key={service.id}
+                  className="relative bg-white border border-black/10 rounded-[12px] p-5 md:p-6 flex flex-col justify-between h-full min-w-0 hover:border-[#D4568F] focus-within:ring-2 focus-within:ring-[#C94A83] focus-within:ring-offset-2 transition-colors duration-150 group"
+                >
+                  <div className="min-w-0">
+                    <div className="flex items-center justify-between gap-2 text-[13px] leading-[18px] text-[#6B5A52] tabular-nums mb-2">
+                      <span className="font-medium text-[#6B5A52]">{cls}</span>
+                      <span className="shrink-0">{ageLabel}</span>
                     </div>
 
-                    <div className="pt-4 mt-5 border-t border-black/10 flex flex-col gap-3">
-                      <div className="flex items-baseline justify-between gap-2">
-                        <span className="text-[14px] leading-[20px] text-[#6B5A52] tabular-nums">
-                          {service.duration_minutes} menit
-                        </span>
-                        <span className="text-[18px] leading-[24px] font-medium text-[#4A2A1A] tabular-nums">
-                          Rp {Number(service.price).toLocaleString("id-ID")}
-                        </span>
-                      </div>
+                    <h3 className="text-[18px] leading-[25px] font-semibold text-[#4A2A1A] break-words">
+                      {service.name}
+                    </h3>
+
+                    <p className="text-[15px] leading-[23px] text-[#6B5A52] mt-2 line-clamp-2 break-words">
+                      {service.description}
+                    </p>
+                  </div>
+
+                  <div className="pt-4 mt-5 border-t border-black/10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <span className="text-[14px] leading-[20px] text-[#6B5A52] tabular-nums shrink-0">
+                        {service.duration_minutes} menit
+                      </span>
+                      <span className="lg:hidden text-[18px] leading-[24px] font-medium text-[#4A2A1A] tabular-nums">
+                        Rp {Number(service.price).toLocaleString("id-ID")}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center lg:gap-3.5 w-full lg:w-auto">
+                      <span className="hidden lg:inline text-[17px] leading-[24px] font-medium text-[#4A2A1A] tabular-nums whitespace-nowrap">
+                        Rp {Number(service.price).toLocaleString("id-ID")}
+                      </span>
                       <Link
                         to={`/reservasi?service_id=${service.id}`}
-                        className="relative z-10 w-full min-h-[44px] inline-flex items-center justify-center border border-[#C94A83] text-[#C94A83] text-[15px] font-medium rounded-[8px] px-4 hover:bg-[#C94A83] hover:text-white transition-colors duration-150 after:absolute after:inset-0 after:rounded-[12px] focus:outline-none"
+                        className="relative z-10 w-full sm:w-auto min-h-[44px] lg:min-h-[36px] inline-flex items-center justify-center border border-[#C94A83] text-[#C94A83] text-[15px] lg:text-[14px] font-medium rounded-[8px] px-4 lg:px-3.5 hover:bg-[#C94A83] hover:text-white transition-colors duration-150 after:absolute after:inset-0 after:rounded-[12px] focus:outline-none whitespace-nowrap"
                       >
                         Reservasi
                       </Link>
                     </div>
-                  </article>
-                );
-              })}
-            </div>
-          )}
+                  </div>
+                </article>
+              );
+            };
+
+            if (segmentFilter === "all") {
+              return (
+                <div className="flex flex-col gap-12">
+                  {groupedServices.map((group) => (
+                    <div key={group.segment}>
+                      <h3 className="font-['Playfair_Display',Georgia,serif] font-medium text-[#4A2A1A] text-[24px] sm:text-[28px] leading-[1.2] mb-5">
+                        {group.segment}
+                      </h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 md:gap-6">
+                        {group.items.map(renderServiceCard)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              );
+            }
+
+            return (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 md:gap-6">
+                {filteredServices.map(renderServiceCard)}
+              </div>
+            );
+          })()}
         </div>
       </section>
 

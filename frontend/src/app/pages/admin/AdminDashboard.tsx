@@ -2186,9 +2186,9 @@ export default function AdminDashboard() {
                       >
                         {[
                           { id: "all", label: "Semua segmen" },
-                          { id: "Bayi", label: "Bayi (0–1 thn)" },
-                          { id: "Anak", label: "Anak (1–5 thn)" },
-                          { id: "Ibu", label: "Ibu" },
+                          { id: "Bayi", label: "Bayi (0–12 bulan)" },
+                          { id: "Anak", label: "Anak (1–5 tahun)" },
+                          { id: "Ibu", label: "Ibu dan dewasa" },
                         ].map((seg) => {
                           const isActive = reportSegment === seg.id;
                           return (
