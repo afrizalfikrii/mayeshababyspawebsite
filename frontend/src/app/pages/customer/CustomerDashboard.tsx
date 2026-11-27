@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router";
-import { Loader2, Trash2, X } from "lucide-react";
+import { Link, useNavigate } from "react-router";
+import { Loader2, LogOut, Trash2, X } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import { getMyReservations } from "@/services/reservation.service";
@@ -10,7 +10,9 @@ import type { Reservation, Baby } from "@/types/api.types";
 import RecommendationSection from "@/components/RecommendationSection";
 
 export default function CustomerDashboard() {
-  const { user, setUser } = useAuth();
+  const { user, setUser, logout } = useAuth();
+  const navigate = useNavigate();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [babies, setBabies] = useState<Baby[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -156,6 +158,20 @@ export default function CustomerDashboard() {
       toast.error(err.response?.data?.message ?? "Gagal menyimpan alamat.");
     } finally {
       setIsSavingAddress(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
+    try {
+      await logout();
+      toast.success("Berhasil keluar.");
+      navigate("/");
+    } catch {
+      toast.error("Gagal keluar, silakan coba lagi.");
+    } finally {
+      setIsLoggingOut(false);
     }
   };
 
@@ -351,6 +367,23 @@ export default function CustomerDashboard() {
                   ))}
                 </ul>
               )}
+            </div>
+
+            {/* Tombol Keluar Akun */}
+            <div className="pt-4 mt-4 border-t border-black/10">
+              <button
+                type="button"
+                onClick={handleLogout}
+                disabled={isLoggingOut}
+                className="w-full min-h-[44px] inline-flex items-center justify-center gap-2 px-4 rounded-[8px] border border-black/15 bg-transparent text-[14px] font-medium text-[#4A2A1A] hover:bg-[#FAF6F2] hover:text-[#9B3B3B] hover:border-[#9B3B3B]/30 transition-colors duration-150 cursor-pointer disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2"
+              >
+                {isLoggingOut ? (
+                  <Loader2 size={15} className="animate-spin text-[#6B5A52]" aria-hidden="true" />
+                ) : (
+                  <LogOut size={15} className="text-[#6B5A52]" aria-hidden="true" />
+                )}
+                {isLoggingOut ? "Keluar..." : "Keluar"}
+              </button>
             </div>
           </aside>
 
