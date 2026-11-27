@@ -99,10 +99,10 @@ export default function Home() {
   const lowestPrice =
     services.length > 0
       ? Math.min(
-          ...services
-            .map((s) => Number(s.price || 0))
-            .filter((p) => !isNaN(p) && p > 0)
-        )
+        ...services
+          .map((s) => Number(s.price || 0))
+          .filter((p) => !isNaN(p) && p > 0)
+      )
       : null;
 
   const galleryItems = [
@@ -241,86 +241,101 @@ export default function Home() {
     <div className="flex flex-col gap-10 md:gap-16 lg:gap-20 pb-12 md:pb-20">
       {/* Hero + Trust Bar (menempel rapi tanpa celah) */}
       <div>
-        {/* Hero Section — Blok Warna Hangat */}
-        <section className="relative overflow-hidden bg-[var(--peach)] w-full py-7 sm:py-10 lg:py-16">
-          {/* Logo memudar sebagai cap air lembut di sudut kiri bawah */}
-          <img
-            src="/logo-mayesha.png"
-            alt=""
-            aria-hidden="true"
-            width={240}
-            height={240}
-            className="pointer-events-none select-none absolute -left-[40px] -bottom-[60px] w-[160px] h-[160px] lg:w-[240px] lg:h-[240px] object-contain z-0"
-            style={{ filter: "grayscale(1) brightness(2.2)", opacity: 0.45 }}
-          />
+        {/* Hero Section — Full-bleed Seamless di Desktop (kanan) & Mobile/Tablet (bawah) */}
+        <section className="relative overflow-hidden bg-[var(--peach)] w-full pt-6 pb-0 sm:pt-9 lg:py-20 xl:py-24">
+          {/* Desktop (>= 1024px): visual penuh menyatu halus dari sisi kanan ke latar krem */}
+          <div
+            className="hidden lg:block pointer-events-none select-none absolute inset-y-0 right-0 w-[64%] xl:w-[60%] z-0 overflow-hidden"
+            style={{
+              WebkitMaskImage:
+                "linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.45) 18%, black 38%)",
+              maskImage:
+                "linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.45) 18%, black 38%)",
+            }}
+          >
+            <img
+              src="/images/hero-mayesha.png"
+              alt="Terapis memijat bayi di studio Mayesha"
+              width={1024}
+              height={768}
+              fetchPriority="high"
+              decoding="async"
+              loading="eager"
+              className="w-full h-full object-cover object-[70%_32%]"
+            />
+          </div>
 
           <div className="relative z-10 max-w-7xl mx-auto px-4 md:px-6">
-            <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-6 sm:gap-8 lg:gap-[56px] items-center">
-              {/* Kolom Kiri (Teks lebih dulu di < 1024px) */}
-              <div className="flex flex-col items-start min-w-0 font-['DM_Sans',sans-serif]">
-                <h1 className="font-['Playfair_Display',Georgia,serif] font-medium text-[var(--ink-hero)] text-[32px] sm:text-[clamp(36px,4.4vw,60px)] leading-[1.12] tracking-[-0.01em] [text-wrap:balance] max-w-full">
-                  Pijat dan spa bayi
-                  <br />
-                  di Karanganyar
-                </h1>
+            {/* Konten Teks (kiri di desktop, atas di HP/tablet) */}
+            <div className="flex flex-col items-start min-w-0 font-['DM_Sans',sans-serif] lg:max-w-[490px] xl:max-w-[540px]">
+              <h1 className="font-['Playfair_Display',Georgia,serif] font-medium text-[var(--ink-hero)] text-[32px] sm:text-[clamp(36px,4.2vw,58px)] leading-[1.12] tracking-[-0.01em] [text-wrap:balance] max-w-full">
+                Pijat dan spa bayi
+                <br />
+                di Karanganyar
+              </h1>
 
-                <p className="mt-3 sm:mt-4 lg:mt-5 font-['Playfair_Display',Georgia,serif] italic font-normal text-[16px] sm:text-[18px] lg:text-[20px] leading-[1.5] text-[#4A2A1A] max-w-[30rem] break-words">
-                  Untuk bayi, anak 0–5 tahun, dan ibu, oleh bidan tersertifikasi.
-                </p>
+              <p className="mt-2.5 sm:mt-4 lg:mt-5 font-['Playfair_Display',Georgia,serif] italic font-normal text-[16px] sm:text-[18px] lg:text-[20px] leading-[1.5] text-[#4A2A1A] max-w-[28rem] break-words">
+                Untuk bayi, anak 0–5 tahun, dan ibu, oleh bidan tersertifikasi.
+              </p>
 
-                {/* Aksi: tombol penuh di HP + baris bawah kiri-kanan rapi; sejajar gap 18px di >= 640px */}
-                <div className="mt-5 sm:mt-7 lg:mt-8 w-full sm:w-auto flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-[18px]">
-                  <Link
-                    to="/reservasi"
-                    className="w-full sm:w-auto min-h-[44px] inline-flex items-center justify-center rounded-[8px] px-5 py-2.5 text-[15px] font-medium text-white bg-[#B73F73] hover:bg-[#A13464] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B73F73] focus-visible:ring-offset-2 focus-visible:ring-offset-[#EFE6DC]"
+              {/* Aksi: tombol penuh di HP + baris bawah kiri-kanan rapi; sejajar gap 18px di >= 640px */}
+              <div className="mt-5 sm:mt-7 lg:mt-8 w-full sm:w-auto flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-[18px]">
+                <Link
+                  to="/reservasi"
+                  className="w-full sm:w-auto min-h-[44px] inline-flex items-center justify-center rounded-[8px] px-5 py-2.5 text-[15px] font-medium text-white bg-[#B73F73] hover:bg-[#A13464] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B73F73] focus-visible:ring-offset-2 focus-visible:ring-offset-[#F7EDE3]"
+                >
+                  Buat reservasi
+                </Link>
+                <div className="flex items-center justify-between gap-3 w-full sm:w-auto">
+                  <a
+                    href="#layanan"
+                    className="min-h-[44px] inline-flex items-center justify-start text-[15px] font-medium text-[var(--ink-hero)] underline decoration-[#C94A83] decoration-[1.5px] underline-offset-4 hover:text-[#B73F73] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B73F73] focus-visible:ring-offset-2 focus-visible:ring-offset-[#F7EDE3] rounded-sm"
                   >
-                    Buat reservasi
-                  </Link>
-                  <div className="flex items-center justify-between gap-3 w-full sm:w-auto">
-                    <a
-                      href="#layanan"
-                      className="min-h-[44px] inline-flex items-center justify-start text-[15px] font-medium text-[var(--ink-hero)] underline decoration-[#C94A83] decoration-[1.5px] underline-offset-4 hover:text-[#B73F73] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B73F73] focus-visible:ring-offset-2 focus-visible:ring-offset-[#EFE6DC] rounded-sm"
-                    >
-                      Lihat layanan
-                    </a>
-                    {lowestPrice !== null && isFinite(lowestPrice) && (
-                      <p className="sm:hidden text-[13px] leading-[18px] text-[#6B5A52] tabular-nums whitespace-nowrap">
-                        Mulai Rp {lowestPrice.toLocaleString("id-ID")}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                {lowestPrice !== null && isFinite(lowestPrice) && (
-                  <p className="hidden sm:block mt-4 text-[14px] leading-[20px] text-[#6B5A52] tabular-nums">
-                    Layanan mulai Rp {lowestPrice.toLocaleString("id-ID")}
-                  </p>
-                )}
-              </div>
-
-              {/* Kolom Kanan (Foto proporsional 4:3 di HP agar wajah bayi utuh di atas Bottom Nav, 4:5 di >= 640px, max 440px rata kanan di desktop) */}
-              <div className="w-full lg:max-w-[440px] lg:justify-self-end min-w-0">
-                <div className="w-full aspect-[4/3] sm:aspect-[4/5] rounded-tl-[12px] rounded-tr-[12px] rounded-bl-[12px] rounded-br-[36px] lg:rounded-br-[64px] overflow-hidden">
-                  <img
-                    src="/images/activity-massage.jpg"
-                    alt="Terapis memijat bayi di studio Mayesha"
-                    width={768}
-                    height={1020}
-                    fetchPriority="high"
-                    decoding="async"
-                    className="w-full h-full object-cover object-[50%_62%] sm:object-[50%_55%]"
-                    loading="eager"
-                  />
+                    Lihat layanan
+                  </a>
+                  {lowestPrice !== null && isFinite(lowestPrice) && (
+                    <p className="sm:hidden text-[13px] leading-[18px] text-[#6B5A52] tabular-nums whitespace-nowrap">
+                      Mulai Rp {lowestPrice.toLocaleString("id-ID")}
+                    </p>
+                  )}
                 </div>
               </div>
+
+              {lowestPrice !== null && isFinite(lowestPrice) && (
+                <p className="hidden sm:block mt-4 text-[14px] leading-[20px] text-[#6B5A52] tabular-nums">
+                  Layanan mulai Rp {lowestPrice.toLocaleString("id-ID")}
+                </p>
+              )}
             </div>
+          </div>
+
+          {/* Mobile & Tablet (< 1024px): full-bleed edge-to-edge menyatu halus di sisi atas ke latar krem */}
+          <div
+            className="lg:hidden relative z-0 w-full -mt-1 sm:mt-2 aspect-[4/3] sm:aspect-[16/10] overflow-hidden"
+            style={{
+              WebkitMaskImage:
+                "linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.5) 14%, black 30%)",
+              maskImage:
+                "linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.5) 14%, black 30%)",
+            }}
+          >
+            <img
+              src="/images/hero-mayesha.png"
+              alt="Terapis memijat bayi di studio Mayesha"
+              width={1024}
+              height={768}
+              fetchPriority="high"
+              decoding="async"
+              loading="eager"
+              className="w-full h-full object-cover object-[50%_25%]"
+            />
           </div>
         </section>
 
-        {/* Trust Bar 3 Kolom Bernomor (adopsi editorial dari Stitch, selaras token Mayesha) */}
+        {/* Trust Bar 3 Kolom Bernomor dengan Deskripsi Ringkas */}
         <section
           aria-label="Keunggulan Mayesha Baby Spa"
-          className="w-full bg-[#F6EFEA] border-b border-black/10"
+          className="w-full bg-[#F6EFEA] border-t border-b border-black/10"
         >
           <div className="max-w-7xl mx-auto px-4 md:px-6 py-8 md:py-10">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-10">
@@ -387,11 +402,10 @@ export default function Home() {
                       key={tab.id}
                       type="button"
                       onClick={() => setGalleryCategory(tab.id as "all" | "Aktivitas" | "Fasilitas")}
-                      className={`min-h-[44px] inline-flex items-center text-[15px] transition-colors duration-150 border-b-2 whitespace-nowrap cursor-pointer shrink-0 ${
-                        isActive
-                          ? "text-[#4A2A1A] font-medium border-[#D4568F]"
-                          : "text-[#6B5A52] font-normal border-transparent hover:text-[#4A2A1A]"
-                      }`}
+                      className={`min-h-[44px] inline-flex items-center text-[15px] transition-colors duration-150 border-b-2 whitespace-nowrap cursor-pointer shrink-0 ${isActive
+                        ? "text-[#4A2A1A] font-medium border-[#D4568F]"
+                        : "text-[#6B5A52] font-normal border-transparent hover:text-[#4A2A1A]"
+                        }`}
                     >
                       {tab.label}
                     </button>
@@ -514,11 +528,10 @@ export default function Home() {
                         role="tab"
                         aria-selected={isActive}
                         onClick={() => setSegmentFilter(tab.id as "all" | "Bayi" | "Anak" | "Ibu")}
-                        className={`min-h-[44px] px-3 inline-flex items-center justify-center text-[15px] font-medium transition-colors duration-150 border-b-2 whitespace-nowrap cursor-pointer shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-inset rounded-t-[4px] ${
-                          isActive
-                            ? "text-[#4A2A1A] border-[#D4568F]"
-                            : "text-[#6B5A52] border-transparent hover:text-[#4A2A1A]"
-                        }`}
+                        className={`min-h-[44px] px-3 inline-flex items-center justify-center text-[15px] font-medium transition-colors duration-150 border-b-2 whitespace-nowrap cursor-pointer shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-inset rounded-t-[4px] ${isActive
+                          ? "text-[#4A2A1A] border-[#D4568F]"
+                          : "text-[#6B5A52] border-transparent hover:text-[#4A2A1A]"
+                          }`}
                       >
                         {tab.label}
                       </button>
