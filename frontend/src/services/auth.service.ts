@@ -39,3 +39,15 @@ export const updateProfile = async (payload: UpdateProfilePayload): Promise<User
   const res = await apiClient.put<ApiResponse<User>>("/me", payload);
   return res.data.data;
 };
+
+/**
+ * Update authenticated user's password.
+ */
+export const updatePassword = async (payload: {
+  current_password: string;
+  password: string;
+  password_confirmation: string;
+}): Promise<string> => {
+  const res = await apiClient.put<ApiResponse<null>>("/me/password", payload);
+  return res.data.message;
+};

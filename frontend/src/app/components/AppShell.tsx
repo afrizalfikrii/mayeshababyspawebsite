@@ -1,12 +1,14 @@
 import { Outlet, Link, useLocation, useNavigate } from "react-router";
-import { LogIn, LogOut, Menu, X, LayoutDashboard, MapPin, Phone, Instagram, MessageCircle, ChevronDown, Calendar } from "lucide-react";
+import { LogIn, LogOut, Menu, X, LayoutDashboard, MapPin, Phone, Instagram, MessageCircle, ChevronDown, Calendar, KeyRound } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
+import ChangePasswordModal from "./ChangePasswordModal";
 
 export default function AppShell() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const [activeHomeSection, setActiveHomeSection] = useState<"beranda" | "galeri" | "layanan">("beranda");
   const scrollLockUntilRef = useRef<number>(0);
   const accountMenuRef = useRef<HTMLDivElement | null>(null);
@@ -263,6 +265,19 @@ export default function AppShell() {
                           </Link>
                         )}
 
+                        <button
+                          type="button"
+                          role="menuitem"
+                          onClick={() => {
+                            setIsAccountMenuOpen(false);
+                            setIsChangePasswordOpen(true);
+                          }}
+                          className="w-full flex items-center gap-2.5 px-4 py-2 text-sm font-medium text-[#3A2622] hover:bg-[#FAF7F2] hover:text-[#BE346E] transition-colors cursor-pointer text-left"
+                        >
+                          <KeyRound size={15} className="text-[#6E5D58]" />
+                          Ubah Kata Sandi
+                        </button>
+
                         <div className="border-t border-[#E8DFD8] my-1.5" />
 
                         <button
@@ -344,13 +359,25 @@ export default function AppShell() {
                 </Link>
               )}
               {isAuthenticated && (
-                <Link
-                  to={isAdmin ? "/admin" : "/dashboard"}
-                  className="p-2 text-[#BE346E] font-semibold"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  {isAdmin ? "Admin Area" : "Ruang Bunda"}
-                </Link>
+                <>
+                  <Link
+                    to={isAdmin ? "/admin" : "/dashboard"}
+                    className="p-2 text-[#BE346E] font-semibold"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    {isAdmin ? "Admin Area" : "Ruang Bunda"}
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      setIsChangePasswordOpen(true);
+                    }}
+                    className="p-2 text-[#3A2622] font-medium text-left flex items-center gap-2 cursor-pointer"
+                  >
+                    <KeyRound size={17} className="text-[#6E5D58]" /> Ubah Kata Sandi
+                  </button>
+                </>
               )}
               {isAuthenticated ? (
                 <button
@@ -539,6 +566,11 @@ export default function AppShell() {
           </div>
         </footer>
       )}
+
+      <ChangePasswordModal
+        isOpen={isChangePasswordOpen}
+        onClose={() => setIsChangePasswordOpen(false)}
+      />
     </div>
   );
 }

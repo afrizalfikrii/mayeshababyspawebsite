@@ -107,26 +107,26 @@ export default function ChangePasswordModal({ isOpen, onClose }: ChangePasswordM
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-change-password-title"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 font-['DM_Sans',sans-serif]"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
     >
       <div
         onClick={handleClose}
-        className="absolute inset-0 bg-black/50"
+        className="absolute inset-0 bg-[#3A2622]/70 backdrop-blur-xs"
         aria-hidden="true"
       />
-      <div className="bg-white border border-black/10 rounded-[12px] w-full max-w-[calc(100vw-32px)] sm:max-w-md max-h-[90dvh] relative z-10 flex flex-col overflow-hidden">
-        <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-black/10 shrink-0">
+      <div className="bg-white border border-[#E8DFD8] rounded-3xl shadow-xl w-full max-w-[calc(100vw-32px)] sm:max-w-md max-h-[90dvh] relative z-10 flex flex-col overflow-hidden">
+        <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-[#E8DFD8] shrink-0">
           <h3
             id="modal-change-password-title"
-            className="text-[18px] leading-[24px] font-medium text-[#4A2A1A]"
+            className="font-editorial text-xl font-semibold text-[#3A2622]"
           >
-            Ubah kata sandi
+            Ubah Kata Sandi
           </h3>
           <button
             type="button"
             onClick={handleClose}
             disabled={isSubmitting}
-            className="w-11 h-11 min-w-[44px] min-h-[44px] inline-flex items-center justify-center text-[#6B5A52] hover:text-[#4A2A1A] rounded-[8px] hover:bg-[#FAF6F2] transition-colors duration-150 cursor-pointer -mr-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83]"
+            className="w-11 h-11 min-w-[44px] min-h-[44px] inline-flex items-center justify-center text-[#6E5D58] hover:text-[#3A2622] rounded-full hover:bg-[#FAF7F2] transition-colors duration-150 cursor-pointer -mr-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#BE346E]"
             aria-label="Tutup modal"
           >
             <X size={20} aria-hidden="true" />
@@ -138,7 +138,7 @@ export default function ChangePasswordModal({ isOpen, onClose }: ChangePasswordM
             {errorMessage && (
               <div
                 role="alert"
-                className="rounded-[8px] border border-[#9B3B3B]/30 bg-[#9B3B3B]/5 px-3.5 py-2.5 text-[14px] leading-[20px] text-[#9B3B3B]"
+                className="rounded-xl border border-[#BE346E]/30 bg-[#F9EBEF] px-3.5 py-2.5 text-sm text-[#9F285B]"
               >
                 {errorMessage}
               </div>
@@ -147,9 +147,9 @@ export default function ChangePasswordModal({ isOpen, onClose }: ChangePasswordM
             <div>
               <label
                 htmlFor="current-password"
-                className="block text-[14px] font-medium text-[#4A2A1A] mb-1.5"
+                className="block text-xs font-semibold text-[#3A2622] mb-1.5"
               >
-                Kata sandi saat ini
+                Kata Sandi Saat Ini
               </label>
               <div className="relative">
                 <input
@@ -157,7 +157,7 @@ export default function ChangePasswordModal({ isOpen, onClose }: ChangePasswordM
                   type={showCurrent ? "text" : "password"}
                   autoComplete="current-password"
                   placeholder="Masukkan kata sandi saat ini"
-                  className="w-full h-[44px] pl-3.5 pr-12 rounded-[8px] bg-white border border-black/20 text-[16px] text-[#4A2A1A] placeholder:text-[#6B5A52]/70 focus:outline-none focus:ring-2 focus:ring-[#C94A83] focus:ring-offset-2 focus:border-[#C94A83]"
+                  className="input-glass pr-12"
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
                   required
@@ -166,7 +166,7 @@ export default function ChangePasswordModal({ isOpen, onClose }: ChangePasswordM
                   type="button"
                   onClick={() => setShowCurrent((v) => !v)}
                   aria-label={showCurrent ? "Sembunyikan kata sandi saat ini" : "Tampilkan kata sandi saat ini"}
-                  className="absolute right-0 top-0 w-11 h-11 min-w-[44px] min-h-[44px] inline-flex items-center justify-center text-[#6B5A52] hover:text-[#4A2A1A] cursor-pointer rounded-r-[8px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83]"
+                  className="absolute right-0 top-0 w-11 h-11 min-w-[44px] min-h-[44px] inline-flex items-center justify-center text-[#6E5D58] hover:text-[#BE346E] cursor-pointer rounded-r-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#BE346E]"
                 >
                   {showCurrent ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
                 </button>
@@ -176,9 +176,9 @@ export default function ChangePasswordModal({ isOpen, onClose }: ChangePasswordM
             <div>
               <label
                 htmlFor="new-password"
-                className="block text-[14px] font-medium text-[#4A2A1A] mb-1.5"
+                className="block text-xs font-semibold text-[#3A2622] mb-1.5"
               >
-                Kata sandi baru
+                Kata Sandi Baru
               </label>
               <div className="relative">
                 <input
@@ -187,7 +187,7 @@ export default function ChangePasswordModal({ isOpen, onClose }: ChangePasswordM
                   autoComplete="new-password"
                   placeholder="Minimal 8 karakter"
                   minLength={8}
-                  className="w-full h-[44px] pl-3.5 pr-12 rounded-[8px] bg-white border border-black/20 text-[16px] text-[#4A2A1A] placeholder:text-[#6B5A52]/70 focus:outline-none focus:ring-2 focus:ring-[#C94A83] focus:ring-offset-2 focus:border-[#C94A83]"
+                  className="input-glass pr-12"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   required
@@ -196,7 +196,7 @@ export default function ChangePasswordModal({ isOpen, onClose }: ChangePasswordM
                   type="button"
                   onClick={() => setShowNew((v) => !v)}
                   aria-label={showNew ? "Sembunyikan kata sandi baru" : "Tampilkan kata sandi baru"}
-                  className="absolute right-0 top-0 w-11 h-11 min-w-[44px] min-h-[44px] inline-flex items-center justify-center text-[#6B5A52] hover:text-[#4A2A1A] cursor-pointer rounded-r-[8px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83]"
+                  className="absolute right-0 top-0 w-11 h-11 min-w-[44px] min-h-[44px] inline-flex items-center justify-center text-[#6E5D58] hover:text-[#BE346E] cursor-pointer rounded-r-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#BE346E]"
                 >
                   {showNew ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
                 </button>
@@ -206,9 +206,9 @@ export default function ChangePasswordModal({ isOpen, onClose }: ChangePasswordM
             <div>
               <label
                 htmlFor="confirm-new-password"
-                className="block text-[14px] font-medium text-[#4A2A1A] mb-1.5"
+                className="block text-xs font-semibold text-[#3A2622] mb-1.5"
               >
-                Konfirmasi kata sandi baru
+                Konfirmasi Kata Sandi Baru
               </label>
               <div className="relative">
                 <input
@@ -217,7 +217,7 @@ export default function ChangePasswordModal({ isOpen, onClose }: ChangePasswordM
                   autoComplete="new-password"
                   placeholder="Ulangi kata sandi baru"
                   minLength={8}
-                  className="w-full h-[44px] pl-3.5 pr-12 rounded-[8px] bg-white border border-black/20 text-[16px] text-[#4A2A1A] placeholder:text-[#6B5A52]/70 focus:outline-none focus:ring-2 focus:ring-[#C94A83] focus:ring-offset-2 focus:border-[#C94A83]"
+                  className="input-glass pr-12"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
@@ -226,7 +226,7 @@ export default function ChangePasswordModal({ isOpen, onClose }: ChangePasswordM
                   type="button"
                   onClick={() => setShowConfirm((v) => !v)}
                   aria-label={showConfirm ? "Sembunyikan konfirmasi kata sandi" : "Tampilkan konfirmasi kata sandi"}
-                  className="absolute right-0 top-0 w-11 h-11 min-w-[44px] min-h-[44px] inline-flex items-center justify-center text-[#6B5A52] hover:text-[#4A2A1A] cursor-pointer rounded-r-[8px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83]"
+                  className="absolute right-0 top-0 w-11 h-11 min-w-[44px] min-h-[44px] inline-flex items-center justify-center text-[#6E5D58] hover:text-[#BE346E] cursor-pointer rounded-r-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#BE346E]"
                 >
                   {showConfirm ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
                 </button>
@@ -234,22 +234,22 @@ export default function ChangePasswordModal({ isOpen, onClose }: ChangePasswordM
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-3 justify-end px-5 sm:px-6 py-4 border-t border-black/10 shrink-0 bg-white">
+          <div className="flex flex-wrap gap-3 justify-end px-5 sm:px-6 py-4 border-t border-[#E8DFD8] shrink-0 bg-[#FAF7F2]">
             <button
               type="button"
               onClick={handleClose}
               disabled={isSubmitting}
-              className="flex-1 sm:flex-none min-h-[44px] px-4 rounded-[8px] border border-black/20 text-[15px] font-medium text-[#4A2A1A] hover:bg-[#FAF6F2] transition-colors duration-150 cursor-pointer disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2"
+              className="btn-secondary flex-1 sm:flex-none !min-h-[42px] !px-4 text-sm cursor-pointer disabled:opacity-60"
             >
               Batal
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 min-h-[44px] px-5 rounded-[8px] bg-[#B73F73] hover:bg-[#A13464] text-white text-[15px] font-medium transition-colors duration-150 cursor-pointer disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2"
+              className="btn-primary flex-1 sm:flex-none !min-h-[42px] !px-5 text-sm inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
             >
               {isSubmitting && <Loader2 size={15} className="animate-spin" aria-hidden="true" />}
-              {isSubmitting ? "Menyimpan..." : "Simpan kata sandi"}
+              {isSubmitting ? "Menyimpan..." : "Simpan Kata Sandi"}
             </button>
           </div>
         </form>
