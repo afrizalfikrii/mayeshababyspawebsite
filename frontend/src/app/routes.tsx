@@ -15,23 +15,23 @@ import {
 
 function RootErrorBoundary() {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center bg-[var(--bg)]">
-      <div className="card-surface max-w-md w-full p-8">
-        <span className="overline-label block mb-2">MAYESHA BABY SPA</span>
-        <h2 className="text-[26px] leading-[34px] font-editorial text-[var(--text)] mb-2">
-          Memperbarui Halaman
-        </h2>
-        <p className="text-[var(--text-muted)] text-[14px] leading-[22px] mb-6">
-          Sistem sedang memperbarui sesi Anda. Apabila halaman belum terbuka secara otomatis, silakan gunakan tombol di bawah ini.
+    <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center bg-[#FCF7F9]">
+      <div className="glass-panel max-w-md w-full p-8">
+        <span className="text-xs font-bold uppercase tracking-widest text-[#BE346E] block mb-2">
+          Mayesha Baby Spa
+        </span>
+        <h2 className="text-xl font-bold text-[#3A2622] mb-2">Sedang Memuat Halaman</h2>
+        <p className="text-[#6E5D58] text-sm mb-6 leading-relaxed">
+          Sistem sedang memperbarui sesi Anda. Jika halaman belum terbuka otomatis, silakan klik tombol di bawah.
         </p>
         <button
           type="button"
           onClick={() => {
             window.location.href = "/dashboard";
           }}
-          className="btn-primary w-full"
+          className="btn-primary w-full cursor-pointer"
         >
-          Buka Akun Saya
+          Lanjut ke Dashboard
         </button>
       </div>
     </div>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router";
-import { KeyRound, Loader2, LogOut, Trash2, X } from "lucide-react";
+import { Link } from "react-router";
+import { User, Calendar, Clock, MapPin, Plus, Loader2, Trash2, X, Baby as BabyIcon, Pencil, Check } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import { getMyReservations } from "@/services/reservation.service";
@@ -8,27 +9,22 @@ import { getBabies, createBaby, deleteBaby } from "@/services/baby.service";
 import { updateProfile } from "@/services/auth.service";
 import type { Reservation, Baby } from "@/types/api.types";
 import RecommendationSection from "@/components/RecommendationSection";
-import ChangePasswordModal from "@/app/components/ChangePasswordModal";
 
 export default function CustomerDashboard() {
-  const { user, setUser, logout } = useAuth();
-  const navigate = useNavigate();
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const { user, setUser } = useAuth();
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [babies, setBabies] = useState<Baby[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [nowTick, setNowTick] = useState<number>(() => Date.now());
 
+  // State untuk edit alamat
   const [isEditingAddress, setIsEditingAddress] = useState(false);
   const [addressInput, setAddressInput] = useState("");
   const [isSavingAddress, setIsSavingAddress] = useState(false);
 
+  // State untuk modal tambah data anak
   const [isBabyModalOpen, setIsBabyModalOpen] = useState(false);
   const [babyForm, setBabyForm] = useState({ name: "", birthDate: "", notes: "" });
   const [isCreatingBaby, setIsCreatingBaby] = useState(false);
-  const [babyToDelete, setBabyToDelete] = useState<Baby | null>(null);
-  const [isDeletingBaby, setIsDeletingBaby] = useState(false);
 
   const calculateAgeInMonths = (birthDateString: string) => {
     const birth = new Date(birthDateString);
@@ -41,10 +37,10 @@ export default function CustomerDashboard() {
 
   const formatBabyAge = (birthDateString: string) => {
     const totalMonths = calculateAgeInMonths(birthDateString);
-    if (totalMonths < 12) return `${totalMonths} bulan`;
+    if (totalMonths < 12) return `${totalMonths} Bulan`;
     const years = Math.floor(totalMonths / 12);
     const rem = totalMonths % 12;
-    return rem === 0 ? `${years} tahun` : `${years} thn ${rem} bln`;
+    return rem === 0 ? `${years} Tahun` : `${years} Thn ${rem} Bln`;
   };
 
   const fetchMyData = async () => {
@@ -65,39 +61,6 @@ export default function CustomerDashboard() {
   useEffect(() => {
     fetchMyData();
   }, []);
-
-  useEffect(() => {
-    if (!isBabyModalOpen && !babyToDelete) return;
-    const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        if (isBabyModalOpen) setIsBabyModalOpen(false);
-        if (babyToDelete && !isDeletingBaby) setBabyToDelete(null);
-      }
-    };
-    document.addEventListener("keydown", handleEsc);
-    return () => document.removeEventListener("keydown", handleEsc);
-  }, [isBabyModalOpen, babyToDelete, isDeletingBaby]);
-
-  useEffect(() => {
-    const hasPendingCountdown = reservations.some(
-      (r) => r.status === "pending" && Boolean(r.expires_at)
-    );
-    if (!hasPendingCountdown) return;
-
-    const timer = setInterval(() => {
-      setNowTick(Date.now());
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [reservations]);
-
-  const formatRemainingCountdown = (expiresAt: string | null): string | null => {
-    if (!expiresAt) return null;
-    const diff = new Date(expiresAt).getTime() - nowTick;
-    if (diff <= 0) return "00:00";
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-    return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
-  };
 
   const handleCreateBaby = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -129,18 +92,14 @@ export default function CustomerDashboard() {
     }
   };
 
-  const handleConfirmDeleteBaby = async () => {
-    if (!babyToDelete || isDeletingBaby) return;
-    setIsDeletingBaby(true);
+  const handleDeleteBaby = async (id: number) => {
+    if (!confirm("Apakah Bunda yakin ingin menghapus profil anak ini?")) return;
     try {
-      await deleteBaby(babyToDelete.id);
+      await deleteBaby(id);
       toast.success("Profil anak berhasil dihapus.");
-      setBabyToDelete(null);
       fetchMyData();
     } catch (err: any) {
       toast.error(err.response?.data?.message ?? "Gagal menghapus profil anak.");
-    } finally {
-      setIsDeletingBaby(false);
     }
   };
 
@@ -163,402 +122,275 @@ export default function CustomerDashboard() {
     }
   };
 
-  const handleLogout = async () => {
-    if (isLoggingOut) return;
-    setIsLoggingOut(true);
-    try {
-      await logout();
-      toast.success("Berhasil keluar.");
-      navigate("/");
-    } catch {
-      toast.error("Gagal keluar, silakan coba lagi.");
-    } finally {
-      setIsLoggingOut(false);
-    }
-  };
-
-  const renderStatus = (booking: Reservation) => {
-    let label = booking.status;
-    let textColor = "text-[#6B5A52]";
-    let dotColor = "bg-[#6B5A52]";
-
-    if (booking.status === "pending") {
-      label = "Belum bayar";
-      textColor = "text-[#8A5A00]";
-      dotColor = "bg-[#8A5A00]";
-    } else if (booking.status === "waiting_verification") {
-      label = "Menunggu verifikasi";
-      textColor = "text-[#8A5A00]";
-      dotColor = "bg-[#8A5A00]";
-    } else if (booking.status === "confirmed") {
-      label = "Dikonfirmasi";
-      textColor = "text-[#2F6B45]";
-      dotColor = "bg-[#2F6B45]";
-    } else if (booking.status === "completed") {
-      label = "Selesai";
-      textColor = "text-[#6B5A52]";
-      dotColor = "bg-[#6B5A52]";
-    } else if (booking.status === "cancelled") {
-      label = "Dibatalkan";
-      textColor = "text-[#9B3B3B]";
-      dotColor = "bg-[#9B3B3B]";
-    }
-
-    return (
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-        <span className={`inline-flex items-center gap-2 text-[13px] leading-[18px] font-medium ${textColor}`}>
-          <span aria-hidden="true" className={`w-2 h-2 rounded-full shrink-0 ${dotColor}`} />
-          <span>{label}</span>
-        </span>
-        {booking.is_rescheduled && booking.status !== "cancelled" && (
-          <span className="inline-flex items-center gap-2 text-[13px] leading-[18px] font-medium text-[#5A4A8A]">
-            <span aria-hidden="true" className="w-2 h-2 rounded-full shrink-0 bg-[#5A4A8A]" />
-            <span>Reschedule</span>
-          </span>
-        )}
-      </div>
-    );
+  const getStatusConfig = (status: string) => {
+    const configs: Record<string, { bg: string; text: string; label: string }> = {
+      pending: { bg: "bg-amber-50 border-amber-100 text-amber-600", text: "text-amber-600", label: "Belum Bayar" },
+      waiting_verification: { bg: "bg-[#F9EBEF] border-[#E8DFD8] text-[#9F285B]", text: "text-[#9F285B]", label: "Menunggu Verifikasi" },
+      confirmed: { bg: "bg-emerald-50 border-emerald-100 text-emerald-600", text: "text-emerald-600", label: "Dikonfirmasi" },
+      cancelled: { bg: "bg-rose-50 border-rose-100 text-rose-600", text: "text-rose-600", label: "Dibatalkan" },
+      completed: { bg: "bg-[#F7F3EE] border-[#E8DFD8] text-[#6E5D58]", text: "text-[#6E5D58]", label: "Selesai" },
+    };
+    return configs[status] || { bg: "bg-[#F4EFE8] border-[#E8DFD8] text-[#6E5D58]", text: "text-[#6E5D58]", label: status };
   };
 
   return (
-    <div className="bg-[#FAF6F2] w-full font-['DM_Sans',sans-serif]">
-      <div className="max-w-7xl mx-auto px-4 md:px-6 py-10 md:py-12">
-        {/* Header Halaman */}
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between pb-6 sm:pb-8 mb-8 border-b border-black/10 gap-4">
-          <div className="min-w-0">
-            <h1 className="font-['Playfair_Display',Georgia,serif] font-medium text-[clamp(28px,7vw,40px)] leading-[1.15] text-[#4A2A1A]">
-              Ruang Bunda
-            </h1>
-            <p className="text-[16px] leading-[25px] text-[#6B5A52] mt-1.5 break-words">
-              {user?.name ? (
-                <>
-                  Halo, <span className="capitalize">{user.name}</span>. Pantau jadwal perawatan dan profil si kecil di sini.
-                </>
-              ) : (
-                "Pantau jadwal perawatan dan profil si kecil di sini."
-              )}
-            </p>
-          </div>
-          <Link
-            to="/reservasi"
-            className="w-full sm:w-auto inline-flex items-center justify-center min-h-[44px] px-5 rounded-[8px] border border-[#C94A83] bg-transparent text-[#C94A83] hover:bg-[#B73F73] hover:text-white text-[15px] font-medium transition-colors duration-150 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2"
-          >
-            Buat reservasi
-          </Link>
+    <div className="max-w-6xl mx-auto px-6 py-10">
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+        <div>
+          <h1 className="text-3xl font-extrabold text-[#3A2622] tracking-tight">Ruang Bunda</h1>
+          <p className="text-[#6E5D58] mt-1">
+            Halo {user?.name ?? "Bunda"}, pantau jadwal sesi perawatan dan profil Si Kecil di sini.
+          </p>
         </div>
+        <Link to="/reservasi" className="btn-primary w-max">
+          <Plus size={18} /> Booking Sesi Baru
+        </Link>
+      </div>
 
-        {/* Layout 2 Kolom Desktop (>= 1024px): Kiri Profil (320px) + Kanan Daftar Reservasi */}
-        <div className="grid grid-cols-1 lg:grid-cols-[320px_minmax(0,1fr)] gap-6 lg:gap-8 items-start">
-          {/* Kolom Kiri: Kartu Profil */}
-          <aside className="bg-white border border-black/10 rounded-[12px] p-5 sm:p-6 min-w-0">
-            <div>
-              <h2 className="font-['DM_Sans',sans-serif] text-[18px] leading-[24px] font-medium text-[#4A2A1A] break-words capitalize">
-                {user?.name ?? "Bunda"}
-              </h2>
-              <p className="text-[15px] leading-[22px] text-[#6B5A52] break-all mt-1">
-                {user?.email ?? "-"}
-              </p>
-              {user?.phone_number && (
-                <p className="text-[15px] leading-[22px] text-[#6B5A52] tabular-nums mt-0.5">
-                  {user.phone_number}
-                </p>
-              )}
+      <div className="grid md:grid-cols-3 gap-8">
+        {/* Profile Card Sidebar */}
+        <div className="md:col-span-1 flex flex-col gap-6">
+          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="glass-panel p-6">
+            <div className="flex items-center gap-4 border-b border-[#E8DFD8] pb-4 mb-4">
+              <div className="w-12 h-12 bg-[#F9EBEF] rounded-full flex items-center justify-center text-[#BE346E] shrink-0">
+                <User size={22} />
+              </div>
+              <div className="min-w-0">
+                <h3 className="font-bold text-[#3A2622] truncate">{user?.name}</h3>
+                <p className="text-sm text-[#6E5D58] tabular-nums">{user?.phone_number ?? "-"}</p>
+              </div>
             </div>
 
-            {/* Bagian Alamat Rumah */}
-            <div className="pt-4 mt-4 border-t border-black/10">
-              <div className="flex items-center justify-between gap-2 mb-1">
-                <h3 className="text-[15px] leading-[22px] font-medium text-[#4A2A1A]">
-                  Alamat rumah
-                </h3>
+            {/* Alamat Rumah */}
+            <div className="border-t border-[#E8DFD8] pt-4">
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="text-xs font-bold text-[#6E5D58] uppercase tracking-wider flex items-center gap-1">
+                  <MapPin size={11} /> Alamat Rumah
+                </h4>
                 {!isEditingAddress && (
                   <button
-                    type="button"
                     onClick={handleStartEditAddress}
-                    className="min-h-[44px] min-w-[44px] px-2 -mr-2 inline-flex items-center justify-end text-[14px] font-medium text-[#C94A83] hover:underline underline-offset-4 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2 rounded-sm"
+                    className="text-[#BE346E] hover:text-[#BE346E] font-bold text-[10px] flex items-center gap-0.5 cursor-pointer uppercase tracking-wider"
                   >
-                    Ubah
+                    <Pencil size={10} /> Edit
                   </button>
                 )}
               </div>
 
               {isEditingAddress ? (
-                <div className="flex flex-col gap-2.5 mt-2">
+                <div className="flex flex-col gap-2">
                   <textarea
                     rows={3}
-                    className="w-full px-3 py-2.5 rounded-[8px] bg-white border border-black/20 text-[16px] leading-[22px] text-[#4A2A1A] placeholder:text-[#6B5A52]/70 resize-none focus:outline-none focus:ring-2 focus:ring-[#C94A83] focus:ring-offset-2 focus:border-[#C94A83]"
-                    placeholder="Contoh: Jl. Musi No. 10, RT 02/RW 13, Karanganyar"
+                    className="input-glass w-full resize-none py-2 text-xs"
+                    placeholder="Contoh: Jl. Mawar No. 10, RT 02/03, Bekasi Utara"
                     value={addressInput}
                     onChange={(e) => setAddressInput(e.target.value)}
                     autoFocus
                   />
-                  <div className="flex items-center gap-2 justify-end">
+                  <div className="flex gap-2">
                     <button
-                      type="button"
-                      onClick={() => setIsEditingAddress(false)}
-                      className="min-h-[44px] px-4 rounded-[8px] border border-black/20 text-[14px] font-medium text-[#4A2A1A] hover:bg-[#FAF6F2] transition-colors duration-150 cursor-pointer"
-                    >
-                      Batal
-                    </button>
-                    <button
-                      type="button"
                       onClick={handleSaveAddress}
                       disabled={isSavingAddress}
-                      className="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-[8px] bg-[#B73F73] hover:bg-[#A13464] text-white text-[14px] font-medium transition-colors duration-150 cursor-pointer disabled:opacity-60"
+                      className="flex-1 flex items-center justify-center gap-1 py-1.5 bg-[#BE346E] hover:bg-[#BE346E] text-white text-[11px] font-bold rounded-lg transition-all cursor-pointer"
                     >
-                      {isSavingAddress && <Loader2 size={14} className="animate-spin" aria-hidden="true" />}
-                      {isSavingAddress ? "Menyimpan..." : "Simpan"}
+                      {isSavingAddress ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}
+                      Simpan
+                    </button>
+                    <button
+                      onClick={() => setIsEditingAddress(false)}
+                      className="flex-1 py-1.5 border border-[#E8DFD8] text-[#6E5D58] text-[11px] font-bold rounded-lg hover:bg-[#F7F3EE] transition-all cursor-pointer"
+                    >
+                      Batal
                     </button>
                   </div>
                 </div>
               ) : (
-                <p className="text-[15px] leading-[23px] text-[#6B5A52] break-words">
-                  {user?.address || "Belum diisi. Diperlukan apabila Bunda memilih layanan kunjungan rumah."}
+                <p className="text-[11px] text-[#6E5D58] leading-relaxed">
+                  {user?.address ?? <span className="italic text-[#6E5D58]">Belum diisi. Diperlukan untuk layanan home visit.</span>}
                 </p>
               )}
             </div>
-
-            {/* Bagian Profil Si Kecil */}
-            <div className="pt-4 mt-4 border-t border-black/10">
-              <div className="flex items-center justify-between gap-2 mb-2">
-                <h3 className="text-[15px] leading-[22px] font-medium text-[#4A2A1A]">
-                  Profil si kecil
-                </h3>
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center justify-between border-t border-[#E8DFD8] pt-4">
+                <h4 className="text-xs font-bold text-[#6E5D58] uppercase tracking-wider">Profil Si Kecil</h4>
                 <button
-                  type="button"
                   onClick={() => setIsBabyModalOpen(true)}
-                  className="min-h-[44px] px-2 -mr-2 inline-flex items-center justify-end text-[14px] font-medium text-[#C94A83] hover:underline underline-offset-4 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2 rounded-sm"
+                  className="text-[#BE346E] hover:text-[#BE346E] font-bold text-[10px] flex items-center gap-0.5 cursor-pointer uppercase tracking-wider"
                 >
-                  Tambah anak
+                  <Plus size={10} /> Tambah Anak
                 </button>
               </div>
 
+
+
               {babies.length === 0 ? (
-                <p className="text-[15px] leading-[23px] text-[#6B5A52]">
-                  Belum diisi. Tambahkan data anak agar pemesanan lebih cepat dan rekomendasi sesuai usia.
-                </p>
+                <p className="text-[11px] text-[#6E5D58] italic">Belum ada profil anak terdaftar.</p>
               ) : (
-                <ul className="divide-y divide-black/10">
+                <div className="flex flex-col gap-2.5 max-h-48 overflow-y-auto pr-1">
                   {babies.map((b) => (
-                    <li key={b.id} className="py-2 first:pt-0 last:pb-0 flex items-center justify-between gap-2">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-baseline justify-between gap-2">
-                          <span className="text-[15px] leading-[22px] font-medium text-[#4A2A1A] truncate">
-                            {b.name ?? "-"}
-                          </span>
-                          <span className="text-[13px] leading-[20px] text-[#6B5A52] tabular-nums shrink-0">
-                            {b.birth_date ? formatBabyAge(b.birth_date) : "-"}
-                          </span>
+                    <div
+                      key={b.id}
+                      className="bg-[#F7F3EE] p-3 rounded-xl border border-[#E8DFD8] flex items-center justify-between group hover:border-[#E8DFD8] transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-[#F9EBEF] text-[#BE346E] rounded-full flex items-center justify-center text-xs font-extrabold uppercase">
+                          {(b.name ?? "A").substring(0, 2)}
                         </div>
-                        {b.notes && (
-                          <p className="text-[13px] leading-[18px] text-[#6B5A52] truncate mt-0.5">
-                            {b.notes}
+                        <div>
+                          <p className="font-semibold text-[#3A2622] text-xs">{b.name ?? "-"}</p>
+                          <p className="text-[10px] text-[#6E5D58] font-medium">
+                            {b.birth_date ? formatBabyAge(b.birth_date) : "-"}
                           </p>
-                        )}
+                        </div>
                       </div>
                       <button
                         type="button"
-                        onClick={() => setBabyToDelete(b)}
-                        className="w-11 h-11 min-w-[44px] min-h-[44px] inline-flex items-center justify-center text-[#6B5A52] hover:text-[#9B3B3B] rounded-[8px] hover:bg-[#FAF6F2] transition-colors duration-150 cursor-pointer shrink-0 -mr-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83]"
-                        title={`Hapus profil ${b.name}`}
-                        aria-label={`Hapus profil ${b.name}`}
+                        onClick={() => handleDeleteBaby(b.id)}
+                        className="text-[#6E5D58] hover:text-red-700 opacity-80 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity min-w-[36px] min-h-[36px] inline-flex items-center justify-center rounded-lg hover:bg-white cursor-pointer"
+                        title="Hapus Profil"
+                        aria-label={`Hapus profil ${b.name ?? "anak"}`}
                       >
-                        <Trash2 size={16} aria-hidden="true" />
+                        <Trash2 size={14} />
                       </button>
-                    </li>
+                    </div>
                   ))}
-                </ul>
+                </div>
               )}
             </div>
+          </motion.div>
 
-            {/* Aksi Akun: Ubah Kata Sandi & Keluar */}
-            <div className="pt-4 mt-4 border-t border-black/10 flex flex-col gap-2.5">
-              <button
-                type="button"
-                onClick={() => setIsPasswordModalOpen(true)}
-                className="w-full min-h-[44px] inline-flex items-center justify-center gap-2 px-4 rounded-[8px] border border-black/15 bg-white text-[14px] font-medium text-[#4A2A1A] hover:bg-[#FAF6F2] transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2"
-              >
-                <KeyRound size={15} className="text-[#6B5A52]" aria-hidden="true" />
-                Ubah kata sandi
-              </button>
-              <button
-                type="button"
-                onClick={handleLogout}
-                disabled={isLoggingOut}
-                className="w-full min-h-[44px] inline-flex items-center justify-center gap-2 px-4 rounded-[8px] border border-black/15 bg-transparent text-[14px] font-medium text-[#4A2A1A] hover:bg-[#FAF6F2] hover:text-[#9B3B3B] hover:border-[#9B3B3B]/30 transition-colors duration-150 cursor-pointer disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2"
-              >
-                {isLoggingOut ? (
-                  <Loader2 size={15} className="animate-spin text-[#6B5A52]" aria-hidden="true" />
-                ) : (
-                  <LogOut size={15} className="text-[#6B5A52]" aria-hidden="true" />
-                )}
-                {isLoggingOut ? "Keluar..." : "Keluar"}
-              </button>
-            </div>
-          </aside>
 
-          {/* Kolom Kanan: Daftar Reservasi */}
-          <section aria-labelledby="reservasi-saya-heading" className="min-w-0">
-            <div className="flex items-baseline justify-between gap-4 mb-4">
-              <h2
-                id="reservasi-saya-heading"
-                className="font-['DM_Sans',sans-serif] text-[20px] leading-[28px] font-medium text-[#4A2A1A]"
-              >
-                Reservasi saya
-              </h2>
-              {!isLoading && reservations.length > 0 && (
-                <span className="text-[14px] text-[#6B5A52] tabular-nums">
-                  {reservations.length} reservasi
-                </span>
-              )}
-            </div>
+        </div>
+
+        {/* Bookings List */}
+        <div className="md:col-span-2 flex flex-col gap-6">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="glass-panel p-6"
+          >
+            <h2 className="text-xl font-bold text-[#3A2622] mb-6">Daftar Riwayat Reservasi</h2>
 
             {isLoading ? (
-              <div className="bg-white border border-black/10 rounded-[12px] flex flex-col items-center justify-center py-16 gap-3">
-                <Loader2 size={24} className="animate-spin text-[#6B5A52]" aria-hidden="true" />
-                <p className="text-[#6B5A52] text-[15px]">Memuat daftar reservasi...</p>
+              <div className="flex flex-col items-center justify-center py-20 gap-3">
+                <Loader2 size={32} className="animate-spin text-[#BE346E]" />
+                <p className="text-[#6E5D58] text-sm font-medium">Mengambil riwayat reservasi...</p>
               </div>
             ) : reservations.length === 0 ? (
-              <div className="bg-white border border-black/10 rounded-[12px] p-8 text-center">
-                <p className="text-[16px] leading-[24px] text-[#6B5A52]">
-                  Belum ada reservasi.{" "}
-                  <Link
-                    to="/reservasi"
-                    className="inline-flex items-center min-h-[44px] font-medium text-[#4A2A1A] underline decoration-[#D4568F] decoration-[1.5px] underline-offset-4 hover:text-[#C94A83] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2 rounded-sm"
-                  >
-                    Buat reservasi
-                  </Link>
+              <div className="text-center py-16">
+                <Calendar className="mx-auto text-[#D7C9BE] mb-4" size={48} />
+                <p className="text-[#6E5D58] font-semibold text-lg">Belum ada jadwal sesi</p>
+                <p className="text-[#6E5D58] text-sm max-w-sm mx-auto mt-1">
+                  Yuk, jadwalkan spa atau pijat rileks untuk buah hati Bunda sekarang juga.
                 </p>
+                <Link to="/reservasi" className="btn-primary mt-6 inline-flex items-center gap-2 py-2.5 px-6">
+                  Buat Reservasi Pertama
+                </Link>
               </div>
             ) : (
-              <div className="flex flex-col gap-3.5">
+              <div className="flex flex-col gap-4">
                 {reservations.map((booking) => {
-                  const countdown =
-                    booking.status === "pending"
-                      ? formatRemainingCountdown(booking.expires_at)
-                      : null;
-                  const isCancelled = booking.status === "cancelled";
-                  const formattedDate = booking.reservation_date
-                    ? new Date(booking.reservation_date).toLocaleDateString("id-ID", {
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric",
-                    })
-                    : "-";
-                  const formattedTime = booking.start_time
-                    ? `${booking.start_time.substring(0, 5)} WIB`
-                    : "-";
-                  const locationText = booking.delivery_address
-                    ? "Kunjungan rumah"
-                    : "Studio Mayesha";
-
+                  const status = getStatusConfig(booking.status);
                   return (
-                    <article
+                    <div
                       key={booking.id}
-                      className={`border border-black/10 rounded-[12px] p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 min-w-0 ${
-                        isCancelled ? "bg-white/75" : "bg-white"
-                      }`}
+                      className="bg-white/50 border border-[#E8DFD8] rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:border-[#E8DFD8] transition-colors shadow-sm hover:shadow-md"
                     >
-                      <div className="min-w-0 flex-1 flex flex-col gap-1">
-                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                          {renderStatus(booking)}
-                          {countdown && (
-                            <span className="text-[13px] leading-[18px] text-[#8A5A00] tabular-nums">
-                              Sisa {countdown}
-                            </span>
-                          )}
+                      <div className="flex items-start gap-4">
+                        <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 bg-[#F9EBEF] text-[#BE346E]">
+                          <Calendar size={20} />
                         </div>
-
-                        <h3
-                          className={`text-[17px] leading-[24px] font-medium break-words ${
-                            isCancelled ? "text-[#6B5A52]" : "text-[#4A2A1A]"
-                          }`}
-                        >
-                          {booking.service?.name ?? "Layanan"}
-                        </h3>
-
-                        <p className="text-[14px] leading-[21px] text-[#6B5A52] tabular-nums break-words">
-                          {formattedDate} • {formattedTime} • {locationText}
-                          {booking.baby_name ? ` • ${booking.baby_name}` : ""}
-                        </p>
-
-                        <p className="text-[13px] leading-[18px] text-[#6B5A52] mt-0.5 booking-code">
-                          {booking.booking_code}
-                        </p>
+                        <div>
+                          <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                            <span className="font-mono font-bold text-xs text-[#6E5D58]">{booking.booking_code}</span>
+                            <span className={`text-xs px-2.5 py-0.5 rounded-full border font-semibold ${status.bg}`}>
+                              {status.label}
+                            </span>
+                          </div>
+                          <h4 className="font-bold text-[#3A2622] text-base">{booking.service?.name ?? "Layanan"}</h4>
+                          <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs font-medium text-[#6E5D58]">
+                            <span className="flex items-center gap-1">
+                              <Clock size={13} />
+                              {booking.reservation_date
+                                ? new Date(booking.reservation_date).toLocaleDateString("id-ID", {
+                                    day: "numeric",
+                                    month: "short",
+                                    year: "numeric",
+                                  })
+                                : "-"}
+                              , {booking.start_time ? booking.start_time.substring(0, 5) : "-"} WIB
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <MapPin size={13} />
+                              {booking.delivery_address ? "Home Care" : "Studio Mayesha"}
+                            </span>
+                          </div>
+                        </div>
                       </div>
-
-                      <div className="flex flex-wrap sm:flex-col items-center sm:items-end justify-between gap-3 pt-3 sm:pt-0 border-t sm:border-t-0 border-black/10 shrink-0">
-                        <span
-                          className={`text-[17px] leading-[24px] font-medium tabular-nums ${
-                            isCancelled ? "text-[#6B5A52] line-through" : "text-[#4A2A1A]"
-                          }`}
-                        >
+                      <div className="flex flex-col items-stretch sm:items-end gap-2">
+                        <span className="font-extrabold text-[#3A2622] text-sm sm:text-right">
                           Rp {Number(booking.total_price ?? 0).toLocaleString("id-ID")}
                         </span>
-
                         <Link
                           to={`/dashboard/reservasi/${booking.id}`}
-                          className={`w-full min-[360px]:w-auto min-h-[44px] inline-flex items-center justify-center rounded-[8px] px-4 text-[14px] font-medium border transition-colors duration-150 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2 ${
-                            isCancelled
-                              ? "border-black/20 text-[#6B5A52] hover:border-[#4A2A1A] hover:text-[#4A2A1A]"
-                              : "border-[#C94A83] text-[#C94A83] hover:bg-[#B73F73] hover:text-white"
-                          }`}
+                          className="btn-secondary py-2 px-4 text-xs font-semibold text-center border-[#E8DFD8] hover:border-[#BE346E] hover:text-[#BE346E]"
                         >
-                          {booking.status === "pending" ? "Detail dan bayar" : "Lihat detail"}
+                          Detail & Bayar
                         </Link>
                       </div>
-                    </article>
+                    </div>
                   );
                 })}
               </div>
             )}
-          </section>
-        </div>
-
-        {/* Bagian Rekomendasi / Layanan Terpopuler */}
-        <div className="mt-10 md:mt-12 pt-8 md:pt-10 border-t border-black/10">
-          <RecommendationSection />
+          </motion.div>
         </div>
       </div>
 
-      {/* Modal Tambah Profil Anak */}
-      {isBabyModalOpen && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="modal-add-baby-title"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
-        >
-          <div
-            onClick={() => setIsBabyModalOpen(false)}
-            className="absolute inset-0 bg-black/50"
-          />
-          <div className="bg-white border border-black/10 rounded-[12px] w-full max-w-[calc(100vw-32px)] sm:max-w-md max-h-[90dvh] relative z-10 flex flex-col overflow-hidden">
-            <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-black/10 shrink-0">
-              <h3 id="modal-add-baby-title" className="text-[18px] font-medium text-[#4A2A1A]">
-                Tambah profil anak
-              </h3>
-              <button
-                type="button"
-                onClick={() => setIsBabyModalOpen(false)}
-                className="w-11 h-11 min-w-[44px] min-h-[44px] inline-flex items-center justify-center text-[#6B5A52] hover:text-[#4A2A1A] rounded-[8px] hover:bg-[#FAF6F2] transition-colors duration-150 cursor-pointer -mr-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83]"
-                aria-label="Tutup modal"
-              >
-                <X size={20} aria-hidden="true" />
-              </button>
-            </div>
+      {/* Rekomendasi Layanan (Content-Based Filtering) */}
+      <motion.div
+        initial={{ opacity: 0, y: 24 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.35 }}
+        className="mt-2"
+      >
+        <RecommendationSection />
+      </motion.div>
 
-            <form onSubmit={handleCreateBaby} className="flex flex-col flex-1 min-h-0">
-              <div className="overflow-y-auto px-5 sm:px-6 py-5 flex flex-col gap-4 text-left">
+      <AnimatePresence>
+        {isBabyModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsBabyModalOpen(false)}
+              className="absolute inset-0 bg-[#3A2622]/55 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              className="glass-panel w-full max-w-md p-6 relative z-10 border border-white/80 shadow-2xl flex flex-col gap-6"
+            >
+              <div className="flex items-center justify-between">
+                <h3 className="text-xl font-bold text-[#3A2622]">Tambah Profil Anak</h3>
+                <button
+                  onClick={() => setIsBabyModalOpen(false)}
+                  className="p-1 text-[#6E5D58] hover:text-[#6E5D58] rounded-full hover:bg-[#F4EFE8] transition-colors cursor-pointer"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <form onSubmit={handleCreateBaby} className="flex flex-col gap-4 text-left">
                 <div>
-                  <label htmlFor="baby-name" className="block text-[14px] font-medium text-[#4A2A1A] mb-1.5">
-                    Nama lengkap anak
-                  </label>
+                  <label className="text-xs font-bold text-[#6E5D58] uppercase block mb-1.5">Nama Lengkap Anak</label>
                   <input
-                    id="baby-name"
                     type="text"
                     placeholder="Contoh: Kenzie"
-                    className="w-full h-[44px] px-3.5 rounded-[8px] bg-white border border-black/20 text-[16px] text-[#4A2A1A] placeholder:text-[#6B5A52]/70 focus:outline-none focus:ring-2 focus:ring-[#C94A83] focus:ring-offset-2 focus:border-[#C94A83]"
+                    className="input-glass w-full"
                     value={babyForm.name}
                     onChange={(e) =>
                       setBabyForm({ ...babyForm, name: e.target.value.replace(/[^a-zA-Z\s'.-]/g, "") })
@@ -568,13 +400,10 @@ export default function CustomerDashboard() {
                 </div>
 
                 <div>
-                  <label htmlFor="baby-birthdate" className="block text-[14px] font-medium text-[#4A2A1A] mb-1.5">
-                    Tanggal lahir
-                  </label>
+                  <label className="text-xs font-bold text-[#6E5D58] uppercase block mb-1.5">Tanggal Lahir</label>
                   <input
-                    id="baby-birthdate"
                     type="date"
-                    className="w-full h-[44px] px-3.5 rounded-[8px] bg-white border border-black/20 text-[16px] text-[#4A2A1A] tabular-nums focus:outline-none focus:ring-2 focus:ring-[#C94A83] focus:ring-offset-2 focus:border-[#C94A83]"
+                    className="input-glass w-full"
                     value={babyForm.birthDate}
                     onChange={(e) => setBabyForm({ ...babyForm, birthDate: e.target.value })}
                     max={new Date().toISOString().split("T")[0]}
@@ -583,88 +412,43 @@ export default function CustomerDashboard() {
                 </div>
 
                 <div>
-                  <label htmlFor="baby-notes" className="block text-[14px] font-medium text-[#4A2A1A] mb-1.5">
-                    Catatan kesehatan (opsional)
-                  </label>
+                  <label className="text-xs font-bold text-[#6E5D58] uppercase block mb-1.5">Catatan Khusus / Kesehatan (Opsional)</label>
                   <textarea
-                    id="baby-notes"
                     rows={2}
-                    placeholder="Contoh: Alergi minyak lavender, kulit sensitif"
-                    className="w-full px-3.5 py-2.5 rounded-[8px] bg-white border border-black/20 text-[16px] text-[#4A2A1A] placeholder:text-[#6B5A52]/70 resize-none focus:outline-none focus:ring-2 focus:ring-[#C94A83] focus:ring-offset-2 focus:border-[#C94A83]"
+                    placeholder="Contoh: Alergi lavender oil, kulit sensitif..."
+                    className="input-glass w-full resize-none py-2"
                     value={babyForm.notes}
                     onChange={(e) => setBabyForm({ ...babyForm, notes: e.target.value })}
                   />
                 </div>
-              </div>
 
-              <div className="flex flex-wrap gap-3 justify-end px-5 sm:px-6 py-4 border-t border-black/10 shrink-0 bg-white">
-                <button
-                  type="button"
-                  onClick={() => setIsBabyModalOpen(false)}
-                  className="flex-1 sm:flex-none min-h-[44px] px-4 rounded-[8px] border border-black/20 text-[15px] font-medium text-[#4A2A1A] hover:bg-[#FAF6F2] transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={isCreatingBaby}
-                  className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 min-h-[44px] px-5 rounded-[8px] bg-[#B73F73] hover:bg-[#A13464] text-white text-[15px] font-medium transition-colors duration-150 cursor-pointer disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2"
-                >
-                  {isCreatingBaby && <Loader2 size={15} className="animate-spin" aria-hidden="true" />}
-                  {isCreatingBaby ? "Menyimpan..." : "Simpan profil"}
-                </button>
-              </div>
-            </form>
+                <div className="flex gap-3 justify-end mt-4">
+                  <button
+                    type="button"
+                    onClick={() => setIsBabyModalOpen(false)}
+                    className="px-5 py-2.5 font-semibold text-sm text-[#6E5D58] hover:bg-[#F7F3EE] border border-[#E8DFD8] rounded-xl transition-all cursor-pointer"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isCreatingBaby}
+                    className="px-5 py-2.5 font-semibold text-sm bg-[#BE346E] hover:bg-[#BE346E] text-white rounded-xl shadow-lg shadow-none hover:shadow transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                  >
+                    {isCreatingBaby ? (
+                      <>
+                        <Loader2 size={14} className="animate-spin" /> Menyimpan...
+                      </>
+                    ) : (
+                      "Simpan"
+                    )}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
           </div>
-        </div>
-      )}
-      {/* Dialog Konfirmasi Hapus Profil Anak */}
-      {babyToDelete && (
-        <div
-          role="alertdialog"
-          aria-modal="true"
-          aria-labelledby="modal-delete-baby-title"
-          aria-describedby="modal-delete-baby-desc"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
-        >
-          <div
-            onClick={() => !isDeletingBaby && setBabyToDelete(null)}
-            className="absolute inset-0 bg-black/50"
-          />
-          <div className="bg-white border border-black/10 rounded-[12px] w-full max-w-[calc(100vw-32px)] sm:max-w-sm max-h-[90dvh] p-6 relative z-10 flex flex-col gap-4 overflow-y-auto">
-            <h3 id="modal-delete-baby-title" className="text-[18px] leading-[24px] font-medium text-[#4A2A1A]">
-              Hapus profil anak?
-            </h3>
-            <p id="modal-delete-baby-desc" className="text-[15px] leading-[22px] text-[#6B5A52]">
-              Profil <span className="font-medium text-[#4A2A1A]">{babyToDelete.name}</span> akan dihapus dari daftar anak Bunda.
-            </p>
-            <div className="flex items-center justify-end gap-3 pt-2">
-              <button
-                type="button"
-                disabled={isDeletingBaby}
-                onClick={() => setBabyToDelete(null)}
-                className="flex-1 sm:flex-none min-h-[44px] px-4 rounded-[8px] border border-black/20 text-[15px] font-medium text-[#4A2A1A] hover:bg-[#FAF6F2] transition-colors duration-150 cursor-pointer disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2"
-              >
-                Batal
-              </button>
-              <button
-                type="button"
-                disabled={isDeletingBaby}
-                onClick={handleConfirmDeleteBaby}
-                className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-[8px] bg-[#9B3B3B] hover:bg-[#822F2F] text-white text-[15px] font-medium transition-colors duration-150 cursor-pointer disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9B3B3B] focus-visible:ring-offset-2"
-              >
-                {isDeletingBaby && <Loader2 size={14} className="animate-spin" aria-hidden="true" />}
-                {isDeletingBaby ? "Menghapus..." : "Hapus"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      {/* Modal Ubah Kata Sandi */}
-      <ChangePasswordModal
-        isOpen={isPasswordModalOpen}
-        onClose={() => setIsPasswordModalOpen(false)}
-      />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

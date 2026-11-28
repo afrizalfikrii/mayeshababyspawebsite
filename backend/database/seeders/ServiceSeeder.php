@@ -22,7 +22,7 @@ class ServiceSeeder extends Seeder
         $services = [
             // ── Kategori: Baby and Kids ──────────────────────────────────────
             [
-                'name'             => 'Baby 0-1th',
+                'name'             => 'Baby 0–1 Tahun',
                 'description'      => 'Pijat lembut dan stimulasi sensorik untuk mendukung tumbuh kembang.',
                 'duration_minutes' => 45,
                 'price'            => 32500.00,  // rata-rata 30K non-member / 35K member
@@ -32,7 +32,7 @@ class ServiceSeeder extends Seeder
                 'age_max_months'   => 12,
             ],
             [
-                'name'             => 'Baby 1-3th',
+                'name'             => 'Baby 1–3 Tahun',
                 'description'      => 'Pijat seluruh tubuh dan relaksasi untuk mendukung perkembangan motorik.',
                 'duration_minutes' => 45,
                 'price'            => 37500.00,
@@ -42,7 +42,7 @@ class ServiceSeeder extends Seeder
                 'age_max_months'   => 36,
             ],
             [
-                'name'             => 'Baby 3-4th',
+                'name'             => 'Baby 3–4 Tahun',
                 'description'      => 'Paket spa anak usia 3–4 tahun dengan pijat dan perawatan tubuh yang menyegarkan.',
                 'duration_minutes' => 50,
                 'price'            => 42500.00,
@@ -52,7 +52,7 @@ class ServiceSeeder extends Seeder
                 'age_max_months'   => 48,
             ],
             [
-                'name'             => 'Anak > 5th',
+                'name'             => 'Anak > 5 Tahun',
                 'description'      => 'Paket spa anak usia di atas 5 tahun dengan pijat relaksasi dan perawatan tubuh menyeluruh.',
                 'duration_minutes' => 60,
                 'price'            => 47500.00,

@@ -1,21 +1,19 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { Loader2, Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, Mail, Lock, User as UserIcon, Phone, Loader2, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import type { LoginPayload, RegisterPayload } from "@/types/api.types";
-import BrandLogo from "@/app/components/BrandLogo";
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showPasswordConfirmation, setShowPasswordConfirmation] = useState(false);
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  const [formError, setFormError] = useState<string | null>(null);
-  const { login, register } = useAuth();
+  const { login, register, user } = useAuth();
   const navigate = useNavigate();
 
+  // Form state
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -25,23 +23,12 @@ export default function Auth() {
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
-    if (fieldErrors[name]) {
-      setFieldErrors((prev) => {
-        const next = { ...prev };
-        delete next[name];
-        return next;
-      });
-    }
-    if (formError) setFormError(null);
+    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isLoading) return;
-    setFieldErrors({});
-    setFormError(null);
     setIsLoading(true);
 
     try {
@@ -53,15 +40,11 @@ export default function Auth() {
         navigate(destination, { replace: true });
       } else {
         if (!form.phone_number.trim()) {
-          const msg = "Nomor WhatsApp / telepon wajib diisi.";
-          setFieldErrors({ phone_number: msg });
-          toast.error(msg);
+          toast.error("Nomor WhatsApp / telepon wajib diisi.");
           return;
         }
         if (form.password !== form.password_confirmation) {
-          const msg = "Konfirmasi kata sandi tidak cocok.";
-          setFieldErrors({ password_confirmation: msg });
-          toast.error(msg);
+          toast.error("Konfirmasi kata sandi tidak cocok.");
           return;
         }
         const payload: RegisterPayload = {
@@ -72,7 +55,7 @@ export default function Auth() {
           password_confirmation: form.password_confirmation,
         };
         const newUser = await register(payload);
-        toast.success("Pendaftaran akun berhasil.");
+        toast.success("Pendaftaran berhasil. Selamat datang di Mayesha Baby Spa.");
         const destination = newUser?.role === "admin" ? "/admin" : "/dashboard";
         navigate(destination, { replace: true });
       }
@@ -104,241 +87,292 @@ export default function Auth() {
       };
 
       if (validationErrors && typeof validationErrors === "object") {
-        const nextFieldErrors: Record<string, string> = {};
-        Object.entries(validationErrors).forEach(([field, messages]) => {
-          const translated = translateErrorMessage(messages[0] ?? msg);
-          nextFieldErrors[field] = translated;
-          messages.forEach((m) => toast.error(translateErrorMessage(m)));
-        });
-        setFieldErrors(nextFieldErrors);
+        Object.values(validationErrors).flat().forEach((e) => toast.error(translateErrorMessage(e)));
       } else {
-        const translated = translateErrorMessage(msg);
-        setFormError(translated);
-        toast.error(translated);
+        toast.error(translateErrorMessage(msg));
       }
     } finally {
       setIsLoading(false);
     }
   };
 
-  const switchMode = () => {
-    setIsLogin((v) => !v);
+  const switchMode = (nextLogin?: boolean) => {
+    setIsLogin((v) => (typeof nextLogin === "boolean" ? nextLogin : !v));
     setShowPassword(false);
     setShowPasswordConfirmation(false);
-    setFieldErrors({});
-    setFormError(null);
     setForm({ name: "", email: "", phone_number: "", password: "", password_confirmation: "" });
   };
 
-  const inputClass = (hasError?: boolean) =>
-    `w-full h-[44px] px-3.5 rounded-[8px] bg-white text-[16px] text-[#4A2A1A] placeholder:text-[#6B5A52]/70 border transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-[#C94A83] focus:ring-offset-2 ${
-      hasError ? "border-[#B3261E]" : "border-black/20 focus:border-[#C94A83]"
-    }`;
-
   return (
-    <div className="min-h-[100dvh] flex flex-col items-center justify-center bg-[#FAF6F2] px-4 py-8 sm:p-6 font-['DM_Sans',sans-serif]">
-      <div className="w-full max-w-[420px] mb-5 flex items-center justify-between gap-4">
-        <BrandLogo size="sm" hideTaglineOnMobile />
-        <Link
-          to="/"
-          className="min-h-[44px] inline-flex items-center px-1 text-[15px] font-medium text-[#4A2A1A] underline decoration-[#D4568F] decoration-[1.5px] underline-offset-4 hover:text-[#C94A83] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2 rounded-sm shrink-0"
-        >
-          Ke beranda
-        </Link>
-      </div>
+    <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 lg:p-10 bg-[#FAF7F2]">
+      <div className="w-full max-w-5xl bg-white border border-[#E8DFD8] rounded-3xl shadow-sm overflow-hidden grid lg:grid-cols-12">
+        {/* Left Editorial Brand Panel (Desktop, Photo-Free) */}
+        <div className="hidden lg:flex lg:col-span-5 bg-[#F4EFE8] border-r border-[#E8DFD8] p-8 xl:p-10 flex-col justify-between gap-8">
+          <div className="space-y-7">
+            <Link to="/" className="inline-flex items-center gap-3 group">
+              <img
+                src="/logo.png"
+                alt="Mayesha Mom, Kids & Baby Spa Logo"
+                className="w-12 h-12 object-contain rounded-full shrink-0"
+              />
+              <div className="leading-tight">
+                <span className="font-editorial italic font-semibold text-2xl text-[#BE346E] tracking-tight block">
+                  Mayesha
+                </span>
+                <span className="text-xs font-semibold text-[#3A2622] tracking-wide block -mt-0.5">
+                  Mom, Kids &amp; Baby Spa
+                </span>
+              </div>
+            </Link>
 
-      <main className="w-full max-w-[420px] bg-white border border-black/10 rounded-[12px] p-5 sm:p-8">
-        <div className="mb-6">
-          <h1 className="font-['Playfair_Display',Georgia,serif] font-medium text-[clamp(28px,7vw,34px)] leading-[1.2] text-[#4A2A1A]">
-            {isLogin ? "Masuk" : "Daftar akun"}
-          </h1>
-          <p className="text-[16px] leading-[1.6] text-[#6B5A52] mt-2">
-            {isLogin
-              ? "Masuk untuk melihat dan mengatur reservasi Bunda."
-              : "Lengkapi data berikut untuk membuat akun dan memesan layanan."}
-          </p>
+            <div className="space-y-2">
+              <p className="font-editorial text-2xl font-semibold text-[#3A2622] leading-snug">
+                Perawatan lembut untuk <span className="italic text-[#BE346E]">Si Kecil &amp; Bunda</span>
+              </p>
+              <p className="text-sm text-[#6E5D58] leading-relaxed">
+                Nikmati kemudahan mengatur reservasi dan memantau riwayat perawatan dari Ruang Bunda.
+              </p>
+            </div>
+
+            <ol className="divide-y divide-[#E8DFD8] border-y border-[#E8DFD8]">
+              {[
+                {
+                  num: "01",
+                  title: "Kelola Jadwal & Pembayaran",
+                  desc: "Pantau status reservasi, unggah bukti QRIS, atau ubah jadwal dari satu tempat.",
+                },
+                {
+                  num: "02",
+                  title: "Profil Si Kecil Tersimpan",
+                  desc: "Data nama dan usia anak tersimpan otomatis untuk pemesanan berikutnya.",
+                },
+                {
+                  num: "03",
+                  title: "Rekomendasi Sesuai Usia",
+                  desc: "Dapatkan pilihan perawatan yang tepat sesuai tahap tumbuh kembang anak.",
+                },
+              ].map((item) => (
+                <li key={item.num} className="py-3.5 flex items-start gap-3.5">
+                  <span className="font-editorial text-sm font-semibold text-[#BE346E] tabular-nums pt-0.5 shrink-0">
+                    {item.num}
+                  </span>
+                  <div>
+                    <p className="text-sm font-semibold text-[#3A2622]">{item.title}</p>
+                    <p className="text-xs text-[#6E5D58] leading-relaxed mt-0.5">{item.desc}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </div>
+
+          <div className="text-xs text-[#6E5D58] flex items-center justify-between gap-2 pt-2">
+            <span className="font-medium text-[#3A2622]">Senin – Minggu · 08.30 – 16.30 WIB</span>
+            <span>Tegalgede &amp; Home Care</span>
+          </div>
         </div>
 
-        {formError && (
-          <div
-            role="alert"
-            className="mb-4 p-3 rounded-[8px] bg-[#FFF5F5] border border-[#B3261E]/30 text-[13px] leading-[19px] text-[#B3261E]"
-          >
-            Periksa kembali: {formError}
-          </div>
-        )}
+        {/* Right Form Panel */}
+        <div className="lg:col-span-7 p-6 sm:p-10 flex flex-col justify-center">
+          {/* Top Bar */}
+          <div className="flex items-center justify-between gap-4 mb-6">
+            <Link
+              to="/"
+              className="inline-flex items-center gap-2 text-sm font-medium text-[#6E5D58] hover:text-[#BE346E] transition-colors py-1"
+            >
+              <ArrowLeft size={16} />
+              Kembali ke Beranda
+            </Link>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          {!isLogin && (
-            <div>
-              <label htmlFor="auth-name" className="block text-[14px] font-medium text-[#4A2A1A] mb-1.5">
-                Nama lengkap
-              </label>
-              <input
-                id="auth-name"
-                name="name"
-                type="text"
-                autoComplete="name"
-                placeholder="Nama lengkap Bunda atau Ayah"
-                className={inputClass(Boolean(fieldErrors.name))}
-                value={form.name}
-                onChange={handleChange}
-                aria-invalid={Boolean(fieldErrors.name)}
-                aria-describedby={fieldErrors.name ? "auth-name-error" : undefined}
-                required
+            <Link to="/" className="flex lg:hidden items-center gap-2">
+              <img
+                src="/logo.png"
+                alt="Mayesha Logo"
+                className="w-9 h-9 object-contain rounded-full"
               />
-              {fieldErrors.name && (
-                <p id="auth-name-error" role="alert" className="mt-1.5 text-[13px] leading-[18px] text-[#B3261E]">
-                  Kesalahan: {fieldErrors.name}
-                </p>
-              )}
-            </div>
-          )}
+              <span className="font-editorial italic font-semibold text-base text-[#BE346E]">
+                Mayesha
+              </span>
+            </Link>
+          </div>
 
-          <div>
-            <label htmlFor="auth-email" className="block text-[14px] font-medium text-[#4A2A1A] mb-1.5">
-              Alamat email
-            </label>
-            <input
-              id="auth-email"
-              name="email"
-              type="email"
-              autoComplete="email"
-              placeholder="nama@email.com"
-              className={inputClass(Boolean(fieldErrors.email))}
-              value={form.email}
-              onChange={handleChange}
-              aria-invalid={Boolean(fieldErrors.email)}
-              aria-describedby={fieldErrors.email ? "auth-email-error" : undefined}
-              required
-            />
-            {fieldErrors.email && (
-              <p id="auth-email-error" role="alert" className="mt-1.5 text-[13px] leading-[18px] text-[#B3261E]">
-                Kesalahan: {fieldErrors.email}
-              </p>
+          {/* Segmented Mode Switcher */}
+          <div className="grid grid-cols-2 gap-1 p-1.5 rounded-2xl bg-[#F4EFE8] border border-[#E8DFD8] mb-7">
+            <button
+              type="button"
+              onClick={() => switchMode(true)}
+              className={`py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+                isLogin
+                  ? "bg-white text-[#BE346E] shadow-sm ring-1 ring-[#E8DFD8]"
+                  : "text-[#6E5D58] hover:text-[#3A2622]"
+              }`}
+            >
+              Masuk
+            </button>
+            <button
+              type="button"
+              onClick={() => switchMode(false)}
+              className={`py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+                !isLogin
+                  ? "bg-white text-[#BE346E] shadow-sm ring-1 ring-[#E8DFD8]"
+                  : "text-[#6E5D58] hover:text-[#3A2622]"
+              }`}
+            >
+              Daftar Akun
+            </button>
+          </div>
+
+          {/* Header */}
+          <div className="mb-6">
+            <h1 className="text-2xl sm:text-3xl font-bold text-[#3A2622]">
+              {isLogin ? "Selamat Datang Kembali" : "Buat Akun Baru"}
+            </h1>
+            <p className="text-[#6E5D58] text-sm mt-1.5">
+              {isLogin
+                ? "Masuk untuk mengatur jadwal perawatan Si Kecil dan melihat riwayat reservasi."
+                : "Lengkapi data berikut untuk membuat akun dan mulai memesan layanan."}
+            </p>
+          </div>
+
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+            {!isLogin && (
+              <div>
+                <label className="block text-xs font-semibold text-[#3A2622] mb-1.5">
+                  Nama Lengkap Bunda / Ayah
+                </label>
+                <div className="relative">
+                  <UserIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#6E5D58] z-10 pointer-events-none" size={17} />
+                  <input
+                    name="name"
+                    type="text"
+                    placeholder="Contoh: Bunda Meisya"
+                    className="input-glass pl-11"
+                    value={form.name}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+              </div>
             )}
-          </div>
 
-          {!isLogin && (
             <div>
-              <label htmlFor="auth-phone" className="block text-[14px] font-medium text-[#4A2A1A] mb-1.5">
-                Nomor WhatsApp
-              </label>
-              <input
-                id="auth-phone"
-                name="phone_number"
-                type="tel"
-                autoComplete="tel"
-                placeholder="08xxxxxxxxxx"
-                className={`${inputClass(Boolean(fieldErrors.phone_number))} tabular-nums`}
-                value={form.phone_number}
-                onChange={handleChange}
-                aria-invalid={Boolean(fieldErrors.phone_number)}
-                aria-describedby={fieldErrors.phone_number ? "auth-phone-error" : undefined}
-                required
-              />
-              {fieldErrors.phone_number && (
-                <p id="auth-phone-error" role="alert" className="mt-1.5 text-[13px] leading-[18px] text-[#B3261E]">
-                  Kesalahan: {fieldErrors.phone_number}
-                </p>
-              )}
-            </div>
-          )}
-
-          <div>
-            <label htmlFor="auth-password" className="block text-[14px] font-medium text-[#4A2A1A] mb-1.5">
-              Kata sandi
-            </label>
-            <div className="relative">
-              <input
-                id="auth-password"
-                name="password"
-                type={showPassword ? "text" : "password"}
-                autoComplete={isLogin ? "current-password" : "new-password"}
-                placeholder="Minimal 8 karakter"
-                className={`${inputClass(Boolean(fieldErrors.password))} pr-12`}
-                value={form.password}
-                onChange={handleChange}
-                aria-invalid={Boolean(fieldErrors.password)}
-                aria-describedby={fieldErrors.password ? "auth-password-error" : undefined}
-                required
-                minLength={8}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword((prev) => !prev)}
-                className="absolute right-0 top-1/2 -translate-y-1/2 w-11 h-11 min-w-[44px] min-h-[44px] inline-flex items-center justify-center text-[#6B5A52] hover:text-[#4A2A1A] transition-colors duration-150 cursor-pointer rounded-[8px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83]"
-                title={showPassword ? "Sembunyikan kata sandi" : "Tampilkan kata sandi"}
-                aria-label={showPassword ? "Sembunyikan kata sandi" : "Tampilkan kata sandi"}
-              >
-                {showPassword ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
-              </button>
-            </div>
-            {fieldErrors.password && (
-              <p id="auth-password-error" role="alert" className="mt-1.5 text-[13px] leading-[18px] text-[#B3261E]">
-                Kesalahan: {fieldErrors.password}
-              </p>
-            )}
-          </div>
-
-          {!isLogin && (
-            <div>
-              <label htmlFor="auth-password-confirmation" className="block text-[14px] font-medium text-[#4A2A1A] mb-1.5">
-                Konfirmasi kata sandi
+              <label className="block text-xs font-semibold text-[#3A2622] mb-1.5">
+                Alamat Email
               </label>
               <div className="relative">
+                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#6E5D58] z-10 pointer-events-none" size={17} />
                 <input
-                  id="auth-password-confirmation"
-                  name="password_confirmation"
-                  type={showPasswordConfirmation ? "text" : "password"}
-                  autoComplete="new-password"
-                  placeholder="Ulangi kata sandi"
-                  className={`${inputClass(Boolean(fieldErrors.password_confirmation))} pr-12`}
-                  value={form.password_confirmation}
+                  name="email"
+                  type="email"
+                  placeholder="nama@email.com"
+                  className="input-glass pl-11"
+                  value={form.email}
                   onChange={handleChange}
-                  aria-invalid={Boolean(fieldErrors.password_confirmation)}
-                  aria-describedby={fieldErrors.password_confirmation ? "auth-password-confirmation-error" : undefined}
                   required
+                />
+              </div>
+            </div>
+
+            {!isLogin && (
+              <div>
+                <label className="block text-xs font-semibold text-[#3A2622] mb-1.5">
+                  Nomor WhatsApp / HP
+                </label>
+                <div className="relative">
+                  <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#6E5D58] z-10 pointer-events-none" size={17} />
+                  <input
+                    name="phone_number"
+                    type="tel"
+                    placeholder="0812xxxxxxxx"
+                    className="input-glass pl-11 tabular-nums"
+                    value={form.phone_number}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+              </div>
+            )}
+
+            <div>
+              <label className="block text-xs font-semibold text-[#3A2622] mb-1.5">
+                Kata Sandi
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#6E5D58] z-10 pointer-events-none" size={17} />
+                <input
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Minimal 8 karakter"
+                  className="input-glass pl-11 pr-11"
+                  value={form.password}
+                  onChange={handleChange}
+                  required
+                  minLength={8}
                 />
                 <button
                   type="button"
-                  onClick={() => setShowPasswordConfirmation((prev) => !prev)}
-                  className="absolute right-0 top-1/2 -translate-y-1/2 w-11 h-11 min-w-[44px] min-h-[44px] inline-flex items-center justify-center text-[#6B5A52] hover:text-[#4A2A1A] transition-colors duration-150 cursor-pointer rounded-[8px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83]"
-                  title={showPasswordConfirmation ? "Sembunyikan konfirmasi kata sandi" : "Tampilkan konfirmasi kata sandi"}
-                  aria-label={showPasswordConfirmation ? "Sembunyikan konfirmasi kata sandi" : "Tampilkan konfirmasi kata sandi"}
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-9 h-9 inline-flex items-center justify-center rounded-full text-[#6E5D58] hover:text-[#BE346E] transition-colors cursor-pointer"
+                  title={showPassword ? "Sembunyikan kata sandi" : "Tampilkan kata sandi"}
+                  aria-label={showPassword ? "Sembunyikan kata sandi" : "Tampilkan kata sandi"}
                 >
-                  {showPasswordConfirmation ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
+                  {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
                 </button>
               </div>
-              {fieldErrors.password_confirmation && (
-                <p id="auth-password-confirmation-error" role="alert" className="mt-1.5 text-[13px] leading-[18px] text-[#B3261E]">
-                  Kesalahan: {fieldErrors.password_confirmation}
-                </p>
-              )}
             </div>
-          )}
 
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full min-h-[44px] mt-2 inline-flex items-center justify-center gap-2 rounded-[8px] bg-[#B73F73] hover:bg-[#A13464] text-white text-[15px] font-medium transition-colors duration-150 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2"
-          >
-            {isLoading && <Loader2 size={16} className="animate-spin" aria-hidden="true" />}
-            {isLoading ? "Memproses..." : isLogin ? "Masuk" : "Daftar akun"}
-          </button>
-        </form>
+            {!isLogin && (
+              <div>
+                <label className="block text-xs font-semibold text-[#3A2622] mb-1.5">
+                  Konfirmasi Kata Sandi
+                </label>
+                <div className="relative">
+                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#6E5D58] z-10 pointer-events-none" size={17} />
+                  <input
+                    name="password_confirmation"
+                    type={showPasswordConfirmation ? "text" : "password"}
+                    placeholder="Ulangi kata sandi"
+                    className="input-glass pl-11 pr-11"
+                    value={form.password_confirmation}
+                    onChange={handleChange}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPasswordConfirmation((prev) => !prev)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-9 h-9 inline-flex items-center justify-center rounded-full text-[#6E5D58] hover:text-[#BE346E] transition-colors cursor-pointer"
+                    title={showPasswordConfirmation ? "Sembunyikan konfirmasi kata sandi" : "Tampilkan konfirmasi kata sandi"}
+                    aria-label={showPasswordConfirmation ? "Sembunyikan konfirmasi kata sandi" : "Tampilkan konfirmasi kata sandi"}
+                  >
+                    {showPasswordConfirmation ? <EyeOff size={17} /> : <Eye size={17} />}
+                  </button>
+                </div>
+              </div>
+            )}
 
-        <div className="mt-6 pt-4 border-t border-black/10 flex flex-wrap items-center justify-center gap-1 text-[15px] text-[#6B5A52]">
-          <span>{isLogin ? "Belum punya akun?" : "Sudah punya akun?"}</span>
-          <button
-            type="button"
-            onClick={switchMode}
-            className="min-h-[44px] px-1.5 inline-flex items-center text-[15px] font-medium text-[#4A2A1A] underline decoration-[#D4568F] decoration-[1.5px] underline-offset-4 hover:text-[#C94A83] transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2 rounded-sm"
-          >
-            {isLogin ? "Daftar" : "Masuk"}
-          </button>
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="btn-primary w-full mt-2 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {isLoading && <Loader2 size={18} className="animate-spin" />}
+              {isLogin ? "Masuk Sekarang" : "Daftar Akun"}
+            </button>
+          </form>
+
+          {/* Switch mode */}
+          <div className="mt-6 text-center text-sm text-[#6E5D58]">
+            {isLogin ? "Belum punya akun? " : "Sudah punya akun? "}
+            <button
+              type="button"
+              onClick={() => switchMode(!isLogin)}
+              className="text-[#BE346E] font-semibold hover:underline cursor-pointer"
+            >
+              {isLogin ? "Daftar di sini" : "Masuk"}
+            </button>
+          </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 }

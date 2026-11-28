@@ -1,30 +1,19 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router";
-import { Loader2, X as CloseIcon, ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { ArrowRight, Sparkles, Heart, MapPin, CheckCircle2, Loader2, Calendar, Star, Building2, Search, X as CloseIcon } from "lucide-react";
+import { motion } from "motion/react";
 import { getServices } from "@/services/service.service";
 import { getPublicReviews } from "@/services/reservation.service";
-import { formatAgeRange } from "@/lib/formatAgeRange";
 import type { Service, Review } from "@/types/api.types";
 
 export default function Home() {
   const [services, setServices] = useState<Service[]>([]);
   const [segmentFilter, setSegmentFilter] = useState<"all" | "Bayi" | "Anak" | "Ibu">("all");
-  const [serviceSearch, setServiceSearch] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showAllServices, setShowAllServices] = useState(false);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState<{ src: string; title: string; desc: string } | null>(null);
-
-  // Gallery Carousel State
-  const [galleryCategory, setGalleryCategory] = useState<"all" | "Aktivitas" | "Fasilitas">("all");
-  const galleryTrackRef = useRef<HTMLDivElement>(null);
-  const [canScrollGalleryLeft, setCanScrollGalleryLeft] = useState(false);
-  const [canScrollGalleryRight, setCanScrollGalleryRight] = useState(true);
-  const [activeGalleryIndex, setActiveGalleryIndex] = useState(0);
-
-  // Reviews Carousel State
-  const reviewsTrackRef = useRef<HTMLDivElement>(null);
-  const [canScrollReviewsLeft, setCanScrollReviewsLeft] = useState(false);
-  const [canScrollReviewsRight, setCanScrollReviewsRight] = useState(false);
 
   const getServiceClassification = (s: Service): "Bayi" | "Anak" | "Ibu" => {
     if (s.category === "mom_treatment" || (s.age_min_months !== null && s.age_min_months >= 216)) {
@@ -32,46 +21,24 @@ export default function Home() {
     }
     if (
       (s.age_min_months !== null && s.age_min_months >= 13) ||
-      /kids|anak|1-3th|3-4th/i.test(s.name)
+      /kids|anak|1[-–]3\s*(th|tahun)|3[-–]4\s*(th|tahun)/i.test(s.name)
     ) {
       return "Anak";
     }
     return "Bayi";
   };
 
-  const segmentPriority: Record<"Bayi" | "Anak" | "Ibu", number> = {
-    Bayi: 1,
-    Anak: 2,
-    Ibu: 3,
-  };
-
-  // Urutkan per segmen: Bayi, Anak, Ibu (mempertahankan urutan asli di dalam segmen)
-  const sortedServices = [...services].sort((a, b) => {
-    const segA = segmentPriority[getServiceClassification(a)];
-    const segB = segmentPriority[getServiceClassification(b)];
-    return segA - segB;
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+  const filteredServices = services.filter((s) => {
+    const matchesSegment = segmentFilter === "all" ? true : getServiceClassification(s) === segmentFilter;
+    const matchesQuery = !normalizedQuery
+      ? true
+      : s.name.toLowerCase().includes(normalizedQuery) ||
+        (s.description || "").toLowerCase().includes(normalizedQuery);
+    return matchesSegment && matchesQuery;
   });
-
-  const normalizedServiceQuery = serviceSearch.trim().toLowerCase();
-
-  const filteredServices = sortedServices.filter((s) => {
-    const matchesSegment =
-      segmentFilter === "all" ? true : getServiceClassification(s) === segmentFilter;
-    if (!matchesSegment) return false;
-    if (!normalizedServiceQuery) return true;
-    const name = (s.name ?? "").toLowerCase();
-    const desc = (s.description ?? "").toLowerCase();
-    return name.includes(normalizedServiceQuery) || desc.includes(normalizedServiceQuery);
-  });
-
-  const groupedServices: Array<{ segment: "Bayi" | "Anak" | "Ibu"; items: Service[] }> = (
-    ["Bayi", "Anak", "Ibu"] as const
-  )
-    .map((segment) => ({
-      segment,
-      items: filteredServices.filter((s) => getServiceClassification(s) === segment),
-    }))
-    .filter((group) => group.items.length > 0);
+  const isExpanded = showAllServices || normalizedQuery.length > 0;
+  const displayedServices = isExpanded ? filteredServices : filteredServices.slice(0, 8);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -83,7 +50,7 @@ export default function Home() {
         setServices(servicesData);
         setReviews(reviewsData);
       } catch {
-        // Silent fallback
+        // Fallback or silent catch
       } finally {
         setIsLoading(false);
       }
@@ -91,321 +58,245 @@ export default function Home() {
     fetchData();
   }, []);
 
-  const averageRating =
-    reviews.length > 0
-      ? (reviews.reduce((sum, r) => sum + Number(r.rating || 0), 0) / reviews.length).toFixed(1)
-      : null;
+  const formatServiceAge = (service: Service): string => {
+    const min = service.age_min_months;
+    const max = service.age_max_months;
 
-  const lowestPrice =
-    services.length > 0
-      ? Math.min(
-        ...services
-          .map((s) => Number(s.price || 0))
-          .filter((p) => !isNaN(p) && p > 0)
-      )
-      : null;
+    if (service.category === "mom_treatment" || (min !== null && min >= 216)) {
+      return "Bunda";
+    }
+    if (min === null) return "Semua Usia";
+    if (max === null) return "Dewasa";
+    if (max <= 12) return `${min}–${max} Bulan`;
 
-  const galleryItems = [
+    const isCleanYearMin = min === 0 || min % 12 === 0 || min % 12 === 1;
+    const isCleanYearMax = max % 12 === 0;
+    if (isCleanYearMin && isCleanYearMax) {
+      const minYears = min === 0 ? 0 : Math.floor(min / 12);
+      const maxYears = max / 12;
+      return `${minYears}–${maxYears} Tahun`;
+    }
+
+    return `${min}–${max} Bulan`;
+  };
+
+  const activities = [
     {
-      id: "act-1",
-      category: "Aktivitas" as const,
-      title: "Baby Swim",
-      desc: "Sesi renang air hangat dengan pelampung leher aman dan pendampingan terapis.",
+      title: "Fun Baby Swim",
+      desc: "Pengalaman renang seru",
       img: "/images/activity-swim-purple.png",
     },
     {
-      id: "act-2",
-      category: "Aktivitas" as const,
-      title: "Bidan Tersertifikasi",
-      desc: "Setiap sesi ditangani langsung oleh tenaga bidan terlatih dan ramah anak.",
+      title: "Bidan Profesional",
+      desc: "Ditangani tenaga ahli",
       img: "/images/activity-team.jpg",
     },
     {
-      id: "act-3",
-      category: "Aktivitas" as const,
       title: "Baby Massage",
-      desc: "Stimulasi pijat lembut melancarkan peredaran darah dan kenyamanan tidur bayi.",
+      desc: "Relaksasi untuk si kecil",
       img: "/images/activity-massage.jpg",
     },
     {
-      id: "act-4",
-      category: "Aktivitas" as const,
-      title: "Terapi Pernapasan",
-      desc: "Layanan uap nebulizer dan sinar infrared untuk meredakan batuk pilek.",
+      title: "Layanan Kesehatan",
+      desc: "Terapi infrared & uap",
       img: "/images/activity-therapy.png",
     },
+  ];
+
+  const facilities = [
     {
-      id: "fac-1",
-      category: "Fasilitas" as const,
-      title: "Kolam Hidroterapi",
-      desc: "Air hangat bersuhu steril dan selalu diganti sebelum sesi baru dimulai.",
+      title: "Kolam Renang",
+      desc: "Air hangat & nyaman",
       img: "/images/facility-pool.png",
     },
     {
-      id: "fac-2",
-      category: "Fasilitas" as const,
-      title: "Area Baby Gym",
-      desc: "Ruang stimulasi motorik dan sensorik dengan matras empuk berstandar medis.",
+      title: "Baby Gym",
+      desc: "Area bermain edukatif",
       img: "/images/facility-gym.jpg",
     },
     {
-      id: "fac-3",
-      category: "Fasilitas" as const,
-      title: "Ruang Perawatan Privat",
-      desc: "Kamar perawatan privat yang tenang, higienis, dan nyaman untuk bunda dan buah hati.",
+      title: "Ruang Private",
+      desc: "Bersih & higienis",
       img: "/images/facility-treatment.png",
     },
     {
-      id: "fac-4",
-      category: "Fasilitas" as const,
-      title: "Matras Perawatan",
-      desc: "Alas pijat lembut higienis berbahan aman khusus kulit sensitif bayi baru lahir.",
+      title: "Matras Empuk",
+      desc: "Nyaman untuk bayi",
       img: "/images/facility-massage.png",
     },
   ];
 
-  const filteredGallery = galleryItems.filter((item) =>
-    galleryCategory === "all" ? true : item.category === galleryCategory
-  );
-
-  const checkGalleryScroll = () => {
-    const el = galleryTrackRef.current;
-    if (!el) return;
-    const { scrollLeft, scrollWidth, clientWidth } = el;
-    setCanScrollGalleryLeft(scrollLeft > 12);
-    setCanScrollGalleryRight(scrollLeft < scrollWidth - clientWidth - 12);
-
-    const firstCard = el.firstElementChild as HTMLElement | null;
-    const cardStep = firstCard ? firstCard.offsetWidth + 20 : 360;
-    const idx = Math.min(
-      filteredGallery.length - 1,
-      Math.max(0, Math.round(scrollLeft / cardStep))
-    );
-    setActiveGalleryIndex(idx);
-  };
-
-  const scrollGallery = (direction: "left" | "right") => {
-    const el = galleryTrackRef.current;
-    if (!el) return;
-    const firstCard = el.firstElementChild as HTMLElement | null;
-    const cardStep = firstCard ? firstCard.offsetWidth + 20 : 360;
-    const delta = direction === "left" ? -cardStep : cardStep;
-    const prefersReducedMotion =
-      typeof window !== "undefined" &&
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    el.scrollBy({ left: delta, behavior: prefersReducedMotion ? "auto" : "smooth" });
-  };
-
-  const checkReviewsScroll = () => {
-    const el = reviewsTrackRef.current;
-    if (!el) return;
-    const { scrollLeft, scrollWidth, clientWidth } = el;
-    setCanScrollReviewsLeft(scrollLeft > 12);
-    setCanScrollReviewsRight(scrollLeft < scrollWidth - clientWidth - 12);
-  };
-
-  const scrollReviews = (direction: "left" | "right") => {
-    const el = reviewsTrackRef.current;
-    if (!el) return;
-    const firstCard = el.firstElementChild as HTMLElement | null;
-    const cardStep = firstCard ? firstCard.offsetWidth + 24 : 360;
-    const delta = direction === "left" ? -cardStep : cardStep;
-    el.scrollBy({ left: delta, behavior: "smooth" });
-  };
-
-  useEffect(() => {
-    if (reviews.length > 0) {
-      const timer = setTimeout(checkReviewsScroll, 150);
-      return () => clearTimeout(timer);
-    }
-  }, [reviews]);
-
-  useEffect(() => {
-    if (galleryTrackRef.current) {
-      galleryTrackRef.current.scrollTo({ left: 0, behavior: "smooth" });
-      const timer = setTimeout(checkGalleryScroll, 150);
-      return () => clearTimeout(timer);
-    }
-  }, [galleryCategory]);
-
-  useEffect(() => {
-    if (!selectedImage) return;
-    const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setSelectedImage(null);
-    };
-    document.addEventListener("keydown", handleEsc);
-    return () => document.removeEventListener("keydown", handleEsc);
-  }, [selectedImage]);
-
   return (
-    <div className="flex flex-col gap-10 md:gap-16 lg:gap-20 pb-12 md:pb-20">
-      {/* Hero + Trust Bar (menempel rapi tanpa celah) */}
-      <div>
-        {/* Hero Section — Full-bleed Seamless di Desktop (kanan) & Mobile/Tablet (bawah) */}
-        <section className="relative overflow-hidden bg-[var(--peach)] w-full pt-6 pb-0 sm:pt-9 lg:py-20 xl:py-24">
-          {/* Desktop (>= 1024px): visual penuh menyatu halus dari sisi kanan ke latar krem */}
-          <div
-            className="hidden lg:block pointer-events-none select-none absolute inset-y-0 right-0 w-[64%] xl:w-[60%] z-0 overflow-hidden"
-            style={{
-              WebkitMaskImage:
-                "linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.45) 18%, black 38%)",
-              maskImage:
-                "linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.45) 18%, black 38%)",
-            }}
+    <div className="flex flex-col gap-16 md:gap-24 pb-16 overflow-x-hidden">
+      {/* Hero Section */}
+      <section className="relative pt-3 md:pt-6 px-4 sm:px-6 max-w-7xl mx-auto w-full">
+        <div className="grid md:grid-cols-2 gap-8 md:gap-12 items-center">
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.45 }}
+            className="flex flex-col gap-5 relative z-10"
           >
-            <img
-              src="/images/hero-mayesha.png"
-              alt="Terapis memijat bayi di studio Mayesha"
-              width={1024}
-              height={768}
-              fetchPriority="high"
-              decoding="async"
-              loading="eager"
-              className="w-full h-full object-cover object-[70%_32%]"
-            />
-          </div>
-
-          <div className="relative z-10 max-w-7xl mx-auto px-4 md:px-6">
-            {/* Konten Teks (kiri di desktop, atas di HP/tablet) */}
-            <div className="flex flex-col items-start min-w-0 font-['DM_Sans',sans-serif] lg:max-w-[490px] xl:max-w-[540px]">
-              <h1 className="font-['Playfair_Display',Georgia,serif] font-medium text-[var(--ink-hero)] text-[32px] sm:text-[clamp(36px,4.2vw,58px)] leading-[1.12] tracking-[-0.01em] [text-wrap:balance] max-w-full">
-                Pijat dan spa bayi
-                <br />
-                di Karanganyar
-              </h1>
-
-              <p className="mt-2.5 sm:mt-4 lg:mt-5 font-['Playfair_Display',Georgia,serif] italic font-normal text-[16px] sm:text-[18px] lg:text-[20px] leading-[1.5] text-[#4A2A1A] max-w-[28rem] break-words">
-                Untuk bayi, anak 0–5 tahun, dan ibu, oleh bidan tersertifikasi.
-              </p>
-
-              {/* Aksi: tombol penuh di HP + baris bawah kiri-kanan rapi; sejajar gap 18px di >= 640px */}
-              <div className="mt-5 sm:mt-7 lg:mt-8 w-full sm:w-auto flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-[18px]">
-                <Link
-                  to="/reservasi"
-                  className="w-full sm:w-auto min-h-[44px] inline-flex items-center justify-center rounded-[8px] px-5 py-2.5 text-[15px] font-medium text-white bg-[#B73F73] hover:bg-[#A13464] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B73F73] focus-visible:ring-offset-2 focus-visible:ring-offset-[#F7EDE3]"
-                >
-                  Buat reservasi
-                </Link>
-                <div className="flex items-center justify-between gap-3 w-full sm:w-auto">
-                  <a
-                    href="#layanan"
-                    className="min-h-[44px] inline-flex items-center justify-start text-[15px] font-medium text-[var(--ink-hero)] underline decoration-[#C94A83] decoration-[1.5px] underline-offset-4 hover:text-[#B73F73] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B73F73] focus-visible:ring-offset-2 focus-visible:ring-offset-[#F7EDE3] rounded-sm"
-                  >
-                    Lihat layanan
-                  </a>
-                  {lowestPrice !== null && isFinite(lowestPrice) && (
-                    <p className="sm:hidden text-[13px] leading-[18px] text-[#6B5A52] tabular-nums whitespace-nowrap">
-                      Mulai Rp {lowestPrice.toLocaleString("id-ID")}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {lowestPrice !== null && isFinite(lowestPrice) && (
-                <p className="hidden sm:block mt-4 text-[14px] leading-[20px] text-[#6B5A52] tabular-nums">
-                  Layanan mulai Rp {lowestPrice.toLocaleString("id-ID")}
-                </p>
+            <h1 className="font-editorial text-[36px] sm:text-[46px] md:text-[54px] font-semibold leading-[1.12] text-[#3A2622]">
+              Perawatan Lembut untuk{" "}
+              <span className="italic text-[#BE346E]">Si Kecil &amp; Bunda</span>
+            </h1>
+            <p className="text-[15px] sm:text-[17px] text-[#6E5D58] leading-[1.65] max-w-md">
+              Layanan baby spa, pijat anak 0–5 tahun, dan perawatan ibu oleh bidan tersertifikasi. Tersedia di studio Tegalgede maupun kunjungan ke rumah.
+            </p>
+            <div className="flex flex-wrap gap-3 pt-1">
+              <Link to="/reservasi" className="btn-primary">
+                Buat Reservasi <ArrowRight size={17} />
+              </Link>
+              <a href="#layanan" className="btn-secondary">
+                Lihat Menu Layanan
+              </a>
+            </div>
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 pt-2 text-xs sm:text-sm text-[#6E5D58]">
+              <span className="inline-flex items-center gap-2 font-medium text-[#3A2622]">
+                <CheckCircle2 size={16} className="text-[#2F6B45] shrink-0" />
+                Ditangani Bidan Tersertifikasi
+              </span>
+              <span className="inline-flex items-center gap-2 font-medium text-[#3A2622]">
+                <CheckCircle2 size={16} className="text-[#2F6B45] shrink-0" />
+                Alat Steril Setiap Sesi
+              </span>
+              {reviews.length > 0 && (
+                <span className="inline-flex items-center gap-1.5 font-medium tabular-nums text-[#3A2622]">
+                  <Star size={15} className="text-amber-500 fill-amber-400 shrink-0" />
+                  {(reviews.reduce((sum, r) => sum + Number(r.rating || 0), 0) / reviews.length).toFixed(1)}/5 ({reviews.length} ulasan)
+                </span>
               )}
             </div>
-          </div>
+          </motion.div>
 
-          {/* Mobile & Tablet (< 1024px): full-bleed edge-to-edge menyatu halus di sisi atas ke latar krem */}
-          <div
-            className="lg:hidden relative z-0 w-full -mt-1 sm:mt-2 aspect-[4/3] sm:aspect-[16/10] overflow-hidden"
-            style={{
-              WebkitMaskImage:
-                "linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.5) 14%, black 30%)",
-              maskImage:
-                "linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.5) 14%, black 30%)",
-            }}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.45, delay: 0.1 }}
+            className="relative"
           >
             <img
-              src="/images/hero-mayesha.png"
-              alt="Terapis memijat bayi di studio Mayesha"
-              width={1024}
-              height={768}
-              fetchPriority="high"
-              decoding="async"
-              loading="eager"
-              className="w-full h-full object-cover object-[50%_25%]"
+              src="/images/activity-massage.jpg"
+              alt="Bidan Mayesha Baby Spa melakukan pijat bayi"
+              className="relative z-10 w-full object-cover rounded-[24px] shadow-md h-[280px] sm:h-[380px] md:h-[460px] border border-[#E8DFD8]"
             />
-          </div>
-        </section>
+          </motion.div>
+        </div>
+      </section>
 
-        {/* Trust Bar 3 Kolom Bernomor dengan Deskripsi Ringkas */}
-        <section
-          aria-label="Keunggulan Mayesha Baby Spa"
-          className="w-full bg-[#F6EFEA] border-t border-b border-black/10"
-        >
-          <div className="max-w-7xl mx-auto px-4 md:px-6 py-8 md:py-10">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-10">
-              {[
-                {
-                  num: "01",
-                  title: "Bidan tersertifikasi",
-                  desc: "Seluruh sesi ditangani langsung oleh tenaga bidan berlisensi dengan sertifikasi spa bayi dan ibu.",
-                },
-                {
-                  num: "02",
-                  title: "Pelayanan aman dan higienis",
-                  desc: "Kolam, matras, dan perlengkapan dibersihkan sebelum tiap sesi dengan minyak ramah kulit bayi.",
-                },
-                {
-                  num: "03",
-                  title: "Studio dan kunjungan rumah",
-                  desc: "Pilih perawatan di studio Tegalgede, Karanganyar atau layanan Home Care ke rumah Bunda.",
-                },
-              ].map((item) => (
-                <div key={item.num} className="flex flex-col gap-2 min-w-0">
-                  <div className="flex items-baseline gap-2.5">
-                    <span className="font-['Playfair_Display',Georgia,serif] font-medium text-[22px] leading-none text-[#B73F73] tabular-nums shrink-0">
-                      {item.num}
-                    </span>
-                    <h2 className="font-['DM_Sans',sans-serif] text-[16px] leading-[22px] font-medium text-[#4A2A1A]">
-                      {item.title}
-                    </h2>
-                  </div>
-                  <p className="text-[14px] leading-[22px] text-[#6B5A52]">
-                    {item.desc}
-                  </p>
+      {/* Gallery Section */}
+      <section id="galeri" className="px-6 max-w-7xl mx-auto w-full scroll-mt-24">
+        <div className="text-center mb-12">
+          <span className="text-[#BE346E] font-bold tracking-wider text-xs md:text-sm uppercase mb-2 block">
+            Galeri Kami
+          </span>
+          <h2 className="text-3xl md:text-4xl font-extrabold text-[#3A2622] mb-4">
+            Galeri Mayesha Baby Spa
+          </h2>
+          <p className="text-[#6E5D58] max-w-2xl mx-auto text-sm md:text-base">
+            Lihat aktivitas layanan dan fasilitas lengkap kami.
+          </p>
+        </div>
+
+        {/* Aktivitas Kami */}
+        <div className="mb-14">
+          <h3 className="text-2xl font-bold mb-6 text-[#3A2622] flex items-center gap-2">
+            <Star className="text-[#BE346E] fill-[#BE346E] w-5 h-5" /> Aktivitas Kami
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {activities.map((item, idx) => (
+              <div
+                key={idx}
+                onClick={() => setSelectedImage({ src: item.img, title: item.title, desc: item.desc })}
+                className="group relative overflow-hidden rounded-3xl shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer bg-[#F4EFE8] h-64 border border-[#E8DFD8]"
+              >
+                <img
+                  src={item.img}
+                  alt={item.title}
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                  loading="lazy"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#1F1412]/90 via-[#2E1E1B]/45 to-transparent opacity-95 group-hover:opacity-100 transition-opacity duration-300" />
+                <div className="absolute bottom-0 left-0 right-0 p-5 text-white">
+                  <h4 className="font-bold text-lg leading-tight text-white drop-shadow-sm group-hover:text-[#F9EBEF] transition-colors">
+                    {item.title}
+                  </h4>
+                  <p className="text-xs text-white/90 mt-1 drop-shadow-sm">{item.desc}</p>
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
-        </section>
-      </div>
+        </div>
 
-      {/* Gallery & Facilities Section (Interactive Carousel) */}
-      <section id="galeri" className="px-4 md:px-6 max-w-7xl mx-auto w-full scroll-mt-20 overflow-hidden">
-        <div className="pt-2 md:pt-4">
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-5 md:gap-6 mb-6 md:mb-8">
-            <div className="max-w-xl min-w-0">
-              <h2 className="font-['Playfair_Display',Georgia,serif] font-medium text-[#4A2A1A] text-[clamp(26px,6vw,44px)] leading-[1.15] mb-2">
-                Aktivitas dan fasilitas studio
-              </h2>
-              <p className="text-[16px] leading-[1.65] text-[#6B5A52] max-w-[34rem]">
-                Dokumentasi ruang perawatan, kolam hidroterapi, dan standar kebersihan peralatan Mayesha.
-              </p>
-            </div>
+        {/* Fasilitas Kami */}
+        <div>
+          <h3 className="text-2xl font-bold mb-6 text-[#3A2622] flex items-center gap-2">
+            <Building2 className="text-[#BE346E] w-5 h-5" /> Fasilitas Kami
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {facilities.map((item, idx) => (
+              <div
+                key={idx}
+                onClick={() => setSelectedImage({ src: item.img, title: item.title, desc: item.desc })}
+                className="group relative overflow-hidden rounded-3xl shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer bg-[#F4EFE8] h-64 border border-[#E8DFD8]"
+              >
+                <img
+                  src={item.img}
+                  alt={item.title}
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                  loading="lazy"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#1F1412]/90 via-[#2E1E1B]/45 to-transparent opacity-95 group-hover:opacity-100 transition-opacity duration-300" />
+                <div className="absolute bottom-0 left-0 right-0 p-5 text-white">
+                  <h4 className="font-bold text-lg leading-tight text-white drop-shadow-sm group-hover:text-[#F9EBEF] transition-colors">
+                    {item.title}
+                  </h4>
+                  <p className="text-xs text-white/90 mt-1 drop-shadow-sm">{item.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
-            {/* Controls: Segment Text Tabs & Navigation Buttons (panah disembunyikan di HP) */}
-            <div className="flex flex-wrap items-center gap-4 md:gap-6 min-w-0">
-              <div className="flex items-center gap-5 border-b border-black/10 overflow-x-auto overflow-y-hidden no-scrollbar max-w-full">
+      {/* Services Section */}
+      <section id="layanan" className="px-6 max-w-7xl mx-auto w-full scroll-mt-24">
+        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-10 pb-6 border-b border-[#E8DFD8]">
+          <div className="max-w-xl">
+            <span className="text-[#BE346E] font-bold tracking-wider text-xs uppercase mb-2 block">
+              Menu Perawatan
+            </span>
+            <h2 className="text-3xl md:text-4xl font-bold text-[#3A2622] mb-2">Pilihan Layanan Kami</h2>
+            <p className="text-[#6E5D58] text-sm sm:text-base leading-relaxed">
+              Pilih perawatan sesuai usia si Kecil atau kebutuhan Bunda, lalu lanjutkan reservasi dalam beberapa langkah.
+            </p>
+          </div>
+
+          {/* Klasifikasi Filter Segmented Control + Pencarian Cepat */}
+          {!isLoading && services.length > 0 && (
+            <div className="flex flex-col sm:items-end gap-3 w-full lg:w-auto">
+              <div className="grid grid-cols-2 sm:inline-flex items-center gap-1 p-1.5 rounded-2xl bg-[#F4EFE8] border border-[#E8DFD8] w-full sm:w-fit">
                 {[
-                  { id: "all", label: "Semua" },
-                  { id: "Aktivitas", label: "Aktivitas" },
-                  { id: "Fasilitas", label: "Fasilitas" },
+                  { id: "all", label: "Semua Layanan" },
+                  { id: "Bayi", label: "Layanan Bayi" },
+                  { id: "Anak", label: "Layanan Anak" },
+                  { id: "Ibu", label: "Layanan Ibu" },
                 ].map((tab) => {
-                  const isActive = galleryCategory === tab.id;
+                  const isActive = segmentFilter === tab.id;
                   return (
                     <button
                       key={tab.id}
                       type="button"
-                      onClick={() => setGalleryCategory(tab.id as "all" | "Aktivitas" | "Fasilitas")}
-                      className={`min-h-[44px] inline-flex items-center text-[15px] transition-colors duration-150 border-b-2 whitespace-nowrap cursor-pointer shrink-0 ${isActive
-                        ? "text-[#4A2A1A] font-medium border-[#D4568F]"
-                        : "text-[#6B5A52] font-normal border-transparent hover:text-[#4A2A1A]"
-                        }`}
+                      onClick={() => {
+                        setSegmentFilter(tab.id as "all" | "Bayi" | "Anak" | "Ibu");
+                        setShowAllServices(false);
+                      }}
+                      className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer text-center whitespace-nowrap ${
+                        isActive
+                          ? "bg-white text-[#BE346E] shadow-sm ring-1 ring-[#E8DFD8]"
+                          : "text-[#6E5D58] hover:text-[#3A2622] hover:bg-white/60"
+                      }`}
                     >
                       {tab.label}
                     </button>
@@ -413,437 +304,267 @@ export default function Home() {
                 })}
               </div>
 
-              <div className="hidden md:flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => scrollGallery("left")}
-                  disabled={!canScrollGalleryLeft}
-                  aria-label="Geser ke kiri"
-                  className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-[8px] border border-black/15 bg-white flex items-center justify-center text-[#4A2A1A] hover:bg-[#FAF6F2] disabled:opacity-30 disabled:cursor-not-allowed transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2"
-                >
-                  <ChevronLeft size={18} aria-hidden="true" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => scrollGallery("right")}
-                  disabled={!canScrollGalleryRight}
-                  aria-label="Geser ke kanan"
-                  className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-[8px] border border-black/15 bg-white flex items-center justify-center text-[#4A2A1A] hover:bg-[#FAF6F2] disabled:opacity-30 disabled:cursor-not-allowed transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2"
-                >
-                  <ChevronRight size={18} aria-hidden="true" />
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Carousel Slider Track */}
-          <div
-            ref={galleryTrackRef}
-            tabIndex={0}
-            aria-label="Galeri foto aktivitas dan fasilitas studio"
-            onScroll={checkGalleryScroll}
-            onKeyDown={(e) => {
-              if (e.key === "ArrowLeft") {
-                e.preventDefault();
-                scrollGallery("left");
-              } else if (e.key === "ArrowRight") {
-                e.preventDefault();
-                scrollGallery("right");
-              }
-            }}
-            className="flex gap-4 md:gap-5 overflow-x-auto overflow-y-hidden scroll-smooth motion-reduce:scroll-auto snap-x snap-mandatory no-scrollbar pb-3 pt-1 -mr-4 pr-4 md:-mr-6 md:pr-6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] rounded-[12px]"
-          >
-            {filteredGallery.map((item) => (
-              <figure
-                key={item.id}
-                onClick={() => setSelectedImage({ src: item.img, title: item.title, desc: item.desc })}
-                className="w-[80vw] sm:w-[320px] md:w-[350px] lg:w-[360px] shrink-0 snap-start m-0 cursor-pointer group"
-              >
-                <div className="aspect-[4/3] w-full overflow-hidden rounded-[12px] border border-black/10 bg-white">
-                  <img
-                    src={item.img}
-                    alt={item.title}
-                    className="w-full h-full object-cover"
-                    loading="lazy"
-                    decoding="async"
-                  />
-                </div>
-                <figcaption className="mt-3">
-                  <h3 className="text-[17px] leading-[24px] font-medium text-[#4A2A1A]">
-                    {item.title}
-                  </h3>
-                  <p className="text-[15px] leading-[1.55] text-[#6B5A52] mt-1">
-                    {item.desc}
-                  </p>
-                </figcaption>
-              </figure>
-            ))}
-          </div>
-
-          {/* Progress Indicator */}
-          <div className="mt-4 flex items-center justify-between gap-4">
-            <div className="h-[2px] w-full bg-black/10 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-[#C94A83] transition-all duration-200"
-                style={{
-                  width: `${Math.min(100, Math.max(12, ((activeGalleryIndex + 1) / Math.max(1, filteredGallery.length)) * 100))}%`,
-                }}
-              />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Services Section */}
-      <section id="layanan" className="px-4 md:px-6 max-w-7xl mx-auto w-full scroll-mt-20">
-        <div className="border-t border-black/10 pt-10 md:pt-16">
-          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-5 md:gap-6 mb-6">
-            <div className="max-w-xl min-w-0">
-              <h2 className="font-['Playfair_Display',Georgia,serif] font-medium text-[#4A2A1A] text-[clamp(26px,6vw,38px)] leading-[1.18] mb-2">
-                Pilihan perawatan
-              </h2>
-              <p className="text-[16px] leading-[26px] text-[#6B5A52]">
-                Daftar layanan pijat, hidroterapi, dan terapi kesehatan untuk bayi, anak usia 0–5 tahun, serta ibu.
-              </p>
-            </div>
-
-            {!isLoading && services.length > 0 && (
-              <div className="overflow-x-auto overflow-y-hidden no-scrollbar max-w-full">
-                <div
-                  role="tablist"
-                  aria-label="Filter segmen layanan"
-                  className="flex items-center gap-3 sm:gap-4 border-b border-black/10"
-                >
-                  {[
-                    { id: "all", label: "Semua" },
-                    { id: "Bayi", label: "Bayi" },
-                    { id: "Anak", label: "Anak" },
-                    { id: "Ibu", label: "Ibu" },
-                  ].map((tab) => {
-                    const isActive = segmentFilter === tab.id;
-                    return (
-                      <button
-                        key={tab.id}
-                        type="button"
-                        role="tab"
-                        aria-selected={isActive}
-                        onClick={() => setSegmentFilter(tab.id as "all" | "Bayi" | "Anak" | "Ibu")}
-                        className={`min-h-[44px] px-3 inline-flex items-center justify-center text-[15px] font-medium transition-colors duration-150 border-b-2 whitespace-nowrap cursor-pointer shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-inset rounded-t-[4px] ${isActive
-                          ? "text-[#4A2A1A] border-[#D4568F]"
-                          : "text-[#6B5A52] border-transparent hover:text-[#4A2A1A]"
-                          }`}
-                      >
-                        {tab.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {!isLoading && services.length > 0 && (
-            <div className="mb-8">
-              <div className="relative w-full md:max-w-sm">
-                <Search
-                  size={17}
-                  aria-hidden="true"
-                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#6B5A52] pointer-events-none"
-                />
+              <div className="relative w-full sm:w-80">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#6E5D58] pointer-events-none" size={16} />
                 <input
-                  type="search"
-                  aria-label="Cari layanan"
-                  placeholder="Cari layanan"
-                  value={serviceSearch}
-                  onChange={(e) => setServiceSearch(e.target.value)}
-                  className="w-full h-[44px] pl-10 pr-11 rounded-[8px] bg-white border border-black/20 text-[16px] text-[#4A2A1A] placeholder:text-[#6B5A52]/75 focus:outline-none focus:ring-2 focus:ring-[#C94A83] focus:ring-offset-2 focus:border-[#C94A83] [&::-webkit-search-cancel-button]:hidden"
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Cari layanan (mis. pijat, renang, nifas)..."
+                  aria-label="Cari layanan perawatan"
+                  className="input-glass w-full pl-11 pr-10 py-2.5 text-sm rounded-full"
                 />
-                {serviceSearch && (
+                {searchQuery && (
                   <button
                     type="button"
-                    onClick={() => setServiceSearch("")}
+                    onClick={() => setSearchQuery("")}
                     aria-label="Hapus pencarian"
-                    className="absolute right-0 top-1/2 -translate-y-1/2 w-11 h-11 min-w-[44px] min-h-[44px] inline-flex items-center justify-center text-[#6B5A52] hover:text-[#4A2A1A] rounded-[8px] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83]"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full inline-flex items-center justify-center text-[#6E5D58] hover:text-[#3A2622] hover:bg-[#F4EFE8] cursor-pointer"
                   >
-                    <CloseIcon size={16} aria-hidden="true" />
+                    <CloseIcon size={14} />
                   </button>
                 )}
               </div>
             </div>
           )}
+        </div>
 
-          {isLoading ? (
-            <div className="flex flex-col items-center justify-center py-20 gap-3 bg-white border border-black/10 rounded-[12px]">
-              <Loader2 size={24} className="animate-spin text-[#6B5A52]" />
-              <p className="text-[#6B5A52] text-[14px]">Memuat daftar layanan...</p>
-            </div>
-          ) : filteredServices.length === 0 ? (
-            <div className="text-center py-14 bg-white border border-black/10 rounded-[12px] px-6">
-              {normalizedServiceQuery ? (
-                <div className="flex flex-col items-center gap-1">
-                  <p className="text-[#4A2A1A] text-[16px]">Tidak ada layanan yang cocok.</p>
-                  <button
-                    type="button"
-                    onClick={() => setServiceSearch("")}
-                    className="min-h-[44px] px-2 inline-flex items-center text-[15px] font-medium text-[#C94A83] underline decoration-[#D4568F] decoration-[1.5px] underline-offset-4 hover:text-[#B73F73] transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C94A83] focus-visible:ring-offset-2 rounded-sm"
-                  >
-                    Hapus pencarian
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <p className="text-[#4A2A1A] font-semibold text-[18px]">Layanan belum tersedia</p>
-                  <p className="text-[#6B5A52] text-[14px] max-w-sm mx-auto mt-1">
-                    Daftar layanan pada kategori ini sedang diperbarui.
-                  </p>
-                </>
-              )}
-            </div>
-          ) : (() => {
-            const renderServiceCard = (service: Service) => {
-              const cls = getServiceClassification(service);
-              const ageLabel = formatAgeRange(service);
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-20 gap-3">
+            <Loader2 size={32} className="animate-spin text-[#BE346E]" />
+            <p className="text-[#6E5D58] text-sm">Menyiapkan daftar layanan...</p>
+          </div>
+        ) : filteredServices.length === 0 ? (
+          <div className="text-center py-16">
+            <Calendar className="mx-auto text-[#D7C9BE] mb-4" size={48} />
+            <p className="text-[#3A2622] font-semibold text-lg">
+              {normalizedQuery ? "Layanan Tidak Ditemukan" : "Layanan Belum Tersedia"}
+            </p>
+            <p className="text-[#6E5D58] text-sm max-w-sm mx-auto mt-1">
+              {normalizedQuery
+                ? `Tidak ada layanan yang cocok dengan "${searchQuery}".`
+                : "Mohon tunggu sebentar, kami sedang memperbarui paket spa terbaik untuk si Kecil."}
+            </p>
+            {normalizedQuery && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchQuery("");
+                  setSegmentFilter("all");
+                }}
+                className="btn-secondary mt-5 text-xs"
+              >
+                Reset Pencarian
+              </button>
+            )}
+          </div>
+        ) : (
+          <>
+            <div className="bg-white border border-[#E8DFD8] rounded-3xl shadow-sm overflow-hidden">
+              <div className="grid md:grid-cols-2">
+                {displayedServices.map((service, idx) => {
+                  const ageLabel = formatServiceAge(service);
+                  const cls = getServiceClassification(service);
+                  const isLastSingle = idx === displayedServices.length - 1;
+                  const isSecondLastEven =
+                    displayedServices.length % 2 === 0 && idx === displayedServices.length - 2;
+                  return (
+                    <div
+                      key={service.id}
+                      className={`group p-5 sm:p-6 border-[#E8DFD8] md:odd:border-r hover:bg-[#FAF7F2]/80 transition-colors flex flex-col justify-between gap-3 ${
+                        isLastSingle ? "" : isSecondLastEven ? "border-b md:border-b-0" : "border-b"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-[#6E5D58] mb-1">
+                            <span className="text-[#BE346E]">{cls}</span>
+                            <span aria-hidden="true">·</span>
+                            <span className="tabular-nums">{ageLabel}</span>
+                          </div>
+                          <h3 className="font-editorial text-lg sm:text-[19px] font-semibold text-[#3A2622] leading-snug">
+                            {service.name}
+                          </h3>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <span className="text-base sm:text-lg font-bold text-[#3A2622] tabular-nums block">
+                            Rp {service.price.toLocaleString("id-ID")}
+                          </span>
+                          <span className="text-[11px] text-[#6E5D58] font-medium tabular-nums">
+                            {service.duration_minutes} Menit
+                          </span>
+                        </div>
+                      </div>
 
-              return (
-                <article
-                  key={service.id}
-                  className="relative bg-white border border-black/10 rounded-[12px] p-5 md:p-6 flex flex-col justify-between h-full min-w-0 hover:border-[#D4568F] focus-within:ring-2 focus-within:ring-[#C94A83] focus-within:ring-offset-2 transition-colors duration-150 group"
-                >
-                  <div className="min-w-0">
-                    <div className="flex items-center justify-between gap-2 text-[13px] leading-[18px] text-[#6B5A52] tabular-nums mb-2">
-                      <span className="font-medium text-[#6B5A52]">{cls}</span>
-                      <span className="shrink-0">{ageLabel}</span>
-                    </div>
-
-                    <h3 className="text-[18px] leading-[25px] font-semibold text-[#4A2A1A] break-words">
-                      {service.name}
-                    </h3>
-
-                    <p className="text-[15px] leading-[23px] text-[#6B5A52] mt-2 line-clamp-2 break-words">
-                      {service.description}
-                    </p>
-                  </div>
-
-                  <div className="pt-4 mt-5 border-t border-black/10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
-                    <div className="flex items-baseline justify-between gap-2">
-                      <span className="text-[14px] leading-[20px] text-[#6B5A52] tabular-nums shrink-0">
-                        {service.duration_minutes} menit
-                      </span>
-                      <span className="lg:hidden text-[18px] leading-[24px] font-medium text-[#4A2A1A] tabular-nums">
-                        Rp {Number(service.price).toLocaleString("id-ID")}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center lg:gap-3.5 w-full lg:w-auto">
-                      <span className="hidden lg:inline text-[17px] leading-[24px] font-medium text-[#4A2A1A] tabular-nums whitespace-nowrap">
-                        Rp {Number(service.price).toLocaleString("id-ID")}
-                      </span>
-                      <Link
-                        to={`/reservasi?service_id=${service.id}`}
-                        className="relative z-10 w-full sm:w-auto min-h-[44px] lg:min-h-[36px] inline-flex items-center justify-center border border-[#C94A83] text-[#C94A83] text-[15px] lg:text-[14px] font-medium rounded-[8px] px-4 lg:px-3.5 hover:bg-[#B73F73] hover:text-white transition-colors duration-150 after:absolute after:inset-0 after:rounded-[12px] focus:outline-none whitespace-nowrap"
-                      >
-                        Reservasi
-                      </Link>
-                    </div>
-                  </div>
-                </article>
-              );
-            };
-
-            if (segmentFilter === "all") {
-              return (
-                <div className="flex flex-col gap-12">
-                  {groupedServices.map((group) => (
-                    <div key={group.segment}>
-                      <h3 className="font-['Playfair_Display',Georgia,serif] font-medium text-[#4A2A1A] text-[24px] sm:text-[28px] leading-[1.2] mb-5">
-                        {group.segment}
-                      </h3>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 md:gap-6">
-                        {group.items.map(renderServiceCard)}
+                      <div className="flex items-end justify-between gap-4 pt-1">
+                        <p className="text-xs sm:text-sm text-[#6E5D58] leading-relaxed line-clamp-2 flex-1">
+                          {service.description}
+                        </p>
+                        <Link
+                          to={`/reservasi?service_id=${service.id}`}
+                          className="text-xs sm:text-sm font-semibold text-[#BE346E] hover:text-[#9F285B] transition-colors inline-flex items-center gap-1 shrink-0 min-h-[36px] pl-2"
+                        >
+                          Booking
+                          <ArrowRight size={14} />
+                        </Link>
                       </div>
                     </div>
-                  ))}
-                </div>
-              );
-            }
-
-            return (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 md:gap-6">
-                {filteredServices.map(renderServiceCard)}
+                  );
+                })}
               </div>
-            );
-          })()}
-        </div>
+            </div>
+
+            {filteredServices.length > 8 && !normalizedQuery && (
+              <div className="mt-8 flex flex-col items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAllServices((prev) => !prev)}
+                  className="btn-secondary"
+                >
+                  {showAllServices
+                    ? "Tampilkan Lebih Ringkas"
+                    : `Lihat Semua (${filteredServices.length} Layanan)`}
+                </button>
+                {!showAllServices && (
+                  <p className="text-xs text-[#6E5D58]">
+                    Menampilkan 8 dari {filteredServices.length} layanan tersedia
+                  </p>
+                )}
+              </div>
+            )}
+          </>
+        )}
       </section>
 
-      {/* Testimonials Section (Carousel) */}
+      {/* Testimonials Section */}
       {reviews.length > 0 && (
-        <section className="px-4 md:px-6 max-w-7xl mx-auto w-full scroll-mt-20 overflow-hidden">
-          <div className="border-t border-black/10 pt-10 md:pt-16">
-            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-5 mb-6 md:mb-8">
-              <div className="max-w-xl min-w-0">
-                <h2 className="font-['Playfair_Display',Georgia,serif] font-medium text-[#4A2A1A] text-[clamp(26px,6vw,38px)] leading-[1.18] mb-2">
-                  Ulasan sesi perawatan
-                </h2>
-                <p className="text-[16px] leading-[26px] text-[#6B5A52]">
-                  Penilaian langsung dari pelanggan setelah menyelesaikan sesi di Mayesha Baby Spa.
-                </p>
+        <section className="px-6 max-w-7xl mx-auto w-full scroll-mt-24">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-10 pb-5 border-b border-[#E8DFD8]">
+            <div>
+              <span className="text-[#BE346E] font-bold tracking-wider text-xs uppercase mb-2 block">
+                Ulasan Pelanggan
+              </span>
+              <h2 className="text-3xl font-bold text-[#3A2622] mb-1">Kata Bunda Tentang Mayesha</h2>
+              <p className="text-[#6E5D58] text-sm">
+                Pengalaman para Bunda setelah mempercayakan perawatan si Kecil di Mayesha Baby Spa.
+              </p>
+            </div>
+            <div className="inline-flex items-center gap-2 text-xs font-semibold text-[#3A2622] bg-white border border-[#E8DFD8] rounded-full px-4 py-2 self-start sm:self-auto tabular-nums">
+              <Star size={14} className="text-amber-500 fill-amber-400" />
+              {(reviews.reduce((sum, r) => sum + Number(r.rating || 0), 0) / reviews.length).toFixed(1)}/5 dari {reviews.length} ulasan
+            </div>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-6">
+            {reviews.map((r) => (
+              <div
+                key={r.id}
+                className="bg-white border border-[#E8DFD8] rounded-2xl p-6 flex flex-col justify-between transition-colors hover:border-[#D7C9BE]"
+              >
+                <div className="flex flex-col gap-4">
+                  <div className="flex gap-0.5">
+                    {Array.from({ length: 5 }).map((_, idx) => (
+                      <Star
+                        key={idx}
+                        size={14}
+                        className={idx < r.rating ? "text-amber-400 fill-amber-400" : "text-[#D7C9BE]"}
+                      />
+                    ))}
+                  </div>
+                  <p className="text-[#3A2622] text-sm leading-relaxed border-l-2 border-[#BE346E]/50 pl-3.5">
+                    &ldquo;{r.comment || "Sangat puas dengan pelayanan Mayesha!"}&rdquo;
+                  </p>
+                </div>
+
+                <div className="mt-6 pt-4 border-t border-[#E8DFD8] flex items-center justify-between">
+                  <div>
+                    <p className="font-semibold text-[#3A2622] text-xs">{r.user_name}</p>
+                    <p className="text-[11px] text-[#6E5D58]">{r.service_name}</p>
+                  </div>
+                  <span className="text-[11px] text-[#6E5D58] tabular-nums">
+                    {new Date(r.created_at || "").toLocaleDateString("id-ID", { day: "numeric", month: "short" })}
+                  </span>
+                </div>
               </div>
-
-              {reviews.length > 1 && (
-                <div className="hidden md:flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => scrollReviews("left")}
-                    disabled={!canScrollReviewsLeft}
-                    aria-label="Ulasan sebelumnya"
-                    className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-[8px] border border-black/15 bg-white flex items-center justify-center text-[#4A2A1A] hover:bg-[#FAF6F2] disabled:opacity-35 disabled:cursor-not-allowed transition-colors duration-150 cursor-pointer"
-                  >
-                    <ChevronLeft size={18} aria-hidden="true" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => scrollReviews("right")}
-                    disabled={!canScrollReviewsRight}
-                    aria-label="Ulasan selanjutnya"
-                    className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-[8px] border border-black/15 bg-white flex items-center justify-center text-[#4A2A1A] hover:bg-[#FAF6F2] disabled:opacity-35 disabled:cursor-not-allowed transition-colors duration-150 cursor-pointer"
-                  >
-                    <ChevronRight size={18} aria-hidden="true" />
-                  </button>
-                </div>
-              )}
-            </div>
-
-            <div
-              ref={reviewsTrackRef}
-              onScroll={checkReviewsScroll}
-              className="flex gap-4 md:gap-6 overflow-x-auto overflow-y-hidden scroll-smooth motion-reduce:scroll-auto snap-x snap-mandatory no-scrollbar pb-3 pt-1 -mr-4 pr-4 md:-mr-6 md:pr-6"
-            >
-              {reviews.map((r) => (
-                <div
-                  key={r.id}
-                  className="w-[80vw] sm:w-[360px] md:w-[380px] shrink-0 snap-start bg-white border border-black/10 rounded-[12px] p-5 md:p-6 flex flex-col justify-between"
-                >
-                  <div className="flex flex-col gap-3">
-                    <span className="text-[13px] font-medium text-[#B73F73] tabular-nums">
-                      Penilaian {r.rating}/5
-                    </span>
-                    <p className="text-[15px] leading-[24px] text-[#4A2A1A] break-words">
-                      &ldquo;{r.comment || "Pelayanan nyaman dan sesuai jadwal."}&rdquo;
-                    </p>
-                  </div>
-
-                  <div className="mt-6 pt-4 border-t border-black/10 flex items-center justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="font-semibold text-[#4A2A1A] text-[14px] leading-[20px] truncate">
-                        {r.user_name}
-                      </p>
-                      <p className="text-[13px] leading-[18px] text-[#6B5A52] truncate">
-                        {r.service_name}
-                      </p>
-                    </div>
-                    <span className="text-[13px] text-[#6B5A52] tabular-nums shrink-0">
-                      {new Date(r.created_at || "").toLocaleDateString("id-ID", {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                      })}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
+            ))}
           </div>
         </section>
       )}
 
-      {/* Studio Standards Section */}
-      <section className="px-4 md:px-6 max-w-7xl mx-auto w-full">
-        <div className="bg-white border border-black/10 rounded-[12px] p-5 sm:p-8 md:p-12 grid md:grid-cols-12 gap-6 md:gap-12 items-center">
-          <div className="md:col-span-5 min-w-0">
-            <div className="aspect-[4/3] w-full rounded-[12px] border border-black/10 overflow-hidden bg-[#FAF6F2]">
-              <img
-                src="/images/activity-team.jpg"
-                alt="Tim bidan terapis Mayesha Baby Spa Karanganyar"
-                loading="lazy"
-                decoding="async"
-                className="w-full h-full object-cover"
-              />
-            </div>
+      {/* Why Choose Us */}
+      <section className="px-4 sm:px-6 max-w-7xl mx-auto w-full relative">
+        <div className="glass-panel p-6 sm:p-10 md:p-14 flex flex-col md:flex-row items-center gap-8 md:gap-12">
+          <div className="w-full md:w-1/2">
+            <img
+              src="/images/activity-team.jpg"
+              alt="Tim Bidan Mayesha Baby Spa"
+              className="w-full h-[260px] sm:h-[340px] object-cover rounded-[20px] border border-[#E8DFD8]"
+              loading="lazy"
+            />
           </div>
-          <div className="md:col-span-7 flex flex-col gap-5 md:gap-6 min-w-0">
-            <div>
-              <h2 className="font-['Playfair_Display',Georgia,serif] font-medium text-[#4A2A1A] text-[clamp(24px,6vw,36px)] leading-[1.2]">
-                Pelayanan klinik Mayesha
-              </h2>
-            </div>
-
-            <div className="divide-y divide-black/10 border-t border-b border-black/10">
+          <div className="w-full md:w-1/2 flex flex-col gap-6">
+            <h2 className="font-editorial text-3xl font-semibold text-[#3A2622]">
+              Kenapa Mayesha Baby Spa?
+            </h2>
+            <ul className="flex flex-col gap-4">
               {[
                 {
-                  title: "Ruang dan peralatan bersih",
-                  desc: "Kolam renang, matras, dan perlengkapan perawatan dibersihkan sebelum setiap sesi dimulai.",
+                  title: "Ruang & Peralatan Bersih",
+                  desc: "Kolam, matras, dan perlengkapan perawatan selalu dibersihkan sebelum tiap sesi.",
                 },
                 {
-                  title: "Ditangani bidan tersertifikasi",
+                  title: "Ditangani Bidan Tersertifikasi",
                   desc: "Seluruh prosedur pijat bayi, anak, dan perawatan ibu dilakukan oleh tenaga kebidanan terlatih.",
                 },
                 {
-                  title: "Layanan studio dan kunjungan rumah",
-                  desc: "Tersedia pilihan kedatangan ke studio Tegalgede, Karanganyar atau kunjungan terapis ke alamat rumah.",
+                  title: "Tersedia Layanan Home Care",
+                  desc: "Tersedia pilihan datang ke studio Tegalgede maupun kunjungan terapis ke rumah Bunda.",
                 },
                 {
-                  title: "Minyak pijat ramah kulit bayi",
-                  desc: "Menggunakan bahan perawatan lembut yang aman untuk kulit bayi baru lahir hingga usia 5 tahun.",
+                  title: "Minyak Pijat Ramah Kulit Bayi",
+                  desc: "Menggunakan bahan perawatan lembut yang aman untuk kulit sensitif bayi baru lahir hingga anak.",
                 },
               ].map((item, idx) => (
-                <div key={idx} className="py-4 flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-6">
-                  <h4 className="text-[15px] leading-[22px] font-semibold text-[#4A2A1A] sm:w-56 shrink-0">
-                    {item.title}
-                  </h4>
-                  <p className="text-[15px] leading-[23px] text-[#6B5A52] break-words">
-                    {item.desc}
-                  </p>
-                </div>
+                <li key={idx} className="flex gap-3.5 items-start">
+                  <div className="mt-0.5 bg-[#EDF5F0] w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0">
+                    <CheckCircle2 className="text-[#2F6B45] w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-[#3A2622] text-[15px]">{item.title}</h4>
+                    <p className="text-sm text-[#6E5D58] leading-relaxed">{item.desc}</p>
+                  </div>
+                </li>
               ))}
-            </div>
+            </ul>
           </div>
         </div>
       </section>
 
-      {/* Lightbox Modal */}
+      {/* Image Preview Modal / Lightbox */}
       {selectedImage && (
         <div
-          role="dialog"
-          aria-modal="true"
-          aria-label={selectedImage.title}
-          className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200"
           onClick={() => setSelectedImage(null)}
         >
           <div
-            className="relative max-w-[calc(100vw-32px)] sm:max-w-3xl max-h-[90dvh] w-full bg-white rounded-[12px] overflow-hidden border border-black/10 flex flex-col"
+            className="relative max-w-3xl w-full bg-[#3A2622] rounded-3xl overflow-hidden shadow-2xl border border-white/10"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-start justify-between gap-3 px-4 sm:px-5 py-3.5 border-b border-black/10 shrink-0">
-              <div className="min-w-0">
-                <h3 className="text-[16px] font-semibold text-[#4A2A1A] break-words">{selectedImage.title}</h3>
-                <p className="text-[13px] text-[#6B5A52] break-words mt-0.5">{selectedImage.desc}</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSelectedImage(null)}
-                className="w-11 h-11 min-w-[44px] min-h-[44px] inline-flex items-center justify-center rounded-[8px] text-[#6B5A52] hover:text-[#4A2A1A] hover:bg-[#FAF6F2] transition-colors duration-150 cursor-pointer shrink-0 -mr-1.5 -mt-1"
-                aria-label="Tutup pratinjau"
-              >
-                <CloseIcon size={20} aria-hidden="true" />
-              </button>
-            </div>
-            <div className="bg-[#FAF6F2] p-4 flex items-center justify-center overflow-y-auto">
-              <img
-                src={selectedImage.src}
-                alt={selectedImage.title}
-                className="w-full max-h-[65dvh] object-contain rounded-[8px]"
-              />
+            <button
+              onClick={() => setSelectedImage(null)}
+              className="absolute top-4 right-4 z-10 p-2 rounded-full bg-black/50 text-white hover:bg-[#BE346E] transition-colors cursor-pointer"
+              aria-label="Tutup preview"
+            >
+              <CloseIcon size={20} />
+            </button>
+            <img
+              src={selectedImage.src}
+              alt={selectedImage.title}
+              className="w-full max-h-[70vh] object-contain bg-black/40"
+            />
+            <div className="p-6 text-white bg-[#3A2622]">
+              <h3 className="text-xl font-bold text-[#BE346E]">{selectedImage.title}</h3>
+              <p className="text-sm text-[#D7C9BE] mt-1">{selectedImage.desc}</p>
             </div>
           </div>
         </div>

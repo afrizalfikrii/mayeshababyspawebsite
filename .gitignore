@@ -34,6 +34,10 @@ frontend/yarn-debug.log*
 frontend/yarn-error.log*
 frontend/.pnp
 frontend/.pnp.js
+frontend-v2/node_modules/
+frontend-v2/dist/
+frontend-v2/.env
+frontend-v2/.env.local
 
 # ========================
 # GENERAL

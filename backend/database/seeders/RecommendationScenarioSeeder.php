@@ -34,7 +34,7 @@ class RecommendationScenarioSeeder extends Seeder
                     'birth_date' => Carbon::now()->subMonths(6)->toDateString(),
                     'age_months' => 6,
                 ],
-                'history_services' => ['Baby 0-1th'],
+                'history_services' => ['Baby 0–1 Tahun'],
             ],
 
             // ── Skenario 2: Batita 1–3 Tahun (Aktivitas & Relaksasi) ─────────
@@ -47,7 +47,7 @@ class RecommendationScenarioSeeder extends Seeder
                     'birth_date' => Carbon::now()->subMonths(24)->toDateString(),
                     'age_months' => 24,
                 ],
-                'history_services' => ['Baby 1-3th'],
+                'history_services' => ['Baby 1–3 Tahun'],
             ],
 
             // ── Skenario 3: Balita 3–5 Tahun (Kids Spa & Rekreasi) ───────────
@@ -95,7 +95,7 @@ class RecommendationScenarioSeeder extends Seeder
                     'birth_date' => Carbon::now()->subMonths(10)->toDateString(),
                     'age_months' => 10,
                 ],
-                'history_services' => ['Baby 0-1th', 'Pijat Nafsu Makan'],
+                'history_services' => ['Baby 0–1 Tahun', 'Pijat Nafsu Makan'],
             ],
         ];
 
