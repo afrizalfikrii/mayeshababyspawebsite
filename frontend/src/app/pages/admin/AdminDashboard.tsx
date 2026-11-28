@@ -1,32 +1,32 @@
 import { useEffect, useState } from "react";
 import {
-  Search,
-  Calendar,
-  Sparkles,
+  MagnifyingGlass as Search,
+  CalendarBlank as Calendar,
+  Sparkle as Sparkles,
   CheckCircle,
   XCircle,
   Clock,
   Plus,
-  Edit2,
-  Trash2,
+  PencilSimple as Edit2,
+  Trash as Trash2,
   Eye,
   Check,
   X,
-  Loader2,
-  RefreshCw,
-  FileImage,
+  CircleNotch as Loader2,
+  ArrowsClockwise as RefreshCw,
+  Image as FileImage,
   Users,
-  TrendingUp,
+  TrendUp as TrendingUp,
   Printer,
   FileText,
-  BarChart2,
-  Download,
+  ChartBar as BarChart2,
+  DownloadSimple as Download,
   MapPin,
-  MessageCircle,
-  ZoomIn,
-  ZoomOut,
-  ExternalLink,
-} from "lucide-react";
+  ChatCircle as MessageCircle,
+  MagnifyingGlassPlus as ZoomIn,
+  MagnifyingGlassMinus as ZoomOut,
+  ArrowSquareOut as ExternalLink,
+} from "@phosphor-icons/react";
 import { motion, AnimatePresence } from "motion/react";
 import { toast } from "sonner";
 import {
@@ -532,7 +532,7 @@ export default function AdminDashboard() {
       "Kode Booking",
       "Tanggal Transaksi",
       "Jam Sesi",
-      "ID & Nama Customer",
+      "ID & Nama Pelanggan",
       "Nama Bayi/Anak",
       "Umur",
       "Klasifikasi (Bayi/Anak/Ibu)",
@@ -1128,7 +1128,7 @@ export default function AdminDashboard() {
                     <table className="w-full text-left border-collapse">
                       <thead>
                         <tr className="bg-[#F7F3EE] border-b border-[#E8DFD8]">
-                          <th className="py-4 px-6 text-xs font-bold text-[#6E5D58] uppercase tracking-wider">Booking Code</th>
+                          <th className="py-4 px-6 text-xs font-bold text-[#6E5D58] uppercase tracking-wider">Kode Booking</th>
                           <th className="py-4 px-6 text-xs font-bold text-[#6E5D58] uppercase tracking-wider">Pelanggan</th>
                           <th className="py-4 px-6 text-xs font-bold text-[#6E5D58] uppercase tracking-wider">Layanan</th>
                           <th className="py-4 px-6 text-xs font-bold text-[#6E5D58] uppercase tracking-wider">Terapis</th>
@@ -2027,7 +2027,7 @@ export default function AdminDashboard() {
                       Tabel Detail Laporan Transaksi & Keuangan
                     </h3>
                     <p className="text-xs text-[#6E5D58] mt-0.5">
-                      Menampilkan rincian ID & Nama Customer, Tanggal & Jam Transaksi, Nama Layanan, Klasifikasi (Bayi/Anak/Ibu), serta Nominal Pembayaran.
+                      Menampilkan rincian ID & Nama Pelanggan, Tanggal & Jam Transaksi, Nama Layanan, Klasifikasi (Bayi/Anak/Ibu), serta Nominal Pembayaran.
                     </p>
                   </div>
                   <div className="text-right">
@@ -2057,7 +2057,7 @@ export default function AdminDashboard() {
                             No
                           </th>
                           <th className="py-3.5 px-4 text-xs font-bold text-[#6E5D58] uppercase tracking-wider">
-                            ID & Nama Customer
+                            ID & Nama Pelanggan
                           </th>
                           <th className="py-3.5 px-4 text-xs font-bold text-[#6E5D58] uppercase tracking-wider">
                             Tanggal & Jam Transaksi
@@ -2172,7 +2172,7 @@ export default function AdminDashboard() {
                 initial={{ opacity: 0, scale: 0.95, y: 15 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 15 }}
-                className="glass-panel w-full max-w-lg p-6 relative z-10 border border-white/80 shadow-2xl flex flex-col gap-6"
+                className="glass-panel w-full max-w-lg p-6 relative z-10 border border-[#E8DFD8] shadow-xl flex flex-col gap-6"
               >
                 <div className="flex items-center justify-between">
                   <h3 className="text-xl font-bold text-[#3A2622]">Bukti Pembayaran QRIS</h3>
@@ -2187,7 +2187,7 @@ export default function AdminDashboard() {
                 {/* Booking Info Summary */}
                 <div className="grid grid-cols-2 gap-4 bg-[#F7F3EE] p-4 rounded-xl border border-[#E8DFD8] text-sm">
                   <div>
-                    <p className="text-xs text-[#6E5D58] uppercase font-bold tracking-wider">Booking Code</p>
+                    <p className="text-xs text-[#6E5D58] uppercase font-bold tracking-wider">Kode Booking</p>
                     <p className="font-mono font-bold text-[#3A2622]">{selectedProof.booking_code}</p>
                   </div>
                   <div>
@@ -2399,7 +2399,7 @@ export default function AdminDashboard() {
                 initial={{ opacity: 0, scale: 0.95, y: 15 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 15 }}
-                className="glass-panel w-full max-w-md p-6 relative z-10 border border-white/80 shadow-2xl flex flex-col gap-6"
+                className="glass-panel w-full max-w-md p-6 relative z-10 border border-[#E8DFD8] shadow-xl flex flex-col gap-6"
               >
                 <div className="flex items-center justify-between">
                   <h3 className="text-xl font-bold text-[#3A2622]">
@@ -2514,7 +2514,7 @@ export default function AdminDashboard() {
                     </button>
                     <button
                       type="submit"
-                      className="px-5 py-2.5 font-semibold text-sm bg-[#BE346E] hover:bg-[#BE346E] text-white rounded-xl shadow-lg shadow-none hover:shadow transition-all cursor-pointer"
+                      className="px-5 py-2.5 font-semibold text-sm bg-[#BE346E] hover:bg-[#BE346E] text-white rounded-xl shadow-sm transition-all cursor-pointer"
                     >
                       Simpan
                     </button>
@@ -2540,7 +2540,7 @@ export default function AdminDashboard() {
                 initial={{ opacity: 0, scale: 0.95, y: 15 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 15 }}
-                className="glass-panel w-full max-w-md p-6 relative z-10 border border-white/80 shadow-2xl flex flex-col gap-6"
+                className="glass-panel w-full max-w-md p-6 relative z-10 border border-[#E8DFD8] shadow-xl flex flex-col gap-6"
               >
                 <div className="flex items-center justify-between">
                   <h3 className="text-xl font-bold text-[#3A2622]">
@@ -2600,7 +2600,7 @@ export default function AdminDashboard() {
                     </button>
                     <button
                       type="submit"
-                      className="px-5 py-2.5 font-semibold text-sm bg-[#BE346E] hover:bg-[#BE346E] text-white rounded-xl shadow-lg shadow-none hover:shadow transition-all cursor-pointer"
+                      className="px-5 py-2.5 font-semibold text-sm bg-[#BE346E] hover:bg-[#BE346E] text-white rounded-xl shadow-sm transition-all cursor-pointer"
                     >
                       Simpan
                     </button>
@@ -2626,7 +2626,7 @@ export default function AdminDashboard() {
                 initial={{ opacity: 0, scale: 0.95, y: 15 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 15 }}
-                className="glass-panel w-full max-w-md p-6 relative z-10 border border-white/80 shadow-2xl flex flex-col gap-5"
+                className="glass-panel w-full max-w-md p-6 relative z-10 border border-[#E8DFD8] shadow-xl flex flex-col gap-5"
               >
                 <div className="flex items-center justify-between">
                   <div>
@@ -2644,7 +2644,7 @@ export default function AdminDashboard() {
                 {/* Summary target booking */}
                 <div className="bg-amber-50/70 p-3.5 rounded-xl border border-amber-200/60 text-xs flex flex-col gap-1.5">
                   <div className="flex justify-between">
-                    <span className="text-amber-800 font-bold">Booking Code:</span>
+                    <span className="text-amber-800 font-bold">Kode Booking:</span>
                     <span className="font-mono font-bold text-amber-900">{rescheduleModal.reservation.booking_code}</span>
                   </div>
                   <div className="flex justify-between items-center">

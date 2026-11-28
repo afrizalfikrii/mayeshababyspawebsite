@@ -1,6 +1,22 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
-import { Calendar, Clock, CheckCircle, ChevronRight, User, Loader2, Sparkles, Baby as BabyIcon, Plus, AlertCircle, MapPin, Navigation, Pencil, Search, X as CloseIcon } from "lucide-react";
+import {
+  CalendarBlank as Calendar,
+  Clock,
+  CheckCircle,
+  CaretRight as ChevronRight,
+  User,
+  CircleNotch as Loader2,
+  Sparkle as Sparkles,
+  Baby as BabyIcon,
+  Plus,
+  WarningCircle as AlertCircle,
+  MapPin,
+  NavigationArrow as Navigation,
+  PencilSimple as Pencil,
+  MagnifyingGlass as Search,
+  X as CloseIcon,
+} from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { motion } from "motion/react";
 import { getServices, getTherapists } from "@/services/service.service";
@@ -478,18 +494,22 @@ export default function Booking() {
                                 <h4 className="font-semibold text-[#3A2622] text-sm leading-snug">
                                   {s.name}
                                 </h4>
-                                <p className="text-[11px] text-[#6E5D58] mt-0.5 tabular-nums">
+                                <p className="text-[11px] text-[#6E5D58] mt-1 tabular-nums">
                                   <span className="font-semibold text-[#BE346E]">{cls}</span>
                                   {" · "}
                                   {ageLabel}
-                                  {" · "}
-                                  {s.duration_minutes} Menit
                                 </p>
                               </div>
                             </div>
-                            <span className="font-bold text-[#3A2622] text-sm whitespace-nowrap tabular-nums shrink-0">
-                              Rp {s.price.toLocaleString("id-ID")}
-                            </span>
+                            <div className="text-right shrink-0">
+                              <span className="font-bold text-[#3A2622] text-sm whitespace-nowrap tabular-nums block">
+                                Rp {s.price.toLocaleString("id-ID")}
+                              </span>
+                              <span className="text-[11px] text-[#6E5D58] inline-flex items-center justify-end gap-1 mt-0.5 tabular-nums">
+                                <Clock size={11} className="shrink-0" />
+                                {s.duration_minutes} Menit
+                              </span>
+                            </div>
                           </div>
 
                           {isSelected && s.description && (
@@ -563,7 +583,7 @@ export default function Booking() {
                                   isFull
                                     ? "bg-[#F4EFE8] border-[#E8DFD8] text-[#D7C9BE] cursor-not-allowed opacity-60"
                                     : isSelected
-                                    ? "bg-[#BE346E] text-white border-[#BE346E] shadow-md shadow-none"
+                                    ? "bg-[#BE346E] text-white border-[#BE346E] shadow-sm"
                                     : isLimited
                                     ? "bg-amber-50 border-amber-300 text-amber-700 hover:border-amber-400 cursor-pointer"
                                     : "bg-white border-[#E8DFD8] text-[#6E5D58] hover:border-[#D7C9BE] cursor-pointer"
@@ -608,7 +628,7 @@ export default function Booking() {
                     <label
                       className={`flex items-center justify-center p-3 border rounded-xl cursor-pointer text-xs font-bold transition-all text-center ${
                         !formData.therapistId
-                          ? "bg-[#BE346E] text-white border-[#BE346E] shadow-md shadow-none"
+                          ? "bg-[#BE346E] text-white border-[#BE346E] shadow-sm"
                           : "bg-white border-[#E8DFD8] text-[#6E5D58] hover:border-[#D7C9BE]"
                       }`}
                     >
@@ -628,7 +648,7 @@ export default function Booking() {
                         key={t.id}
                         className={`flex items-center justify-center p-3 border rounded-xl cursor-pointer text-xs font-bold transition-all text-center ${
                           formData.therapistId === String(t.id)
-                            ? "bg-[#BE346E] text-white border-[#BE346E] shadow-md shadow-none"
+                            ? "bg-[#BE346E] text-white border-[#BE346E] shadow-sm"
                             : "bg-white border-[#E8DFD8] text-[#6E5D58] hover:border-[#D7C9BE]"
                         }`}
                       >
@@ -654,7 +674,7 @@ export default function Booking() {
             {/* ── STEP 3: Data Bayi ─────────────────────────────────────── */}
             {step === 3 && (
               <div className="flex flex-col gap-6">
-                <h2 className="text-xl font-bold text-[#3A2622]">3. Kenalan sama si Kecil yuk!</h2>
+                <h2 className="font-editorial text-2xl font-semibold text-[#3A2622]">3. Data Si Kecil &amp; Lokasi</h2>
 
                 {/* Reminder usia anak */}
                 <div className="flex items-start gap-3 p-3.5 bg-amber-50 border border-amber-100 rounded-2xl">
@@ -777,7 +797,7 @@ export default function Booking() {
                       <label className="block text-xs font-bold text-[#6E5D58] uppercase tracking-wider mb-2">Usia Anak (Bulan)</label>
                       <input
                         type="number"
-                        placeholder="Berapa bulan nih usianya?"
+                        placeholder="Masukkan usia dalam bulan (mis. 6)"
                         className="input-glass"
                         value={formData.babyAge}
                         onChange={(e) => setFormData({ ...formData, babyAge: e.target.value })}
@@ -788,7 +808,7 @@ export default function Booking() {
                       <label className="block text-xs font-bold text-[#6E5D58] uppercase tracking-wider mb-2">Pesan / Catatan Khusus (Opsional)</label>
                       <textarea
                         rows={3}
-                        placeholder="Mungkin kulit si Kecil sensitif, alergi baby oil tertentu, atau rewel..."
+                        placeholder="Misalnya kulit sensitif, alergi minyak tertentu, atau kondisi khusus..."
                         className="input-glass resize-none py-2.5"
                         value={formData.notes}
                         onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
@@ -838,7 +858,7 @@ export default function Booking() {
                     <button
                       type="submit"
                       disabled={isCreatingBaby}
-                      className="btn-primary py-2.5 mt-2 font-bold text-sm w-full shadow-md shadow-none flex items-center justify-center gap-1.5 cursor-pointer"
+                      className="btn-primary py-2.5 mt-2 font-bold text-sm w-full shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
                     >
                       {isCreatingBaby ? (
                         <>
@@ -874,13 +894,13 @@ export default function Booking() {
                       ) : (
                         <Navigation size={13} className="text-[#BE346E]" />
                       )}
-                      <span>{isLocating ? "Mencari Titik GPS..." : "📍 Bagikan Lokasi Saat Ini (GPS)"}</span>
+                      <span>{isLocating ? "Mencari Titik GPS..." : "Bagikan Lokasi Saat Ini (GPS)"}</span>
                     </button>
                   </div>
 
                   <textarea
                     rows={3}
-                    placeholder="Contoh: Jl. Mawar No. 10, RT 02/03, Bekasi Utara (Bisa ketik manual atau klik tombol GPS di atas) — Kosongkan jika treatment langsung di studio."
+                    placeholder="Contoh: Jl. Lawu No. 10, Tegalgede, Karanganyar (isi atau bagikan lokasi GPS jika Home Care, kosongkan jika datang ke studio)."
                     className="input-glass w-full resize-none py-2.5 text-sm"
                     value={formData.deliveryAddress}
                     onChange={(e) => setFormData({ ...formData, deliveryAddress: e.target.value })}
@@ -943,7 +963,7 @@ export default function Booking() {
                     <span className="text-[#6E5D58] font-medium">{isMomTreatment ? 'Untuk' : 'Si Kecil'}</span>
                     <span className="font-bold text-[#3A2622]">
                       {isMomTreatment
-                        ? '💆‍♀️ Bunda (Mom Treatment)'
+                        ? 'Bunda (Mom Treatment)'
                         : `${formData.babyName} (${formData.babyAge} Bulan)`}
                     </span>
                   </div>
@@ -1019,7 +1039,7 @@ export default function Booking() {
               type="button"
               onClick={handleNext}
               disabled={isSubmitting}
-              className="btn-primary flex items-center justify-center gap-2 px-8 py-2.5 font-semibold text-sm shadow-md shadow-none cursor-pointer min-w-[160px]"
+              className="btn-primary flex items-center justify-center gap-2 px-8 py-2.5 font-semibold text-sm shadow-sm cursor-pointer min-w-[160px]"
             >
               {isSubmitting ? (
                 <>

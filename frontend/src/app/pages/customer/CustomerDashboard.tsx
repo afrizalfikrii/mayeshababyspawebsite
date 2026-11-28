@@ -1,6 +1,18 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
-import { User, Calendar, Clock, MapPin, Plus, Loader2, Trash2, X, Baby as BabyIcon, Pencil, Check } from "lucide-react";
+import {
+  User,
+  CalendarBlank as Calendar,
+  Clock,
+  MapPin,
+  Plus,
+  CircleNotch as Loader2,
+  Trash as Trash2,
+  X,
+  Baby as BabyIcon,
+  PencilSimple as Pencil,
+  Check,
+} from "@phosphor-icons/react";
 import { motion, AnimatePresence } from "motion/react";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
@@ -182,7 +194,7 @@ export default function CustomerDashboard() {
                   <textarea
                     rows={3}
                     className="input-glass w-full resize-none py-2 text-xs"
-                    placeholder="Contoh: Jl. Mawar No. 10, RT 02/03, Bekasi Utara"
+                    placeholder="Contoh: Jl. Lawu No. 10, Tegalgede, Karanganyar"
                     value={addressInput}
                     onChange={(e) => setAddressInput(e.target.value)}
                     autoFocus
@@ -282,7 +294,7 @@ export default function CustomerDashboard() {
                 <Calendar className="mx-auto text-[#D7C9BE] mb-4" size={48} />
                 <p className="text-[#6E5D58] font-semibold text-lg">Belum ada jadwal sesi</p>
                 <p className="text-[#6E5D58] text-sm max-w-sm mx-auto mt-1">
-                  Yuk, jadwalkan spa atau pijat rileks untuk buah hati Bunda sekarang juga.
+                  Jadwalkan sesi spa atau pijat lembut untuk buah hati Anda kapan saja.
                 </p>
                 <Link to="/reservasi" className="btn-primary mt-6 inline-flex items-center gap-2 py-2.5 px-6">
                   Buat Reservasi Pertama
@@ -372,7 +384,7 @@ export default function CustomerDashboard() {
               initial={{ opacity: 0, scale: 0.95, y: 15 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              className="glass-panel w-full max-w-md p-6 relative z-10 border border-white/80 shadow-2xl flex flex-col gap-6"
+              className="glass-panel w-full max-w-md p-6 relative z-10 border border-[#E8DFD8] shadow-xl flex flex-col gap-6"
             >
               <div className="flex items-center justify-between">
                 <h3 className="text-xl font-bold text-[#3A2622]">Tambah Profil Anak</h3>
@@ -433,7 +445,7 @@ export default function CustomerDashboard() {
                   <button
                     type="submit"
                     disabled={isCreatingBaby}
-                    className="px-5 py-2.5 font-semibold text-sm bg-[#BE346E] hover:bg-[#BE346E] text-white rounded-xl shadow-lg shadow-none hover:shadow transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                    className="px-5 py-2.5 font-semibold text-sm bg-[#BE346E] hover:bg-[#BE346E] text-white rounded-xl shadow-sm transition-all cursor-pointer flex items-center justify-center gap-1.5"
                   >
                     {isCreatingBaby ? (
                       <>

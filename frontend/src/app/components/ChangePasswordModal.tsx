@@ -1,5 +1,10 @@
 import { useEffect, useState } from "react";
-import { Eye, EyeOff, Loader2, X } from "lucide-react";
+import {
+  Eye,
+  EyeSlash as EyeOff,
+  CircleNotch as Loader2,
+  X,
+} from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { updatePassword } from "@/services/auth.service";
 

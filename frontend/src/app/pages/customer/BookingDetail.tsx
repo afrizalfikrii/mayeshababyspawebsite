@@ -3,21 +3,21 @@ import { useParams, Link, useNavigate } from "react-router";
 import { generateQrMatrix } from "@/utils/qrGenerator";
 import {
   ArrowLeft,
-  Calendar,
+  CalendarBlank as Calendar,
   Clock,
   MapPin,
   User,
   CreditCard,
-  Loader2,
-  FileImage,
-  Upload,
+  CircleNotch as Loader2,
+  Image as FileImage,
+  UploadSimple as Upload,
   CheckCircle,
   XCircle,
   Printer,
   Star,
-  Sparkles,
+  Sparkle as Sparkles,
   X,
-} from "lucide-react";
+} from "@phosphor-icons/react";
 import { motion, AnimatePresence } from "motion/react";
 import { toast } from "sonner";
 import {
@@ -184,7 +184,7 @@ export default function BookingDetail() {
     setIsUploading(true);
     try {
       await uploadPaymentProof(booking.id, selectedFile);
-      toast.success("Bukti pembayaran berhasil diupload. Mohon tunggu verifikasi admin.");
+      toast.success("Bukti pembayaran berhasil diunggah. Mohon tunggu verifikasi admin.");
       setSelectedFile(null);
       setFilePreview(null);
       fetchDetail();
@@ -250,7 +250,7 @@ export default function BookingDetail() {
         to="/dashboard"
         className="inline-flex items-center gap-2 text-[#6E5D58] hover:text-[#BE346E] mb-6 transition-colors font-semibold text-sm print:hidden"
       >
-        <ArrowLeft size={16} /> Balik ke Ruang Bunda
+        <ArrowLeft size={16} /> Kembali ke Ruang Bunda
       </Link>
 
       <div className="grid md:grid-cols-3 gap-8 items-start">
@@ -350,7 +350,7 @@ export default function BookingDetail() {
                                 rel="noopener noreferrer"
                                 className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg font-bold text-[11px] transition-all shadow-sm active:scale-95"
                               >
-                                📍 Buka Rute di Google Maps →
+                                Buka Rute di Google Maps →
                               </a>
                             ))}
                           </div>
@@ -441,7 +441,7 @@ export default function BookingDetail() {
                         <Star
                           key={idx}
                           size={16}
-                          className={idx < booking.review!.rating ? "text-amber-400 fill-amber-400" : "text-[#FAF7F2]"}
+                          className={idx < booking.review!.rating ? "text-amber-400 fill-amber-400" : "text-[#D7C9BE]"}
                         />
                       ))}
                     </div>
@@ -491,7 +491,7 @@ export default function BookingDetail() {
                   <button
                     type="submit"
                     disabled={isSubmittingReview}
-                    className="btn-primary py-3 w-full text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-60 shadow-lg shadow-none hover:shadow"
+                    className="btn-primary py-3 w-full text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-60 shadow-sm"
                   >
                     {isSubmittingReview ? (
                       <>
@@ -587,7 +587,7 @@ export default function BookingDetail() {
               <form onSubmit={handleUpload} className="flex flex-col gap-4 border-t border-[#E8DFD8] pt-4">
                 <div className="relative">
                   <label className="text-xs font-bold text-[#6E5D58] uppercase tracking-wider block mb-2">
-                    Upload Bukti Transfer
+                    Unggah Bukti Transfer
                   </label>
                   <div className="flex flex-col items-center justify-center border-2 border-dashed border-[#E8DFD8] hover:border-[#D7C9BE] rounded-2xl p-4 transition-colors relative cursor-pointer group bg-[#FAF7F2]">
                     <input
@@ -614,7 +614,7 @@ export default function BookingDetail() {
                 <button
                   type="submit"
                   disabled={isUploading || !selectedFile}
-                  className="btn-primary py-2.5 w-full text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed shadow-md shadow-none"
+                  className="btn-primary py-2.5 w-full text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed shadow-sm"
                 >
                   {isUploading ? (
                     <>
@@ -676,7 +676,7 @@ export default function BookingDetail() {
               initial={{ opacity: 0, scale: 0.95, y: 15 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              className="glass-panel w-full max-w-md p-6 relative z-10 border border-white/80 shadow-2xl flex flex-col gap-5"
+              className="glass-panel w-full max-w-md p-6 relative z-10 border border-[#E8DFD8] shadow-xl flex flex-col gap-5"
             >
               <div className="flex items-center justify-between">
                 <div>
@@ -732,7 +732,7 @@ export default function BookingDetail() {
                           className={`py-2 px-3 border rounded-xl text-xs font-bold transition-all flex flex-col items-center justify-center ${isFull
                               ? "bg-[#F4EFE8] border-[#E8DFD8] text-[#D7C9BE] cursor-not-allowed opacity-60"
                               : isSelected
-                                ? "bg-[#BE346E] text-white border-[#BE346E] shadow-md shadow-none"
+                                ? "bg-[#BE346E] text-white border-[#BE346E] shadow-sm"
                                 : isLimited
                                   ? "bg-amber-50 border-amber-300 text-amber-700 hover:border-amber-400 cursor-pointer"
                                   : "bg-white border-[#E8DFD8] text-[#3A2622] hover:border-[#D7C9BE] cursor-pointer"
@@ -774,7 +774,7 @@ export default function BookingDetail() {
                   <button
                     type="submit"
                     disabled={isRescheduling}
-                    className="btn-primary px-5 py-2.5 font-semibold text-sm shadow-md shadow-none flex items-center gap-2 cursor-pointer"
+                    className="btn-primary px-5 py-2.5 font-semibold text-sm shadow-sm flex items-center gap-2 cursor-pointer"
                   >
                     {isRescheduling ? (
                       <><Loader2 size={15} className="animate-spin" /> Menyimpan...</>

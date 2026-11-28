@@ -1,5 +1,18 @@
 import { Outlet, Link, useLocation, useNavigate } from "react-router";
-import { LogIn, LogOut, Menu, X, LayoutDashboard, MapPin, Phone, Instagram, MessageCircle, ChevronDown, Calendar, KeyRound } from "lucide-react";
+import {
+  SignIn as LogIn,
+  SignOut as LogOut,
+  List as Menu,
+  X,
+  SquaresFour as LayoutDashboard,
+  MapPin,
+  Phone,
+  InstagramLogo as Instagram,
+  ChatCircle as MessageCircle,
+  CaretDown as ChevronDown,
+  CalendarBlank as Calendar,
+  Key as KeyRound,
+} from "@phosphor-icons/react";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
@@ -559,10 +572,9 @@ export default function AppShell() {
               </div>
             </div>
 
-            <div className="pt-8 border-t border-[#E8DFD8] flex flex-col sm:flex-row justify-between items-center gap-4 text-xs text-[#6E5D58]">
+            <div className="pt-8 border-t border-[#E8DFD8] text-center text-xs text-[#6E5D58]">
               <p>© {new Date().getFullYear()} Mayesha Baby Spa. Seluruh hak cipta dilindungi.</p>
-              <span className="font-medium text-[#3A2622]">Bidan Tersertifikasi · Karanganyar</span>
-            </div>
+              </div>
           </div>
         </footer>
       )}

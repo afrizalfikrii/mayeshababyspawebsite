@@ -1,5 +1,9 @@
 import { Link } from "react-router";
-import { CheckCircle2, Calendar, ArrowRight } from "lucide-react";
+import {
+  CheckCircle as CheckCircle2,
+  CalendarBlank as Calendar,
+  ArrowRight,
+} from "@phosphor-icons/react";
 import { motion } from "motion/react";
 import confetti from "canvas-confetti";
 import { useEffect } from "react";
@@ -40,7 +44,7 @@ export default function PaymentSuccess() {
         transition={{ delay: 0.3 }}
         className="text-[#6E5D58] max-w-md mx-auto mb-8"
       >
-        Makasih Bunda! Booking sesi untuk si Kecil udah terkonfirmasi. Terapis kami nggak sabar buat main bareng!
+        Terima kasih, Bunda. Reservasi sesi perawatan untuk si Kecil telah terkonfirmasi. Terapis kami siap melayani dengan penuh perhatian.
       </motion.p>
 
       <motion.div 

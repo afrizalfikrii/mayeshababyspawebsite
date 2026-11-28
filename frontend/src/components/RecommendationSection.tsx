@@ -1,6 +1,14 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
-import { Heart, TrendingUp, Clock, ChevronRight, Loader2, Star, Zap } from "lucide-react";
+import {
+  Heart,
+  TrendUp as TrendingUp,
+  Clock,
+  CaretRight as ChevronRight,
+  CircleNotch as Loader2,
+  Star,
+  Lightning as Zap,
+} from "@phosphor-icons/react";
 import { motion, AnimatePresence } from "motion/react";
 import { getRecommendations } from "@/services/service.service";
 import type { Service } from "@/types/api.types";

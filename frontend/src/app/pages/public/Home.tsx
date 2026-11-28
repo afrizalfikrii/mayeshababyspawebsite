@@ -1,6 +1,18 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
-import { ArrowRight, Sparkles, Heart, MapPin, CheckCircle2, Loader2, Calendar, Star, Building2, Search, X as CloseIcon } from "lucide-react";
+import {
+  ArrowRight,
+  Sparkle as Sparkles,
+  Heart,
+  MapPin,
+  CheckCircle as CheckCircle2,
+  CircleNotch as Loader2,
+  CalendarBlank as Calendar,
+  Star,
+  Buildings as Building2,
+  MagnifyingGlass as Search,
+  X as CloseIcon,
+} from "@phosphor-icons/react";
 import { motion } from "motion/react";
 import { getServices } from "@/services/service.service";
 import { getPublicReviews } from "@/services/reservation.service";

@@ -1,6 +1,15 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { ArrowLeft, Mail, Lock, User as UserIcon, Phone, Loader2, Eye, EyeOff } from "lucide-react";
+import {
+  ArrowLeft,
+  EnvelopeSimple as Mail,
+  Lock,
+  User as UserIcon,
+  Phone,
+  CircleNotch as Loader2,
+  Eye,
+  EyeSlash as EyeOff,
+} from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import type { LoginPayload, RegisterPayload } from "@/types/api.types";
